@@ -16,10 +16,10 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from frictionless import Package
 
-from parquet_fe_prototype.models import db, User
-from parquet_fe_prototype.duckdb_query import ag_grid_to_duckdb, Filter
-from parquet_fe_prototype.search import initialize_index, run_search
-from parquet_fe_prototype.utils import clean_descriptions
+from eel_hole.models import db, User
+from eel_hole.duckdb_query import ag_grid_to_duckdb, Filter
+from eel_hole.search import initialize_index, run_search
+from eel_hole.utils import clean_descriptions
 
 AUTH0_DOMAIN = os.getenv("PUDL_VIEWER_AUTH0_DOMAIN")
 CLIENT_ID = os.getenv("PUDL_VIEWER_AUTH0_CLIENT_ID")
@@ -107,7 +107,7 @@ def create_app():
     2. set up the search index
     3. define a bunch of application routes
     """
-    app = Flask("parquet_fe_prototype", instance_relative_config=True)
+    app = Flask("eel_hole", instance_relative_config=True)
     if os.getenv("IS_CLOUD_RUN"):
         app.config["PREFERRED_URL_SCHEME"] = "https"
     app.config.from_mapping(

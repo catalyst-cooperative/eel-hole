@@ -11,7 +11,7 @@ npm install
 uv sync
 ```
 
-## Running this thing
+## Running this thing locally
 
 We have a docker compose file, but *make sure to build the JS/CSS first*:
 
@@ -29,6 +29,12 @@ $ PUDL_VIEWER_LOGIN_DISABLED=true compose up
 
 You won't be able to log in, but you won't have to, to see the preview functionality.
 
+If you do want to test the login functionality, you'll need to make sure the database is up-to-date:
+
+```bash
+$ uv run flask --app eel_hole db upgrade
+```
+
 ## Tests
 
 We only have a few unit tests right now - no frontend testing or anything.
@@ -37,13 +43,18 @@ We only have a few unit tests right now - no frontend testing or anything.
 $ uv run pytest
 ```
 
-## DB migration
+## Running on GCP
 
-## Deployment
+See the [Terraform file](https://github.com/catalyst-cooperative/pudl/blob/main/terraform/pudl-viewer.tf) for infrastructure setup details.
 
+### Deployment
 1. run `make gcp-latest` to push the image up to GCP.
-2. If necessary, run the Cloud Run job that runs a db migration.
 2. re-deploy the service on Cloud Run.
+
+### DB migration
+1. run `make gcp-latest` to push the image up to GCP.
+2. Run the Cloud Run job that runs a db migration.
+
 
 ## Architecture
 

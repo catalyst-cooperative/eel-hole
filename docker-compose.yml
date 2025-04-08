@@ -1,11 +1,11 @@
 volumes:
   pudl_viewer_postgres_data:
 services:
-  pudl_viewer:
+  eel_hole:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: pudl-viewer
+    container_name: eel-hole
     environment:
       PUDL_VIEWER_SECRET_KEY: ${PUDL_VIEWER_FLASK_SECRET_KEY-pudl_viewer_secret}
       PUDL_VIEWER_DB_HOST: ${PUDL_VIEWER_DB_HOST-postgres}
@@ -21,8 +21,8 @@ services:
       PORT: 8080
     volumes:
       - type: bind
-        source: parquet_fe_prototype
-        target: /app/parquet_fe_prototype
+        source: eel_hole
+        target: /app/eel_hole
       - type: bind
         source: dist
         target: /app/dist

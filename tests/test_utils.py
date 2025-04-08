@@ -1,4 +1,4 @@
-from parquet_fe_prototype.utils import rst_to_html
+from eel_hole.utils import rst_to_html
 
 
 def test_rst_to_html():

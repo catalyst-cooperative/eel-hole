@@ -4,7 +4,7 @@ from collections import namedtuple
 import duckdb
 import pytest
 
-from parquet_fe_prototype.duckdb_query import Filter, ag_grid_to_duckdb
+from eel_hole.duckdb_query import Filter, ag_grid_to_duckdb
 
 
 @pytest.fixture(scope="session")

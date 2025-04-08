@@ -73,6 +73,6 @@ For **preview**:
 
 1. Client sends the filters that the user's applied to the server, and gets a DuckDB query back. See the `/api/duckdb` endpoint and `duckdb_query.py` files.
 2. Client queries DuckDB (using [duckdb-wasm](https://duckdb.org/docs/api/wasm/overview.html)), which can read data from remote Parquet files.
-3. The data comes back as Apache Arrow tables, which we put into the [Perspective](https://perspective.finos.org/) viewer.
+3. The data comes back as Apache Arrow tables, which we convert into JS arrays to feed into [AG Grid](https://www.ag-grid.com/) viewer.
 
 The database is *only* used for storing users right now.

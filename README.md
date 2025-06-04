@@ -43,6 +43,40 @@ We only have a few unit tests right now - no frontend testing or anything.
 $ uv run pytest
 ```
 
+## Feature Flags
+In order to make testing out features more convenient, you can toggle feature flags in a query parameter in the url or via a config file.
+
+To enable a feature flag temporarily during development, append it as a query string in the URL:
+```
+http://localhost:5000/somepage?my_feature=true
+```
+You can also define persistent feature flags via the Flask config:
+```
+app.config["FEATURE_FLAGS"] = {
+    "my_feature": True,
+}
+```
+This allows you to add conditional logic in your code:
+```
+def some_function():
+    if is_flag_enabled('my_feature'):
+        # behavior of the feature we want to test
+    else:
+        # regular behavior
+```
+
+To conditionally guard routes with feature flags, use the `@require_feature_flag("my_feature")` decorator. If the flag is not enabled, the route will return a `404`.
+
+For example:
+```
+@app.route("/new-feature")
+@require_feature_flag("my_feature")
+def new_feature():
+    return "This feature is gated!"
+```
+
+Note that a feature flag added in the URL is only accessible after the app has been loaded.
+
 ## Running on GCP
 
 See the [Terraform file](https://github.com/catalyst-cooperative/pudl/blob/main/terraform/pudl-viewer.tf) for infrastructure setup details.

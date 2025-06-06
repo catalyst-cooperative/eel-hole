@@ -139,15 +139,6 @@ def create_app():
     login_manager = LoginManager()
     login_manager.init_app(app)
 
-    # # TODO: implement multiple search indices as so
-    # app.search_indices = {
-    #     "default": __build_search_index(["pudl_parquet"]),
-    #     "ferc_enabled": __build_search_index([
-    #         "pudl_parquet",
-    #         "ferc1_xbrl", "ferc2_xbrl", "ferc60_xbrl", "ferc6_xbrl", "ferc714_xbrl"
-    #     ]),
-    # }
-
     default_sources = ["pudl_parquet"]
     ferc_sources = [
         "ferc1_xbrl",
@@ -163,7 +154,7 @@ def create_app():
 
     # Store index and resources per source set
     app.search_indices = {
-        key: _build_search_index(source_keys)
+        key: __build_search_index(source_keys)
         for key, source_keys in app.search_sources.items()
     }
 

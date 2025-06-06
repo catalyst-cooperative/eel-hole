@@ -2,9 +2,10 @@
 
 from flask import has_request_context, request, session, current_app, abort
 from functools import wraps
+from collections.abc import Callable
 
 
-def _coerce_flag_value(value):
+def _coerce_flag_value(value: bool | int | str) -> bool:
     """
     Convert feature flag values to a boolean.
 
@@ -35,7 +36,7 @@ def _coerce_flag_value(value):
     )
 
 
-def is_flag_enabled(flag_name):
+def is_flag_enabled(flag_name: str) -> bool:
     """
     Determine if a feature flag is enabled.
 
@@ -55,7 +56,7 @@ def is_flag_enabled(flag_name):
     return coerced_flag_from_config
 
 
-def require_feature_flag(flag_name, value="true"):
+def require_feature_flag(flag_name: str, value: str = "true") -> Callable:
     """Route-level decorator for flag-based gating."""
 
     def decorator(f):

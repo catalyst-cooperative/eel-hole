@@ -1,6 +1,10 @@
 import pytest
 from flask import Flask
-from eel_hole.feature_flags import is_flag_enabled, require_feature_flag
+from eel_hole.feature_flags import (
+    is_flag_enabled,
+    require_feature_flag,
+    _coerce_flag_value,
+)
 
 
 @pytest.fixture
@@ -24,6 +28,43 @@ def app():
 @pytest.fixture
 def client(app):
     return app.test_client()
+
+
+@pytest.mark.parametrize(
+    "input_value,expected",
+    [
+        (True, True),
+        (False, False),
+        (1, True),
+        (0, False),
+        ("true", True),
+        ("TRUE", True),
+        ("false", False),
+        ("FALSE", False),
+    ],
+)
+def test_coerce_flag_value_valid(input_value, expected):
+    assert _coerce_flag_value(input_value) is expected
+
+
+@pytest.mark.parametrize(
+    "input_value",
+    [
+        "yes",
+        "no",
+        "enabled",
+        "0",
+        "1",
+        2,
+        -1,
+        [],
+        {},
+        None,
+    ],
+)
+def test_coerce_flag_value_invalid(input_value):
+    with pytest.raises(ValueError):
+        _coerce_flag_value(input_value)
 
 
 def test_is_flag_enabled_with_query_string(client):

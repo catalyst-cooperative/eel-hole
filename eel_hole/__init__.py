@@ -31,7 +31,8 @@ from eel_hole.models import db, User
 from eel_hole.duckdb_query import ag_grid_to_duckdb, Filter
 from eel_hole.logs import log
 from eel_hole.search import initialize_index, run_search
-from eel_hole.utils import clean_descriptions
+from eel_hole.utils import clean_descriptions, merge_datapackages
+from eel_hole.feature_flags import is_flag_enabled
 
 AUTH0_DOMAIN = os.getenv("PUDL_VIEWER_AUTH0_DOMAIN")
 CLIENT_ID = os.getenv("PUDL_VIEWER_AUTH0_CLIENT_ID")
@@ -84,15 +85,31 @@ def __init_db(db: SQLAlchemy, app: Flask):
     migrate.init_app(app, db)
 
 
-def __build_search_index(app):
-    """Create a search index from a Frictionless datapackage."""
-    s3_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/nightly/pudl_parquet_datapackage.json"
+def __build_search_index(source_keys):
+    """Create a search index.
 
-    log.info(f"loading datapackage from {s3_url}")
-    datapackage_descriptor = requests.get(s3_url).json()
-    datapackage = clean_descriptions(Package.from_descriptor(datapackage_descriptor))
-    index = initialize_index(datapackage)
-    return datapackage, index
+    We currently convert a static YAML file into a Frictionless datapackage,
+    then pass that in.
+    """
+
+    s3_urls = [
+        f"https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/nightly/{source_key}_datapackage.json"
+        for source_key in source_keys
+    ]
+
+    log.info(f"loading datapackage files from {', '.join(s3_urls)}")
+
+    packages = []
+    for url in s3_urls:
+        descriptor = requests.get(url).json()
+        pkg = Package.from_descriptor(descriptor)
+        cleaned = clean_descriptions(pkg)
+        packages.append(cleaned)
+
+    merged_package = merge_datapackages(packages)
+    index = initialize_index(merged_package)
+
+    return merged_package, index
 
 
 def __sort_resources_by_name(resource):
@@ -153,7 +170,33 @@ def create_app():
     login_manager = LoginManager()
     login_manager.init_app(app)
 
-    datapackage, index = __build_search_index(app)
+    # # TODO: implement multiple search indices as so
+    # app.search_indices = {
+    #     "default": __build_search_index(["pudl_parquet"]),
+    #     "ferc_enabled": __build_search_index([
+    #         "pudl_parquet",
+    #         "ferc1_xbrl", "ferc2_xbrl", "ferc60_xbrl", "ferc6_xbrl", "ferc714_xbrl"
+    #     ]),
+    # }
+
+    default_sources = ["pudl_parquet"]
+    ferc_sources = [
+        "ferc1_xbrl",
+        "ferc2_xbrl",
+        "ferc60_xbrl",
+        "ferc6_xbrl",
+        "ferc714_xbrl",
+    ]
+    app.search_sources = {
+        "default": default_sources,
+        "ferc_enabled": default_sources + ferc_sources,
+    }
+
+    # Store index and resources per source set
+    app.search_indices = {
+        key: _build_search_index(source_keys)
+        for key, source_keys in app.search_sources.items()
+    }
 
     sorted_resources = sorted(datapackage.resources, key=__sort_resources_by_name)
 
@@ -314,10 +357,15 @@ def create_app():
         query = request.args.get("q")
         log.info("search", url=request.full_path, query=query)
 
+        if is_flag_enabled("ferc_enabled"):
+            datapackage, index = app.search_indices["ferc_enabled"]
+        else:
+            datapackage, index = app.search_indices["default"]
+
         if query:
             resources = run_search(ix=index, raw_query=query)
         else:
-            resources = sorted_resources
+            resources = sorted(datapackage.resources, key=sort_resources_by_name)
 
         return render_template(template, resources=resources, query=query)
 

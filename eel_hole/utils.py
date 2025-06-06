@@ -5,6 +5,10 @@ import re
 from frictionless import Package
 from docutils.core import publish_parts
 
+import structlog
+
+log = structlog.get_logger(__name__)
+
 
 SPHINX_TAGS = re.compile(r":(?:ref|func|doc):`([^`]+)`")
 
@@ -29,3 +33,18 @@ def clean_descriptions(datapackage: Package) -> Package:
         for field in resource.schema.fields:
             field.description = rst_to_html(field.description)
     return datapackage
+
+
+def merge_datapackages(datapackages: list[Package]) -> Package:
+    seen_names = set()
+    all_resources = []
+
+    for pkg in datapackages:
+        for res in pkg.resources:
+            if res.name not in seen_names:
+                all_resources.append(res.to_descriptor())
+                seen_names.add(res.name)
+            else:
+                log.warning(f"Duplicate resource name skipped: {res.name}")
+
+    return Package.from_descriptor({"resources": all_resources})

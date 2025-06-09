@@ -23,9 +23,13 @@ services:
       - type: bind
         source: eel_hole
         target: /app/eel_hole
+        bind:
+          selinux: z
       - type: bind
         source: dist
         target: /app/dist
+        bind:
+          selinux: z
     ports:
       - target: 8080
         published: 8080

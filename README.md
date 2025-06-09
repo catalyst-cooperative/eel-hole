@@ -24,7 +24,7 @@ $ docker compose build && docker compose up
 If you want to skip the auth0 setup and just disable the authentication altogether, set the `PUDL_VIEWER_LOGIN_DISABLED` env var:
 
 ```bash
-$ PUDL_VIEWER_LOGIN_DISABLED=true compose up
+$ PUDL_VIEWER_LOGIN_DISABLED=true docker compose up
 ```
 
 You won't be able to log in, but you won't have to, to see the preview functionality.

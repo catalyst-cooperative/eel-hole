@@ -1,8 +1,14 @@
 import pytest
 import json
-from frictionless import Package
+from frictionless import Package, Resource, Schema, Field
 
-from eel_hole.utils import rst_to_html, merge_datapackages
+from eel_hole.utils import (
+    clean_descriptions,
+    rst_to_html,
+    plaintext_to_html,
+    to_html,
+    merge_datapackages,
+)
 
 
 @pytest.fixture
@@ -70,3 +76,59 @@ def test_merge_empty_input():
     merged = merge_datapackages([])
     assert isinstance(merged, Package)
     assert merged.resources == []
+
+
+def test_plaintext_to_html_basic_formatting():
+    text = "This is *italic* and **bold** text.\nNext line."
+    html_output = plaintext_to_html(text)
+    assert "<em>italic</em>" in html_output
+    assert "<strong>bold</strong>" in html_output
+    assert "Next line.<br>" in html_output
+
+
+def test_plaintext_to_html_lists():
+    text = "- item one\n- item two\n1. first\n2. second"
+    html_output = plaintext_to_html(text)
+    assert "<ul>" in html_output
+    assert "<ol>" in html_output
+    assert "<li>item one</li>" in html_output
+    assert "<li>second</li>" in html_output
+
+
+def test_to_html_rst_valid():
+    text = "Some text with a :ref:`link`."
+    html_output = to_html(text)
+    assert "<main>" in html_output
+    assert "link" in html_output
+
+
+def test_clean_descriptions():
+    pkg = Package(
+        {
+            "name": "test",
+            "description": "A *simple* description.",
+            "resources": [
+                {
+                    "name": "res1",
+                    "description": "1. First\n2. Second",
+                    "data": [],  # <-- Required field added
+                    "schema": {
+                        "fields": [
+                            {
+                                "name": "field1",
+                                "type": "string",
+                                "description": "**bold** field",
+                            }
+                        ]
+                    },
+                }
+            ],
+        }
+    )
+    cleaned = clean_descriptions(pkg)
+
+    assert "<em>simple</em>" in cleaned.description
+    res_desc = cleaned.get_resource("res1").description
+    assert "<ol" in res_desc and "<li><p>First</p></li>" in res_desc
+    field_desc = cleaned.get_resource("res1").schema.get_field("field1").description
+    assert "<strong>bold</strong>" in field_desc

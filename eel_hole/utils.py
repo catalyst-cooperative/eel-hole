@@ -1,9 +1,11 @@
 """Useful helper functions."""
 
+import html
 import re
 
 from frictionless import Package
 from docutils.core import publish_parts
+from docutils.utils import SystemMessage
 
 import structlog
 
@@ -25,13 +27,61 @@ def rst_to_html(rst: str) -> str:
     )["html_body"]
 
 
+def plaintext_to_html(text: str) -> str:
+    escaped = html.escape(text)
+
+    # Handle bold and italics (simple Markdown-style)
+    escaped = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", escaped)
+    escaped = re.sub(r"\*(.+?)\*", r"<em>\1</em>", escaped)
+
+    # Detect lists (bulleted or numbered)
+    lines = escaped.splitlines()
+    html_lines = []
+    in_ul = in_ol = False
+
+    for line in lines:
+        if re.match(r"^\s*[-*]\s+", line):
+            if not in_ul:
+                html_lines.append("<ul>")
+                in_ul = True
+            html_lines.append(f"<li>{line.strip()[2:]}</li>")
+        elif re.match(r"^\s*\d+\.\s+", line):
+            if not in_ol:
+                html_lines.append("<ol>")
+                in_ol = True
+            html_lines.append(f"<li>{line.strip().split(None, 1)[1]}</li>")
+        else:
+            if in_ul:
+                html_lines.append("</ul>")
+                in_ul = False
+            if in_ol:
+                html_lines.append("</ol>")
+                in_ol = False
+            html_lines.append(line + "<br>")
+
+    if in_ul:
+        html_lines.append("</ul>")
+    if in_ol:
+        html_lines.append("</ol>")
+
+    return "\n".join(html_lines)
+
+
+def to_html(text: str) -> str:
+    try:
+        return rst_to_html(text)
+    except SystemMessage:
+        # If invalid RST, fallback to plaintext HTML conversion
+        return plaintext_to_html(text)
+
+
 def clean_descriptions(datapackage: Package) -> Package:
     if datapackage.description:
-        datapackage.description = rst_to_html(datapackage.description)
+        datapackage.description = to_html(datapackage.description)
     for resource in datapackage.resources:
-        resource.description = rst_to_html(resource.description)
+        resource.description = to_html(resource.description)
         for field in resource.schema.fields:
-            field.description = rst_to_html(field.description)
+            field.description = to_html(field.description)
     return datapackage
 
 

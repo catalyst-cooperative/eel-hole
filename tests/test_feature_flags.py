@@ -10,6 +10,7 @@ from eel_hole.feature_flags import (
 @pytest.fixture
 def app():
     app = Flask(__name__)
+    app.config["SECRET_KEY"] = "test-secret-key"
     app.config["TESTING"] = True
     app.config["FEATURE_FLAGS"] = {"foo": True, "bar": False}
 
@@ -84,7 +85,8 @@ def test_is_flag_disabled_when_false(client, app):
     assert response.data == b"disabled"
 
 
-def test_require_feature_flag_blocks_without_query(client):
+def test_require_feature_flag_blocks_without_query(client, app):
+    app.config["FEATURE_FLAGS"]["foo"] = False
     response = client.get("/gated")
     assert response.status_code == 404
 
@@ -93,3 +95,50 @@ def test_require_feature_flag_allows_with_query(client):
     response = client.get("/gated?foo=true")
     assert response.status_code == 200
     assert b"allowed" in response.data
+
+
+def test_flag_persists_in_session(client):
+    with client:
+        client.get("/test_flag?foo=false")  # Set session value
+        response = client.get("/test_flag")
+        assert response.data == b"disabled"  # Persisted session state
+
+
+def test_session_overrides_config(client, app):
+    app.config["FEATURE_FLAGS"]["foo"] = False
+    with client:
+        client.get("/test_flag?foo=true")  # sets session flag to true
+        response = client.get("/test_flag")
+        assert response.data == b"enabled"  # session overrides config
+
+
+def test_unset_flag_via_false_query(client):
+    with client:
+        client.get("/test_flag?foo=true")
+        response = client.get("/test_flag")
+        assert response.data == b"enabled"
+
+        client.get("/test_flag?foo=false")
+        response = client.get("/test_flag")
+        assert response.data == b"disabled"
+
+
+def test_unknown_flag_defaults_to_false(client):
+    @client.application.route("/unknown_flag")
+    def unknown_flag():
+        return "enabled" if is_flag_enabled("unknown") else "disabled"
+
+    response = client.get("/unknown_flag")
+    assert response.data == b"disabled"
+
+
+def test_require_flag_value_mismatch(client):
+    @client.application.route("/false_only")
+    @require_feature_flag("foo", value="false")
+    def only_when_false():
+        return "should not be allowed"
+
+    with client:
+        client.get("/test_flag?foo=true")  # sets session
+        response = client.get("/false_only")
+        assert response.status_code == 404

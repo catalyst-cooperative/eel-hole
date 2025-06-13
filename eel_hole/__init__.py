@@ -9,13 +9,15 @@ from urllib.parse import quote
 import requests
 import structlog
 from authlib.integrations.flask_client import OAuth
-from flask import Flask, redirect, request, render_template, session, url_for
+from flask import Flask, redirect, request, render_template, session
+from flask import url_for as flask_url_for
 from flask_htmx import HTMX
 from flask_login import LoginManager, login_required, login_user, logout_user
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from frictionless import Package
 
+from eel_hole.config import DevConfig, ProdConfig
 from eel_hole.models import db, User
 from eel_hole.duckdb_query import ag_grid_to_duckdb, Filter
 from eel_hole.search import initialize_index, run_search
@@ -96,6 +98,14 @@ def __build_search_index(app):
     return datapackage, index
 
 
+def url_for_with_flags(endpoint, **values):
+    """Wrap Flask's url_for to persist all active feature flags via query string."""
+    for flag, enabled in session.items():
+        if isinstance(enabled, bool) and enabled is True:
+            values.setdefault(flag, "true")
+    return flask_url_for(endpoint, **values)
+
+
 def create_app():
     """Main app definition.
 
@@ -108,13 +118,12 @@ def create_app():
     3. define a bunch of application routes
     """
     app = Flask("eel_hole", instance_relative_config=True)
-    if os.getenv("IS_CLOUD_RUN"):
-        app.config["PREFERRED_URL_SCHEME"] = "https"
-    app.config.from_mapping(
-        SECRET_KEY=os.getenv("PUDL_VIEWER_SECRET_KEY"),
-        TEMPLATES_AUTO_RELOAD=True,
-        LOGIN_DISABLED=os.getenv("PUDL_VIEWER_LOGIN_DISABLED", False),
-    )
+
+    config_name = os.getenv("FLASK_ENV", "development").lower()
+    if config_name == "production":
+        app.config.from_object(ProdConfig)
+    else:
+        app.config.from_object(DevConfig)
 
     auth0 = __init_auth0(app)
 
@@ -155,7 +164,7 @@ def create_app():
     @app.get("/")
     def home():
         """Just a redirect for search until we come up with proper content."""
-        return redirect(url_for("search"))
+        return redirect(url_for_with_flags("search"))
 
     @login_manager.user_loader
     def __load_user(user_id):
@@ -171,9 +180,9 @@ def create_app():
         """
         next = request.args.get("next")
         if next:
-            redirect_uri = url_for("callback", next=next, _external=True)
+            redirect_uri = url_for_with_flags("callback", next=next, _external=True)
         else:
-            redirect_uri = url_for("callback", _external=True)
+            redirect_uri = url_for_with_flags("callback", _external=True)
         print(redirect_uri)
         return auth0.authorize_redirect(redirect_uri=redirect_uri)
 
@@ -187,7 +196,7 @@ def create_app():
         Params:
           next: the next URL to redirect to once logged in.
         """
-        next_url = request.args.get("next", url_for("search"))
+        next_url = request.args.get("next", url_for_with_flags("search"))
         token = auth0.authorize_access_token()
         userinfo = token["userinfo"]
         user = User.query.filter_by(auth0_id=userinfo["sub"]).first()
@@ -204,7 +213,7 @@ def create_app():
         """Log out user from our session & auth0 session, then go home."""
         logout_user()
         session.clear()
-        return_to = quote(url_for("home", _external=True))
+        return_to = quote(url_for_with_flags("home", _external=True))
         response = redirect(
             f"https://{AUTH0_DOMAIN}/v2/logout?"
             f"client_id={CLIENT_ID}&"

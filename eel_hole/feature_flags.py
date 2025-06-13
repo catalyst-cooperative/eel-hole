@@ -40,29 +40,32 @@ def is_flag_enabled(flag_name: str) -> bool:
     """
     Determine if a feature flag is enabled.
 
-    Checks for `flag_name` in the query string (e.g., ?my_flag=true),
-    falling back to the Flask config under `FEATURE_FLAGS`.
-
-    Returns:
-        bool: True if the flag is enabled, False otherwise.
-
-    Raises:
-        ValueError: If the config value is not a valid boolean-like type.
+    1. Query string takes priority (and updates session).
+    2. Session stores user-specific flag.
+    3. Fallback to config default.
     """
     flag_from_config = current_app.config.get("FEATURE_FLAGS", {}).get(flag_name, False)
     coerced_flag_from_config = _coerce_flag_value(flag_from_config)
+
     if has_request_context():
-        return request.args.get(flag_name) == "true" or coerced_flag_from_config
+        if flag_name in request.args:
+            value = _coerce_flag_value(request.args[flag_name])
+            session[flag_name] = value
+            return value
+        if flag_name in session:
+            return session[flag_name]
+
     return coerced_flag_from_config
 
 
 def require_feature_flag(flag_name: str, value: str = "true") -> Callable:
-    """Route-level decorator for flag-based gating."""
+    """Route-level decorator that enforces feature flags using session or query params."""
 
     def decorator(f):
         @wraps(f)
         def wrapped(*args, **kwargs):
-            if request.args.get(flag_name) != value:
+            expected = _coerce_flag_value(value)
+            if is_flag_enabled(flag_name) != expected:
                 return abort(404)
             return f(*args, **kwargs)
 

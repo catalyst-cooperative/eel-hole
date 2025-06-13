@@ -86,6 +86,18 @@ def clean_descriptions(datapackage: Package) -> Package:
 
 
 def merge_datapackages(datapackages: list[Package]) -> Package:
+    """Merge multiple frictionless `Package` objects into a single package.
+
+    Resources from the input packages are combined into one, preserving the original order.
+    If a resource with the same name appears more than once, only the first occurrence
+    is included in the result; subsequent duplicates are skipped with a warning.
+
+    Args:
+        datapackages (list[Package]): A list of frictionless Package objects to merge.
+
+    Returns:
+        Package: A new frictionless Package containing the merged resources.
+    """
     seen_names = set()
     all_resources = []
 

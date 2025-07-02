@@ -79,11 +79,24 @@ def test_merge_empty_input():
 
 
 def test_plaintext_to_html_basic_formatting():
-    text = "This is *italic* and **bold** text.\nNext line."
+    text = "This is *italic* and **bold** text.\n\nNext paragraph.\nIgnore single linebreak."
     html_output = plaintext_to_html(text)
-    assert "<em>italic</em>" in html_output
-    assert "<strong>bold</strong>" in html_output
-    assert "Next line.<br>" in html_output
+
+    # Check formatting
+    assert (
+        "<em>italic</em>" in html_output
+    ), "Expected italic text to be wrapped in <em> tags."
+    assert (
+        "<strong>bold</strong>" in html_output
+    ), "Expected bold text to be wrapped in <strong> tags."
+
+    # Check paragraph wrapping
+    assert (
+        "<p>This is <em>italic</em> and <strong>bold</strong> text.</p>" in html_output
+    ), "Expected first paragraph to be wrapped in <p> tags with correct formatting."
+    assert (
+        "<p>Next paragraph.\nIgnore single linebreak.</p>" in html_output
+    ), "Expected second paragraph to be wrapped in <p> tags with single newline preserved."
 
 
 def test_plaintext_to_html_lists():

@@ -9,6 +9,7 @@ Install the required packages:
 ```
 npm install
 uv sync
+uv pip install -e .
 ```
 
 ## Running this thing locally
@@ -32,8 +33,16 @@ You won't be able to log in, but you won't have to, to see the preview functiona
 If you do want to test the login functionality, you'll need to make sure the database is up-to-date:
 
 ```bash
-$ uv run flask --app eel_hole db upgrade
+$ docker compose up -d
+$ docker compose exec eel_hole uv run flask db upgrade
 ```
+
+You will also have to set some auth0 environment variables -
+see the `[envrc-template](./envrc-template)` for which ones.
+If you are using a tool like `[direnv](https://direnv.net/)`,
+you probably want to just copy that template to `.envrc`
+and update the values with ones you get from
+[the auth0 dashboard](https://manage.auth0.com/dashboard).
 
 ## Tests
 

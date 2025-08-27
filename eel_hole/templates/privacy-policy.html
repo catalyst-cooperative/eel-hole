@@ -8,6 +8,38 @@
   <div class="container">
 
     <div class="block title">Privacy Policy</div>
+    {% if current_user.is_authenticated %}
+      <div class="notification">
+        <div class="content">
+          <p>
+            We track some of your activity if you are logged in,
+            so we need you to accept this privacy policy
+            in order to use the logged-in features of the site.
+          </p>
+          <p>
+            If you reject the terms of the privacy policy,
+            you will be logged out,
+            but you can keep using the site as an anonymous user.
+            You can log back in and accept the privacy policy if you change your mind.
+          </p>
+        </div>
+
+        <form class="block" action="/set-privacy-settings" method="POST">
+            <input
+              class="button is-primary"
+              type="submit"
+              name="privacy-policy"
+              value="Accept"
+            />
+            <input
+              class="button is-danger"
+              type="submit"
+              name="privacy-policy"
+              value="Reject"
+            />
+        </form>
+      </div>
+    {% endif %}
 
     <div class="content">
       <p>
@@ -113,14 +145,6 @@
       </p>
     </div>
 
-    {% if current_user.is_authenticated %}
-    <div class="block">
-      <label class="checkbox">
-        <input type="checkbox" />
-        I agree to the privacy policy
-      </label>
-    </div>
-    {% endif %}
   </div>
 </div>
 

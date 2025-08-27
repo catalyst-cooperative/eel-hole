@@ -11,7 +11,13 @@ import structlog
 from authlib.integrations.flask_client import OAuth
 from flask import Flask, redirect, request, render_template, session, url_for
 from flask_htmx import HTMX
-from flask_login import LoginManager, login_required, login_user, logout_user
+from flask_login import (
+    LoginManager,
+    current_user,
+    login_required,
+    login_user,
+    logout_user,
+)
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from frictionless import Package
@@ -213,6 +219,18 @@ def create_app():
     def privacy_policy():
         """Display the privacy policy and controls to accept/reject."""
         return render_template("privacy-policy.html")
+
+    @login_required
+    @app.post("/set-privacy-settings")
+    def set_privacy_settings():
+        """Display the privacy policy and controls to accept/reject."""
+        accepted = request.form["privacy-policy"].lower() == "accept"
+        log.info("privacy-policy", accepted=accepted)
+        current_user.accepted_privacy_policy = accepted
+        db.session.commit()
+        if not accepted:
+            return redirect(url_for("logout"))
+        return redirect(url_for("privacy_policy"))
 
     @app.get("/search")
     def search():

@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}PUDL Viewer privacy policy{% endblock %}
+
+{% block content %}
+
+<div class="section">
+  <div class="container">
+
+    <div class="block title">Privacy Policy</div>
+
+    <div class="content">
+      <p>
+        We require registration for the data viewer portion of our site so that
+        we can contact you to resolve problems with excessive or abnormal usage patterns.
+        (Mostly, it's to avoid getting hammered by bots.
+        But maybe you were planning to write a bot and give it a hammer!
+        In which case, yeah, we would want to get in touch with you about that)
+      </p>
+
+      <p>
+        We retain your email address if you have signed up for an account in the data viewer.
+      </p>
+
+      <p>
+        Any additional personal information you provide to us,
+        such as through an outreach event or user survey,
+        is voluntary,
+        and does not affect the features available to you through the data viewer.
+      </p>
+
+      <p>
+        We log information about your use of the data viewer,
+        including the user id,
+        table name,
+        and other parameters of each request.
+        We retain these logs for a period of not longer than five years.
+        We use this information for the following purposes:
+      </p>
+
+      <ul>
+        <li>to monitor the responsiveness of the data viewer</li>
+        <li>to recommend to you features relevant to your use of the service</li>
+        <li>to inform feature planning and development</li>
+        <li>to identify excessive or abnormal usage patterns which may harm our system</li>
+      </ul>
+
+      <p>
+        These logs are available to all members and member candidates at Catalyst,
+        and are expunged at or before they reach five years in age.
+      </p>
+
+      <p>
+        By default, we will only use your email address to contact you in the following scenarios:
+      </p>
+
+      <ul>
+        <li>account verification</li>
+        <li>your usage of the data viewer becomes excessive or abnormal</li>
+        <li>we discover a data breach in our systems (and you should retire your password)</li>
+        <li>updates to this privacy policy</li>
+      </ul>
+
+      <p>
+        If and only if you consent, we will also use your email address for:
+      </p>
+
+      <ul>
+        <li>voluntary user outreach events or user surveys for the general community</li>
+        <li>voluntary user outreach based on your specific usage</li>
+        <li>newsletters or other mailing list traffic specifically requested by you</li>
+        <li>retrieving or deleting your data in our systems, at your request</li>
+      </ul>
+
+      <p>
+        We store the mapping from email addresses to user ids in a location separate from server logs,
+        using security measures consistent with our internal information security practices to help us keep your information secure.
+      </p>
+
+      <p>
+        Individual usage records are only ever accessible to members and member candidates at Catalyst.
+        We will never sell or share your individual user data of any kind to third parties without your explicit consent.
+      </p>
+
+      <p>
+        We may share deidentified, aggregate data in funding proposals and publications.
+        Mostly to brag.
+        Sometimes to convince someone they should let us solve a problem in the energy data domain.
+        We will use best practices in statistical reporting to ensure data cannot be reidentified.
+      </p>
+
+      <p>
+        For a copy of your data,
+        or to request your data be deleted from our systems,
+        email <a href="mailto:hello@catalyst.coop ">hello@catalyst.coop</a> with subject line "PII Data Request".
+      </p>
+
+      <p>
+        Our sites link to external services such as AWS S3, Zenodo, GitHub, and Kaggle.
+        Catalyst retrieves traffic logs from those services,
+        but does not link them to your email or user id.
+        Your use of external services is governed by those services and not by Catalyst;
+        we cannot delete records of your use of those services.
+      </p>
+
+      <p>
+        If we need to update this privacy policy for any reason,
+        we will give you at least one week’s notice via the email we have on file.
+      </p>
+
+      <p>
+        For more information, contact <a href="mailto:hello@catalyst.coop">hello@catalyst.coop</a>. 
+      </p>
+    </div>
+
+    {% if current_user.is_authenticated %}
+    <div class="block">
+      <label class="checkbox">
+        <input type="checkbox" />
+        I agree to the privacy policy
+      </label>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

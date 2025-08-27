@@ -209,6 +209,11 @@ def create_app():
         response.delete_cookie("session")
         return response
 
+    @app.get("/privacy-policy")
+    def privacy_policy():
+        """Display the privacy policy and controls to accept/reject."""
+        return render_template("privacy-policy.html")
+
     @app.get("/search")
     def search():
         """Run a search query and return results.

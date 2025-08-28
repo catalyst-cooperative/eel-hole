@@ -221,12 +221,26 @@ def create_app():
         return render_template("privacy-policy.html")
 
     @login_required
-    @app.post("/set-privacy-settings")
-    def set_privacy_settings():
-        """Display the privacy policy and controls to accept/reject."""
-        accepted = request.form["privacy-policy"].lower() == "accept"
-        log.info("privacy-policy", accepted=accepted)
+    @app.post("/privacy-settings")
+    def privacy_settings():
+        """POST endpoint for setting privacy settings.
+
+        Will log people out if they reject the privacy policy.
+
+        Currently handles "accept_privacy_policy" and "do_individual_outreach",
+        but not "send_newsletter".
+        """
+        accepted = (
+            "accept_privacy_policy" in request.form
+            and request.form["accept_privacy_policy"] == "on"
+        )
+        outreach = (
+            "do_individual_outreach" in request.form
+            and request.form["do_individual_outreach"] == "on"
+        )
+        log.info("privacy-policy", accepted=accepted, outreach=outreach)
         current_user.accepted_privacy_policy = accepted
+        current_user.do_individual_outreach = outreach
         db.session.commit()
         if not accepted:
             return redirect(url_for("logout"))

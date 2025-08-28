@@ -197,8 +197,6 @@ def create_app():
             db.session.add(user)
             db.session.commit()
         login_user(user, remember=True)
-        if not user.accepted_privacy_policy:
-            return redirect(url_for("privacy_policy"))
         return redirect(next_url)
 
     @login_required

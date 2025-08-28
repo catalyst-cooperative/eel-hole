@@ -21,7 +21,7 @@
                 Log out of {{ current_user.username }}
             </a>
             {% else %}
-            <a class="button mx-2 my-1 py-2 is-primary" href="/login">
+            <a class="button mx-2 my-1 py-2 is-primary" href="/login?next={{url_for(request.endpoint)}} ">
                 Log in or sign up
             </a>
             {% endif %}

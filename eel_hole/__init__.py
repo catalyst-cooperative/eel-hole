@@ -81,12 +81,7 @@ def __init_db(db: SQLAlchemy, app: Flask):
 
 
 def __build_search_index(app):
-    """Create a search index.
-
-    We currently convert a static YAML file into a Frictionless datapackage,
-    then pass that in.
-    """
-    # TODO: in the future, download this datapackage from nightly build.
+    """Create a search index from a Frictionless datapackage."""
     s3_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/nightly/pudl_parquet_datapackage.json"
 
     log.info(f"loading datapackage from {s3_url}")

@@ -191,7 +191,7 @@ def create_app():
             return None
         if request.path.startswith("/static"):
             return None
-        return redirect(f"{url_for('privacy_policy')}")
+        return redirect(url_for("privacy_policy", next=request.path))
 
     @app.get("/")
     def home():
@@ -215,7 +215,6 @@ def create_app():
             redirect_uri = url_for("callback", next=next, _external=True)
         else:
             redirect_uri = url_for("callback", _external=True)
-        print(redirect_uri)
         return auth0.authorize_redirect(redirect_uri=redirect_uri)
 
     @app.route("/callback")
@@ -257,8 +256,13 @@ def create_app():
 
     @app.get("/privacy-policy")
     def privacy_policy():
-        """Display the privacy policy and controls to accept/reject."""
-        return render_template("privacy-policy.html")
+        """Display the privacy policy and controls to accept/reject.
+
+        Params:
+            next: the next URL to redirect to after acceptance.
+        """
+        next = request.args.get("next")
+        return render_template("privacy-policy.html", redirect=next)
 
     @login_required
     @app.post("/privacy-settings")
@@ -284,7 +288,8 @@ def create_app():
         db.session.commit()
         if not accepted:
             return redirect(url_for("logout"))
-        return redirect(url_for("privacy_policy"))
+        next_url = request.form.get("redirect", url_for("privacy_policy"))
+        return redirect(next_url)
 
     @app.get("/search")
     def search():

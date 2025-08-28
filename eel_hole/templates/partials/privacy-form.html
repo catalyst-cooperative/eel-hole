@@ -21,6 +21,9 @@
       </label>
     </div>
   </div>
+  {% if redirect %}
+    <input type="hidden" name="redirect" value={{ redirect }} />
+  {% endif %}
   <div class="field">
     <div class="control">
       <input

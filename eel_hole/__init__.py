@@ -11,7 +11,13 @@ import structlog
 from authlib.integrations.flask_client import OAuth
 from flask import Flask, redirect, request, render_template, session, url_for
 from flask_htmx import HTMX
-from flask_login import LoginManager, login_required, login_user, logout_user
+from flask_login import (
+    LoginManager,
+    current_user,
+    login_required,
+    login_user,
+    logout_user,
+)
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from frictionless import Package
@@ -208,6 +214,37 @@ def create_app():
         response.delete_cookie("remember_token")
         response.delete_cookie("session")
         return response
+
+    @app.get("/privacy-policy")
+    def privacy_policy():
+        """Display the privacy policy and controls to accept/reject."""
+        return render_template("privacy-policy.html")
+
+    @login_required
+    @app.post("/privacy-settings")
+    def privacy_settings():
+        """POST endpoint for setting privacy settings.
+
+        Will log people out if they reject the privacy policy.
+
+        Currently handles "accept_privacy_policy" and "do_individual_outreach",
+        but not "send_newsletter".
+        """
+        accepted = (
+            "accept_privacy_policy" in request.form
+            and request.form["accept_privacy_policy"] == "on"
+        )
+        outreach = (
+            "do_individual_outreach" in request.form
+            and request.form["do_individual_outreach"] == "on"
+        )
+        log.info("privacy-policy", accepted=accepted, outreach=outreach)
+        current_user.accepted_privacy_policy = accepted
+        current_user.do_individual_outreach = outreach
+        db.session.commit()
+        if not accepted:
+            return redirect(url_for("logout"))
+        return redirect(url_for("privacy_policy"))
 
     @app.get("/search")
     def search():

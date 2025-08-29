@@ -10,21 +10,27 @@
     <div class="block title">Privacy Policy</div>
     {% if current_user.is_authenticated %}
       <div class="notification">
-        <div class="content">
-          <p>
-            We track some of your activity if you are logged in,
-            so we need you to accept this privacy policy
-            in order to use the logged-in features of the site.
-          </p>
-          <p>
-            If you reject the terms of the privacy policy,
-            you will be logged out,
-            but you can keep using the site as an anonymous user.
-            You can log back in and accept the privacy policy if you change your mind.
-          </p>
-        </div>
-
-      {% include 'partials/privacy-form.html' %}
+        <details {{ "open" if not current_user.accepted_privacy_policy }}>
+          <summary class="has-text-weight-bold">Privacy settings</summary>
+          <div class="content mt-3">
+            <p>
+              We track some of your activity if you are logged in,
+              so we need you to accept this privacy policy
+              in order to use the logged-in features of the site.
+            </p>
+            <p>
+              <span class="has-text-weight-bold">
+              If you reject the terms of the privacy policy,
+              you will be logged out,
+              </span>
+              but you can keep using the site as an anonymous user.
+              You can log back in and accept the privacy policy if you change your mind.
+            </p>
+          </div>
+          <div>
+            {% include 'partials/privacy-form.html' %}
+          </div>
+        </details>
       </div>
     {% endif %}
 
@@ -111,7 +117,7 @@
       <p>
         For a copy of your data,
         or to request your data be deleted from our systems,
-        email <a href="mailto:hello@catalyst.coop ">hello@catalyst.coop</a> with subject line "PII Data Request".
+        email <a href="mailto:hello@catalyst.coop?subject=PII Data Request">hello@catalyst.coop</a> with subject line "PII Data Request".
       </p>
 
       <p>

@@ -76,7 +76,7 @@ Go to https://manage.auth0.com/dashboard and register as a tenant.
 Register your local development environment as an application
 with the following settings:
 
-# Name: whatever you like, but f"eelhole@{your_dev_machine}" is easy to remember
+* Name: whatever you like, but f"eelhole@{your_dev_machine}" is easy to remember
 * Application Type: Regular Web App
 * Configure options for user authentication: Social (& select whatever you prefer for dev)
 

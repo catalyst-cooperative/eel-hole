@@ -12,6 +12,23 @@ uv sync
 uv pip install -e .
 ```
 
+Build the JS/CSS:
+
+```
+npm run build
+```
+
+If you want to be able to log in (you don't have to; preview covers most things),
+
+1. Set up your auth0 environment variables (see below)
+2. Set up the database:
+
+```
+docker compose up -d
+docker compose exec eel_hole uv run flask db upgrade
+```
+
+
 ## Running this thing locally
 
 We have a docker compose file, but *make sure to build the JS/CSS first*:
@@ -30,19 +47,46 @@ $ PUDL_VIEWER_LOGIN_DISABLED=true docker compose up
 
 You won't be able to log in, but you won't have to, to see the preview functionality.
 
-If you do want to test the login functionality, you'll need to make sure the database is up-to-date:
+## auth0 setup
 
-```bash
-$ docker compose up -d
-$ docker compose exec eel_hole uv run flask db upgrade
-```
-
-You will also have to set some auth0 environment variables -
+You will have to set some auth0 environment variables -
 see the `[envrc-template](./envrc-template)` for which ones.
 If you are using a tool like `[direnv](https://direnv.net/)`,
 you probably want to just copy that template to `.envrc`
 and update the values with ones you get from
 [the auth0 dashboard](https://manage.auth0.com/dashboard).
+
+Finding the values of the variables depends on whether
+you're using the shared Catalyst auth0 tenant account
+or making your own tenant account.
+
+### Catalyst members
+
+Log in to https://manage.auth0.com/dashboard using the inframundo auth0 credentials
+in our password manager.
+
+Go to Applications (it's the triple stack on the left) -> [dev-dx] PUDL Viewer
+and click "Settings"
+to find the env variables you need from envrc-template.
+
+### Everyone else
+
+Go to https://manage.auth0.com/dashboard and register as a tenant.
+
+Register your local development environment as an application
+with the following settings:
+
+# Name: whatever you like, but f"eelhole@{your_dev_machine}" is easy to remember
+* Application Type: Regular Web App
+* Configure options for user authentication: Social (& select whatever you prefer for dev)
+
+Once at the application dashboard, go to Settings
+to find the env variables you need from envrc-template.
+
+While you're there, set the Application URIs to localhost addresses as follows:
+
+* Allowed Callback URLs: http://127.0.0.1:8080/callback
+* Allowed Logout URLs: http://127.0.0.1:8080
 
 ## Tests
 

@@ -28,3 +28,44 @@
     filter: invert(1);
   }
 }
+
+.data-dictionary p {
+  margin: 0.5em 0;
+  padding: 0
+}
+
+.data-dictionary main h3 {
+  font-weight: bold;
+  font-size: 1.1em;
+  margin-top: 0.5em;
+}
+
+.data-dictionary cite, .data-dictionary .literal {
+  font-family: monospace;
+  font-style: normal;
+}
+
+.data-dictionary dl {
+  display: grid;
+  grid-gap: 0px 8px;
+  grid-template-columns: max-content;
+}
+
+.data-dictionary dt {
+  text-align: right;
+}
+
+.data-dictionary dd {
+  margin: 0;
+  grid-column-start: 2;
+}
+
+.data-dictionary dd p, .data-dictionary li p {
+  margin: 0; padding: 0;
+}
+
+.data-dictionary ul {
+  list-style-type: disc;
+  padding-inline-start: 40px;
+  margin-top: 0.5em;
+}

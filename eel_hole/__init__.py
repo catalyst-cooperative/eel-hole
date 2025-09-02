@@ -191,7 +191,7 @@ def create_app():
             return None
         if request.path.startswith("/static"):
             return None
-        return redirect(url_for("privacy_policy", next=request.path))
+        return redirect(url_for("privacy_policy", next_url=request.full_path))
 
     @app.get("/")
     def home():
@@ -208,11 +208,11 @@ def create_app():
         """Redirect to auth0 to handle actual logging in.
 
         Params:
-            next: the next URL to redirect to once logged in.
+            next_url: the next URL to redirect to once logged in.
         """
-        next = request.args.get("next")
+        next_url = request.args.get("next_url")
         if next:
-            redirect_uri = url_for("callback", next=next, _external=True)
+            redirect_uri = url_for("callback", next_url=next_url, _external=True)
         else:
             redirect_uri = url_for("callback", _external=True)
         return auth0.authorize_redirect(redirect_uri=redirect_uri)
@@ -225,9 +225,9 @@ def create_app():
         Auth0. If they don't exist in our system we add them.
 
         Params:
-          next: the next URL to redirect to once logged in.
+            next_url: the next URL to redirect to once logged in.
         """
-        next_url = request.args.get("next", url_for("search"))
+        next_url = request.args.get("next_url", url_for("search"))
         token = auth0.authorize_access_token()
         userinfo = token["userinfo"]
         user = User.query.filter_by(auth0_id=userinfo["sub"]).first()
@@ -259,10 +259,12 @@ def create_app():
         """Display the privacy policy and controls to accept/reject.
 
         Params:
-            next: the next URL to redirect to after acceptance.
+            next_url: the next URL to redirect to after acceptance. This gets
+                passed through into the rendered template as a hidden input on
+                the form, so we can still see the next_url in the form handler.
         """
-        next = request.args.get("next")
-        return render_template("privacy-policy.html", redirect=next)
+        next_url = request.args.get("next_url")
+        return render_template("privacy-policy.html", next_url=next_url)
 
     @login_required
     @app.post("/privacy-settings")
@@ -271,8 +273,15 @@ def create_app():
 
         Will log people out if they reject the privacy policy.
 
-        Currently handles "accept_privacy_policy" and "do_individual_outreach",
-        but not "send_newsletter".
+        Form fields:
+            accept_privacy_policy: "on" means they checked the checkbox and
+                accepted the privacy policy.
+            do_individual_outreach: "on" -> they consented to individual
+                outreach
+            next_url: if present, the URL they were trying to go to before being
+                forced to the privacy policy.
+
+        NOTE 2025-09-25: we don't provide or handle the "send_newsletter" flag
         """
         accepted = (
             "accept_privacy_policy" in request.form
@@ -288,7 +297,7 @@ def create_app():
         db.session.commit()
         if not accepted:
             return redirect(url_for("logout"))
-        next_url = request.form.get("redirect", url_for("privacy_policy"))
+        next_url = request.form.get("next_url", url_for("privacy_policy"))
         return redirect(next_url)
 
     @app.get("/search")

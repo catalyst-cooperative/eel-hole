@@ -11,8 +11,14 @@ SPHINX_TAGS = re.compile(r":(?:ref|func|doc):`([^`]+)`")
 
 def rst_to_html(rst: str) -> str:
     cleaned_rst = re.sub(SPHINX_TAGS, r"``\1``", rst)
-    # this surrounds the HTML we want with a <main> and a <p> tag. strip those
-    return publish_parts(cleaned_rst, writer_name="html5")["html_body"]
+    # publish_parts lets us pick out just the body html and ignore the header info.
+    # also we're dropping these descriptions under an h2 tag, so start all
+    # included sections from h3.
+    return publish_parts(
+        cleaned_rst,
+        writer_name="html5",
+        settings_overrides={"initial_header_level": 3},
+    )["html_body"]
 
 
 def clean_descriptions(datapackage: Package) -> Package:

@@ -3,11 +3,9 @@
 import json
 import os
 from dataclasses import asdict
-from pathlib import Path
 from urllib.parse import quote
 
 import requests
-import structlog
 from authlib.integrations.flask_client import OAuth
 from flask import (
     Flask,
@@ -31,20 +29,13 @@ from frictionless import Package
 
 from eel_hole.models import db, User
 from eel_hole.duckdb_query import ag_grid_to_duckdb, Filter
+from eel_hole.logs import log
 from eel_hole.search import initialize_index, run_search
 from eel_hole.utils import clean_descriptions
 
 AUTH0_DOMAIN = os.getenv("PUDL_VIEWER_AUTH0_DOMAIN")
 CLIENT_ID = os.getenv("PUDL_VIEWER_AUTH0_CLIENT_ID")
 CLIENT_SECRET = os.getenv("PUDL_VIEWER_AUTH0_CLIENT_SECRET")
-
-structlog.configure(
-    processors=[
-        structlog.processors.TimeStamper(fmt="iso"),
-        structlog.processors.JSONRenderer(),
-    ]
-)
-log = structlog.get_logger()
 
 
 def __init_auth0(app: Flask):
@@ -321,7 +312,7 @@ def create_app():
         """
         template = "partials/search_results.html" if htmx else "search.html"
         query = request.args.get("q")
-        log.info("search", url=request.path, query=query)
+        log.info("search", url=request.full_path, query=query)
 
         if query:
             resources = run_search(ix=index, raw_query=query)
@@ -361,7 +352,7 @@ def create_app():
         else:
             event = "duckdb_other"
 
-        log.info(event, url=request.path, params=dict(request.args))
+        log.info(event, url=request.full_path, params=dict(request.args))
         offset = (page - 1) * per_page
         duckdb_query.statement += f" LIMIT {per_page} OFFSET {offset}"
         return asdict(duckdb_query)

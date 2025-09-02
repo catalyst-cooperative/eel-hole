@@ -3,7 +3,6 @@
 import re
 
 from frictionless import Package, Resource
-import structlog
 
 # TODO 2025-01-15: think about switching this over to py-tantivy since that's better maintained
 from whoosh import index
@@ -19,7 +18,7 @@ from whoosh.lang.porter import stem
 from whoosh.qparser import MultifieldParser
 from whoosh.query import AndMaybe, Or, Term
 
-log = structlog.get_logger()
+from eel_hole.logs import log
 
 
 def custom_stemmer(word: str) -> str:

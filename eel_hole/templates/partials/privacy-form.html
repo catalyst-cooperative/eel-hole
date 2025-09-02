@@ -14,13 +14,27 @@
       <label class="checkbox">
         <input
           type="checkbox"
+          name="send_newsletter"
+          {{ "checked" if current_user.send_newsletter }}
+        />
+        (optional) I agree to receive the PUDL newsletter at the email address associated with my account ({{ current_user.email }}).
+      </label>
+    </div>
+    <div class="control">
+      <label class="checkbox">
+        <input
+          type="checkbox"
           name="do_individual_outreach"
           {{ "checked" if current_user.do_individual_outreach }}
         />
-        (optional) I would be OK with you reaching out to me based on my individual usage history.
+        (optional) I agree to be contacted based on my usage history to
+        discuss potential PUDL improvements and/or my user experience.
       </label>
     </div>
   </div>
+  {% if next_url %}
+    <input type="hidden" name="next_url" value={{ next_url }} />
+  {% endif %}
   <div class="field">
     <div class="control">
       <input

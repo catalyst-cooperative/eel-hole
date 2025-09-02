@@ -9,7 +9,14 @@ from urllib.parse import quote
 import requests
 import structlog
 from authlib.integrations.flask_client import OAuth
-from flask import Flask, redirect, request, render_template, session, url_for
+from flask import (
+    Flask,
+    redirect,
+    request,
+    render_template,
+    session,
+    url_for,
+)
 from flask_htmx import HTMX
 from flask_login import (
     LoginManager,
@@ -97,6 +104,33 @@ def __build_search_index(app):
     return datapackage, index
 
 
+def __sort_resources_by_name(resource):
+    """Helper function to enforce resource ordering with no query.
+
+    Four recommended tables show up first, then we order by layer.
+    """
+    name = resource.name
+
+    # make these tables show up first, by returning negative numbers.
+    first_tables = [
+        "out_eia__monthly_generators",
+        "out_eia923__fuel_receipts_costs",
+        "out_ferc1__yearly_all_plants",
+        "out_eia__yearly_generators",
+    ]
+    if name in first_tables:
+        return first_tables.index(name) - len(first_tables) - 1
+
+    if name.startswith("out"):
+        return 0
+    if name.startswith("core"):
+        return 1
+    if name.startswith("_out"):
+        return 2
+    if name.startswith("_core"):
+        return 3
+
+
 def create_app():
     """Main app definition.
 
@@ -106,6 +140,7 @@ def create_app():
         * accessing the db through sql alchemy
         * logins/sessions
     2. set up the search index
+    3. add a middleware that bounces people to privacy policy if necessary
     3. define a bunch of application routes
     """
     app = Flask("eel_hole", instance_relative_config=True)
@@ -129,29 +164,34 @@ def create_app():
 
     datapackage, index = __build_search_index(app)
 
-    def sort_resources_by_name(resource):
-        name = resource.name
+    sorted_resources = sorted(datapackage.resources, key=__sort_resources_by_name)
 
-        # make these tables show up first, by returning negative numbers.
-        first_tables = [
-            "out_eia__monthly_generators",
-            "out_eia923__fuel_receipts_costs",
-            "out_ferc1__yearly_all_plants",
-            "out_eia__yearly_generators",
-        ]
-        if name in first_tables:
-            return first_tables.index(name) - len(first_tables) - 1
+    @app.before_request
+    def check_for_privacy_policy():
+        """Bounce people to privacy policy if necessary.
 
-        if name.startswith("out"):
-            return 0
-        if name.startswith("core"):
-            return 1
-        if name.startswith("_out"):
-            return 2
-        if name.startswith("_core"):
-            return 3
-
-    sorted_resources = sorted(datapackage.resources, key=sort_resources_by_name)
+        All of these conditions must be met:
+        * you are logged in
+        * you have not accepted the privacy policy
+        * you are not:
+            * looking at the privacy policy
+            * setting privacy settings
+            * logging out
+            * looking at static files
+        """
+        if not current_user.is_authenticated:
+            return None
+        if current_user.accepted_privacy_policy:
+            return None
+        if request.path in {
+            "/privacy-policy",
+            "/privacy-settings",
+            "/logout",
+        }:
+            return None
+        if request.path.startswith("/static"):
+            return None
+        return redirect(url_for("privacy_policy", next_url=request.full_path))
 
     @app.get("/")
     def home():
@@ -168,14 +208,13 @@ def create_app():
         """Redirect to auth0 to handle actual logging in.
 
         Params:
-            next: the next URL to redirect to once logged in.
+            next_url: the next URL to redirect to once logged in.
         """
-        next = request.args.get("next")
+        next_url = request.args.get("next_url")
         if next:
-            redirect_uri = url_for("callback", next=next, _external=True)
+            redirect_uri = url_for("callback", next_url=next_url, _external=True)
         else:
             redirect_uri = url_for("callback", _external=True)
-        print(redirect_uri)
         return auth0.authorize_redirect(redirect_uri=redirect_uri)
 
     @app.route("/callback")
@@ -186,9 +225,9 @@ def create_app():
         Auth0. If they don't exist in our system we add them.
 
         Params:
-          next: the next URL to redirect to once logged in.
+            next_url: the next URL to redirect to once logged in.
         """
-        next_url = request.args.get("next", url_for("search"))
+        next_url = request.args.get("next_url", url_for("search"))
         token = auth0.authorize_access_token()
         userinfo = token["userinfo"]
         user = User.query.filter_by(auth0_id=userinfo["sub"]).first()
@@ -217,8 +256,15 @@ def create_app():
 
     @app.get("/privacy-policy")
     def privacy_policy():
-        """Display the privacy policy and controls to accept/reject."""
-        return render_template("privacy-policy.html")
+        """Display the privacy policy and controls to accept/reject.
+
+        Params:
+            next_url: the next URL to redirect to after acceptance. This gets
+                passed through into the rendered template as a hidden input on
+                the form, so we can still see the next_url in the form handler.
+        """
+        next_url = request.args.get("next_url")
+        return render_template("privacy-policy.html", next_url=next_url)
 
     @login_required
     @app.post("/privacy-settings")
@@ -227,8 +273,14 @@ def create_app():
 
         Will log people out if they reject the privacy policy.
 
-        Currently handles "accept_privacy_policy" and "do_individual_outreach",
-        but not "send_newsletter".
+        Form fields:
+            accept_privacy_policy: "on" means they checked the checkbox and
+                accepted the privacy policy.
+            do_individual_outreach: "on" -> they consented to individual
+                outreach
+            send_newsletter: "on" -> they consented to newsletter mailings
+            next_url: if present, the URL they were trying to go to before being
+                forced to the privacy policy.
         """
         accepted = (
             "accept_privacy_policy" in request.form
@@ -238,13 +290,24 @@ def create_app():
             "do_individual_outreach" in request.form
             and request.form["do_individual_outreach"] == "on"
         )
-        log.info("privacy-policy", accepted=accepted, outreach=outreach)
+        newsletter = (
+            "send_newsletter" in request.form
+            and request.form["send_newsletter"] == "on"
+        )
+        log.info(
+            "privacy-policy",
+            accepted=accepted,
+            outreach=outreach,
+            newsletter=newsletter,
+        )
         current_user.accepted_privacy_policy = accepted
         current_user.do_individual_outreach = outreach
+        current_user.send_newsletter = newsletter
         db.session.commit()
         if not accepted:
             return redirect(url_for("logout"))
-        return redirect(url_for("privacy_policy"))
+        next_url = request.form.get("next_url", url_for("privacy_policy"))
+        return redirect(next_url)
 
     @app.get("/search")
     def search():

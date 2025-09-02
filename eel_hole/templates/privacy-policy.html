@@ -6,7 +6,9 @@
 
 <div class="section">
   <div class="container is-max-desktop">
-    <div class="block title">Privacy Policy</div>
+    <div class="block title">
+      {{ "Privacy Settings" if current_user.authenticated else "Privacy Policy"}}
+    </div>
     {% if current_user.is_authenticated %}
       <div class="notification">
         <details {{ "open" if not current_user.accepted_privacy_policy }}>
@@ -14,7 +16,7 @@
           <div class="content mt-3">
             <p>
               We track some of your activity if you are logged in,
-              so we need you to accept this privacy policy
+              so we need you to accept the privacy policy below
               in order to use the logged-in features of the site.
             </p>
             <p>
@@ -31,6 +33,8 @@
           </div>
         </details>
       </div>
+
+      <div class = "block subtitle">Privacy Policy</div>
     {% endif %}
 
     <div class="content">

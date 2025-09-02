@@ -278,10 +278,9 @@ def create_app():
                 accepted the privacy policy.
             do_individual_outreach: "on" -> they consented to individual
                 outreach
+            send_newsletter: "on" -> they consented to newsletter mailings
             next_url: if present, the URL they were trying to go to before being
                 forced to the privacy policy.
-
-        NOTE 2025-09-25: we don't provide or handle the "send_newsletter" flag
         """
         accepted = (
             "accept_privacy_policy" in request.form
@@ -291,9 +290,19 @@ def create_app():
             "do_individual_outreach" in request.form
             and request.form["do_individual_outreach"] == "on"
         )
-        log.info("privacy-policy", accepted=accepted, outreach=outreach)
+        newsletter = (
+            "send_newsletter" in request.form
+            and request.form["send_newsletter"] == "on"
+        )
+        log.info(
+            "privacy-policy",
+            accepted=accepted,
+            outreach=outreach,
+            newsletter=newsletter,
+        )
         current_user.accepted_privacy_policy = accepted
         current_user.do_individual_outreach = outreach
+        current_user.send_newsletter = newsletter
         db.session.commit()
         if not accepted:
             return redirect(url_for("logout"))

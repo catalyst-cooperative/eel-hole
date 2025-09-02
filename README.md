@@ -18,7 +18,12 @@ Build the JS/CSS:
 npm run build
 ```
 
-If you want to be able to log in (you don't have to; preview covers most things),
+In most cases, you don't need to actually log in locally.
+In those cases you can set the `PUDL_VIEWER_LOGIN_DISABLED` environment variable to `true`.
+This will let you access the whole site,
+including things that are usually gated behind login like the table previews.
+
+But if you're testing something related to the login flow, you will need to set that up:
 
 1. Set up your auth0 environment variables (see below)
 2. Set up the database:
@@ -87,6 +92,9 @@ While you're there, set the Application URIs to localhost addresses as follows:
 
 * Allowed Callback URLs: http://127.0.0.1:8080/callback
 * Allowed Logout URLs: http://127.0.0.1:8080
+
+If you are using `localhost` instead of `127.0.0.1` to access your app,
+set those callback and logout URLs with `localhost`.
 
 ## Tests
 

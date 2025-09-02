@@ -53,6 +53,7 @@
 
 .data-dictionary dt {
   text-align: right;
+  font-weight: bold;
 }
 
 .data-dictionary dd {

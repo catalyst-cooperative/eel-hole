@@ -9,8 +9,10 @@ from flask_login import current_user
 def user_id_adder(logger, log_method, event_dict):
     """Add user ID to log if available.
 
-    Note that there is a difference between `user_id` not existing (no user in
-    context) and `user_id: null` (anonymous user).
+    When there is no user in context (such as during app startup), `user_id`
+    will not be added to the log event.
+    When there is a user in context but the user is anonymous, `user_id` will be
+    added to the log event, but with value `null`.
 
     Must be added to processor list *before* JSONRenderer, otherwise event_dict
     will be rendered to string already.

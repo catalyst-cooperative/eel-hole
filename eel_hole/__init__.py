@@ -1,9 +1,9 @@
 """Main app definition."""
 
 import json
+import logging
 import os
 from dataclasses import asdict
-from pathlib import Path
 from urllib.parse import quote
 
 import requests
@@ -42,7 +42,8 @@ structlog.configure(
     processors=[
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.JSONRenderer(),
-    ]
+    ],
+    wrapper_class=structlog.make_filtering_bound_logger(logging.INFO),
 )
 log = structlog.get_logger()
 

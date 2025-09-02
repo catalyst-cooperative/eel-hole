@@ -19,6 +19,8 @@ from whoosh.lang.porter import stem
 from whoosh.qparser import MultifieldParser
 from whoosh.query import AndMaybe, Or, Term
 
+# NOTE 2025-09-25: Piggybacks off of the logger configuration in __init__.py
+# only because of the import order
 log = structlog.get_logger()
 
 

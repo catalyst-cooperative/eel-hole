@@ -312,7 +312,7 @@ def create_app():
         """
         template = "partials/search_results.html" if htmx else "search.html"
         query = request.args.get("q")
-        log.info("search", url=request.path, query=query)
+        log.info("search", url=request.full_path, query=query)
 
         if query:
             resources = run_search(ix=index, raw_query=query)
@@ -352,7 +352,7 @@ def create_app():
         else:
             event = "duckdb_other"
 
-        log.info(event, url=request.path, params=dict(request.args))
+        log.info(event, url=request.full_path, params=dict(request.args))
         offset = (page - 1) * per_page
         duckdb_query.statement += f" LIMIT {per_page} OFFSET {offset}"
         return asdict(duckdb_query)

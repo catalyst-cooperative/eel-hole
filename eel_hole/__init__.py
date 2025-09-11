@@ -357,4 +357,25 @@ def create_app():
         duckdb_query.statement += f" LIMIT {per_page} OFFSET {offset}"
         return asdict(duckdb_query)
 
+    @app.errorhandler(404)
+    def page_not_found(e):
+        return render_template("404.html"), 404
+
+    @app.route("/pudl/")
+    @app.route("/pudl/<table_name>")
+    def redirect_legacy_datasette_url(table_name: str | None = None):
+        """Redirect datasette-style URLs that exist in the wild.
+
+        As more databases (FERC 1, Census, etc.) get pulled in, we will need to
+        add more routes.
+
+        When we create direct links to tables, we will need to change the
+        redirect location.
+        """
+        if table_name:
+            query = f"name:{table_name}"
+        else:
+            query = None
+        return redirect(url_for("search", q=query))
+
     return app

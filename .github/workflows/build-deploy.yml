@@ -1,0 +1,13 @@
+name: build-deploy
+on:
+  workflow_dispatch:
+
+jobs:
+  build_deploy:
+    name: Build eel hole image, push to Artifact Registry, and re-deploy service.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - run: echo "this is a stub"

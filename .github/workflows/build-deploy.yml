@@ -13,6 +13,8 @@ jobs:
       contents: read
       id-token: write
     steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
       - name: Authenticate to Google Cloud
         id: "auth"
         uses: "google-github-actions/auth@v2"
@@ -28,13 +30,23 @@ jobs:
           registry: us-east1-docker.pkg.dev
           username: oauth2accesstoken
           password: ${{ steps.auth.outputs.access_token }}
+      - name: Set up node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Build JS and CSS assets before building docker image
+        run: |
+          npm ci
+          npm run build
       - name: Build image and push to Google Artifact Registry
         id: docker-build
         uses: docker/build-push-action@v6
         with:
+          context: . # instead of using clean pull of repo, use the "dirty" i.e. "has npm build artifacts" version
           push: true
           tags: |
             "us-east1-docker.pkg.dev/catalyst-cooperative-pudl/pudl-viewer/pudl-viewer:latest"
+            "us-east1-docker.pkg.dev/catalyst-cooperative-pudl/pudl-viewer/pudl-viewer:${{ github.ref_name }}"
             "us-east1-docker.pkg.dev/catalyst-cooperative-pudl/pudl-viewer/pudl-viewer:${{ github.sha }}"
       - name: Redeploy Cloud Run service
         uses: google-github-actions/deploy-cloudrun@v2

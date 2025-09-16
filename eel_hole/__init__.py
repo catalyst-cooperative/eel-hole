@@ -31,7 +31,11 @@ from eel_hole.models import db, User
 from eel_hole.duckdb_query import ag_grid_to_duckdb, Filter
 from eel_hole.logs import log
 from eel_hole.search import initialize_index, run_search
-from eel_hole.utils import clean_descriptions, merge_datapackages
+from eel_hole.utils import (
+    clean_pudl_descriptions,
+    clean_ferc_xbrl_descriptions,
+    merge_datapackages,
+)
 from eel_hole.feature_flags import is_flag_enabled
 
 AUTH0_DOMAIN = os.getenv("PUDL_VIEWER_AUTH0_DOMAIN")
@@ -92,18 +96,23 @@ def __build_search_index(source_keys):
     then pass that in.
     """
 
-    s3_urls = [
-        f"https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/nightly/{source_key}_datapackage.json"
+    s3_urls = {
+        source_key: f"https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/nightly/{source_key}_datapackage.json"
         for source_key in source_keys
-    ]
+    }
+
+    description_handlers = {
+        "ferc1_xbrl": clean_ferc_xbrl_descriptions,
+        "pudl_parquet": clean_pudl_descriptions,
+    }
 
     log.info(f"loading datapackage files from {', '.join(s3_urls)}")
 
     packages = []
-    for url in s3_urls:
+    for source_key, url in s3_urls.items():
         descriptor = requests.get(url).json()
         pkg = Package.from_descriptor(descriptor)
-        cleaned = clean_descriptions(pkg)
+        cleaned = description_handlers[source_key](pkg)
         packages.append(cleaned)
 
     merged_package = merge_datapackages(packages)

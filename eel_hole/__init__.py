@@ -173,23 +173,22 @@ def create_app():
     default_sources = ["pudl_parquet"]
     ferc_sources = [
         "ferc1_xbrl",
-        "ferc2_xbrl",
-        "ferc60_xbrl",
-        "ferc6_xbrl",
-        "ferc714_xbrl",
+        # "ferc2_xbrl",
+        # "ferc60_xbrl",
+        # "ferc6_xbrl",
+        # "ferc714_xbrl",
     ]
-    app.search_sources = {
+
+    search_sources = {
         "default": default_sources,
         "ferc_enabled": default_sources + ferc_sources,
     }
 
     # Store index and resources per source set
-    app.search_indices = {
+    search_indices = {
         key: __build_search_index(source_keys)
-        for key, source_keys in app.search_sources.items()
+        for key, source_keys in search_sources.items()
     }
-
-    sorted_resources = sorted(datapackage.resources, key=__sort_resources_by_name)
 
     @app.before_request
     def check_for_privacy_policy():
@@ -349,14 +348,14 @@ def create_app():
         log.info("search", url=request.full_path, query=query)
 
         if is_flag_enabled("ferc_enabled"):
-            datapackage, index = app.search_indices["ferc_enabled"]
+            datapackage, index = search_indices["ferc_enabled"]
         else:
-            datapackage, index = app.search_indices["default"]
+            datapackage, index = search_indices["default"]
 
         if query:
             resources = run_search(ix=index, raw_query=query)
         else:
-            resources = sorted(datapackage.resources, key=sort_resources_by_name)
+            resources = sorted(datapackage.resources, key=__sort_resources_by_name)
 
         return render_template(template, resources=resources, query=query)
 

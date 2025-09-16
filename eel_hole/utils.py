@@ -126,21 +126,35 @@ def plaintext_to_html(text: str) -> str:
     return f"<main>\n{'\n'.join(html_parts)}\n</main>"
 
 
-def to_html(text: str) -> str:
-    try:
-        return rst_to_html(text)
-    except SystemMessage:
-        # If invalid RST, fallback to plaintext HTML conversion
-        return plaintext_to_html(text)
+def clean_pudl_descriptions(datapackage: Package) -> Package:
+    """Clean up the PUDL datapackage descriptions for display.
 
-
-def clean_descriptions(datapackage: Package) -> Package:
+    PUDL datapackage documentation is all in RST so we use Sphinx machinery to
+    turn it into HTML that our Jinja templates understand.
+    """
     if datapackage.description:
-        datapackage.description = to_html(datapackage.description)
+        datapackage.description = rst_to_html(datapackage.description)
     for resource in datapackage.resources:
-        resource.description = to_html(resource.description)
+        resource.description = rst_to_html(resource.description)
         for field in resource.schema.fields:
-            field.description = to_html(field.description)
+            field.description = rst_to_html(field.description)
+    return datapackage
+
+
+def clean_ferc_xbrl_descriptions(datapackage: Package) -> Package:
+    """Clean up the FERC XBRL datapackage descriptions for display.
+
+    These are written in no-format plaintext, so we have some custom HTML
+    generation. Also, the table *descriptions* are useless but the table
+    *titles* (not *name* which is the canonical name of the table) are merely
+    nearly useless. So we replace the descriptions with the titles.
+    """
+    if datapackage.description:
+        datapackage.description = plaintext_to_html(datapackage.description)
+    for resource in datapackage.resources:
+        resource.description = plaintext_to_html(resource.title)
+        for field in resource.schema.fields:
+            field.description = plaintext_to_html(field.description)
     return datapackage
 
 

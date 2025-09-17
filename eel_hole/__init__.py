@@ -25,17 +25,13 @@ from flask_login import (
 )
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
-from frictionless import Package
+from frictionless import Package, Resource
 
 from eel_hole.models import db, User
 from eel_hole.duckdb_query import ag_grid_to_duckdb, Filter
 from eel_hole.logs import log
 from eel_hole.search import initialize_index, run_search
-from eel_hole.utils import (
-    clean_pudl_descriptions,
-    clean_ferc_xbrl_descriptions,
-    merge_datapackages,
-)
+from eel_hole.utils import clean_pudl_resource, clean_ferc_xbrl_resource
 from eel_hole.feature_flags import is_flag_enabled
 
 AUTH0_DOMAIN = os.getenv("PUDL_VIEWER_AUTH0_DOMAIN")
@@ -101,37 +97,36 @@ def __build_search_index(source_keys):
         for source_key in source_keys
     }
 
-    description_handlers = {
-        "ferc1_xbrl": clean_ferc_xbrl_descriptions,
-        "ferc2_xbrl": clean_ferc_xbrl_descriptions,
-        "ferc6_xbrl": clean_ferc_xbrl_descriptions,
-        "ferc60_xbrl": clean_ferc_xbrl_descriptions,
-        "ferc714_xbrl": clean_ferc_xbrl_descriptions,
-        "pudl_parquet": clean_pudl_descriptions,
+    cleaners = {
+        "ferc1_xbrl": clean_ferc_xbrl_resource,
+        "ferc2_xbrl": clean_ferc_xbrl_resource,
+        "ferc6_xbrl": clean_ferc_xbrl_resource,
+        "ferc60_xbrl": clean_ferc_xbrl_resource,
+        "ferc714_xbrl": clean_ferc_xbrl_resource,
+        "pudl_parquet": clean_pudl_resource,
     }
 
     log.info(f"loading datapackage files from {', '.join(s3_urls)}")
 
-    packages = []
+    all_resources: list[Resource] = []
     for source_key, url in s3_urls.items():
         descriptor = requests.get(url).json()
         log.info(f"{url} downloaded")
         pkg = Package.from_descriptor(descriptor)
         pkg.sources = [{"title": source_key}]
-        log.info(f"{source_key} package initialized")
-        cleaned = description_handlers[source_key](pkg)
-        log.info(f"{source_key} package cleaned")
-        packages.append(cleaned)
+        log.info(f"Cleaning up descriptors for {source_key}")
+        all_resources.extend(
+            cleaners[source_key](resource) for resource in pkg.resources
+        )
+        log.info(f"Cleaned up descriptors for {source_key}")
 
-    merged_package = merge_datapackages(packages)
-    log.info(f"initializing index")
-    index = initialize_index(merged_package)
+    index = initialize_index(all_resources)
     log.info(f"index done")
 
-    return merged_package, index
+    return all_resources, index
 
 
-def __sort_resources_by_name(resource):
+def __sort_resources_by_name(resource: Resource):
     """Helper function to enforce resource ordering with no query.
 
     Four recommended tables show up first, then we order by layer.
@@ -366,15 +361,16 @@ def create_app():
         query = request.args.get("q")
         log.info("search", url=request.full_path, query=query)
 
+        # TODO just make one index and filter the search
         if is_flag_enabled("ferc_enabled"):
-            datapackage, index = search_indices["ferc_enabled"]
+            all_resources, index = search_indices["ferc_enabled"]
         else:
-            datapackage, index = search_indices["default"]
+            all_resources, index = search_indices["default"]
 
         if query:
             resources = run_search(ix=index, raw_query=query)
         else:
-            resources = sorted(datapackage.resources, key=__sort_resources_by_name)
+            resources = sorted(all_resources, key=__sort_resources_by_name)
 
         return render_template(template, resources=resources, query=query)
 

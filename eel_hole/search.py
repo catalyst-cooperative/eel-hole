@@ -2,7 +2,7 @@
 
 import re
 
-from frictionless import Package, Resource
+from frictionless import Resource
 
 # TODO 2025-01-15: think about switching this over to py-tantivy since that's better maintained
 from whoosh import index
@@ -30,7 +30,7 @@ def custom_stemmer(word: str) -> str:
     return stem_map.get(word, stem(word))
 
 
-def initialize_index(datapackage: Package) -> index:
+def initialize_index(resources: list[Resource]) -> index.Index:
     """Index the resources from a datapackage for later searching.
 
     Search index is stored in memory since it's such a small dataset.
@@ -53,7 +53,7 @@ def initialize_index(datapackage: Package) -> index:
     ix = storage.create_index(schema)
     writer = ix.writer()
 
-    for resource in datapackage.resources:
+    for resource in resources:
         description = re.sub("<[^<]+?>", "", resource.description)
         columns = "".join(
             (
@@ -78,7 +78,7 @@ def initialize_index(datapackage: Package) -> index:
     return ix
 
 
-def run_search(ix: index, raw_query: str) -> list[Resource]:
+def run_search(ix: index.Index, raw_query: str) -> list[Resource]:
     """Actually run a user query.
 
     This doctors the raw query with some field boosts + tag boosts.

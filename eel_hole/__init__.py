@@ -103,6 +103,10 @@ def __build_search_index(source_keys):
 
     description_handlers = {
         "ferc1_xbrl": clean_ferc_xbrl_descriptions,
+        "ferc2_xbrl": clean_ferc_xbrl_descriptions,
+        "ferc6_xbrl": clean_ferc_xbrl_descriptions,
+        "ferc60_xbrl": clean_ferc_xbrl_descriptions,
+        "ferc714_xbrl": clean_ferc_xbrl_descriptions,
         "pudl_parquet": clean_pudl_descriptions,
     }
 
@@ -111,12 +115,18 @@ def __build_search_index(source_keys):
     packages = []
     for source_key, url in s3_urls.items():
         descriptor = requests.get(url).json()
+        log.info(f"{url} downloaded")
         pkg = Package.from_descriptor(descriptor)
+        pkg.sources = [{"title": source_key}]
+        log.info(f"{source_key} package initialized")
         cleaned = description_handlers[source_key](pkg)
+        log.info(f"{source_key} package cleaned")
         packages.append(cleaned)
 
     merged_package = merge_datapackages(packages)
+    log.info(f"initializing index")
     index = initialize_index(merged_package)
+    log.info(f"index done")
 
     return merged_package, index
 
@@ -182,10 +192,10 @@ def create_app():
     default_sources = ["pudl_parquet"]
     ferc_sources = [
         "ferc1_xbrl",
-        # "ferc2_xbrl",
-        # "ferc60_xbrl",
-        # "ferc6_xbrl",
-        # "ferc714_xbrl",
+        "ferc2_xbrl",
+        "ferc6_xbrl",
+        "ferc60_xbrl",
+        "ferc714_xbrl",
     ]
 
     search_sources = {

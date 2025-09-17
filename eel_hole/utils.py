@@ -1,6 +1,7 @@
 """Useful helper functions."""
 
 import html
+import itertools
 import re
 
 from frictionless import Package
@@ -148,11 +149,15 @@ def clean_ferc_xbrl_descriptions(datapackage: Package) -> Package:
     generation. Also, the table *descriptions* are useless but the table
     *titles* (not *name* which is the canonical name of the table) are merely
     nearly useless. So we replace the descriptions with the titles.
+
+    Since some FERC table names appear in multiple forms, we need to prepend the
+    form name to *all* the table names.
     """
     if datapackage.description:
         datapackage.description = plaintext_to_html(datapackage.description)
     for resource in datapackage.resources:
         resource.description = plaintext_to_html(resource.title)
+        resource.name = f"{datapackage.sources[0]['title']}.{resource.name}"
         for field in resource.schema.fields:
             field.description = plaintext_to_html(field.description)
     return datapackage
@@ -171,15 +176,10 @@ def merge_datapackages(datapackages: list[Package]) -> Package:
     Returns:
         Package: A new frictionless Package containing the merged resources.
     """
-    seen_names = set()
-    all_resources = []
-
-    for pkg in datapackages:
-        for res in pkg.resources:
-            if res.name not in seen_names:
-                all_resources.append(res.to_descriptor())
-                seen_names.add(res.name)
-            else:
-                log.warning(f"Duplicate resource name skipped: {res.name}")
-
-    return Package.from_descriptor({"resources": all_resources})
+    return Package.from_descriptor(
+        {
+            "resources": [
+                res.to_descriptor() for pkg in datapackages for res in pkg.resources
+            ]
+        }
+    )

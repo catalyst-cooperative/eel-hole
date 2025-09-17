@@ -1,10 +1,11 @@
 """Useful helper functions."""
 
+from dataclasses import dataclass
 import html
 import itertools
 import re
 
-from frictionless import Package
+from frictionless import Resource, Schema, Field
 from docutils.core import publish_parts
 from docutils.utils import SystemMessage
 
@@ -127,22 +128,25 @@ def plaintext_to_html(text: str) -> str:
     return f"<main>\n{'\n'.join(html_parts)}\n</main>"
 
 
-def clean_pudl_descriptions(datapackage: Package) -> Package:
+def clean_pudl_resource(resource: Resource) -> Resource:
     """Clean up the PUDL datapackage descriptions for display.
 
     PUDL datapackage documentation is all in RST so we use Sphinx machinery to
     turn it into HTML that our Jinja templates understand.
     """
-    if datapackage.description:
-        datapackage.description = rst_to_html(datapackage.description)
-    for resource in datapackage.resources:
-        resource.description = rst_to_html(resource.description)
-        for field in resource.schema.fields:
-            field.description = rst_to_html(field.description)
-    return datapackage
+    return Resource(
+        name=resource.name,
+        description=rst_to_html(resource.description),
+        schema=Schema(
+            fields=[
+                Field(name=field.name, description=rst_to_html(field.description))
+                for field in resource.schema.fields
+            ]
+        ),
+    )
 
 
-def clean_ferc_xbrl_descriptions(datapackage: Package) -> Package:
+def clean_ferc_xbrl_resource(resource: Resource) -> Resource:
     """Clean up the FERC XBRL datapackage descriptions for display.
 
     These are written in no-format plaintext, so we have some custom HTML
@@ -153,33 +157,14 @@ def clean_ferc_xbrl_descriptions(datapackage: Package) -> Package:
     Since some FERC table names appear in multiple forms, we need to prepend the
     form name to *all* the table names.
     """
-    if datapackage.description:
-        datapackage.description = plaintext_to_html(datapackage.description)
-    for resource in datapackage.resources:
-        resource.description = plaintext_to_html(resource.title)
-        resource.name = f"{datapackage.sources[0]['title']}.{resource.name}"
-        for field in resource.schema.fields:
-            field.description = plaintext_to_html(field.description)
-    return datapackage
 
-
-def merge_datapackages(datapackages: list[Package]) -> Package:
-    """Merge multiple frictionless `Package` objects into a single package.
-
-    Resources from the input packages are combined into one, preserving the original order.
-    If a resource with the same name appears more than once, only the first occurrence
-    is included in the result; subsequent duplicates are skipped with a warning.
-
-    Args:
-        datapackages (list[Package]): A list of frictionless Package objects to merge.
-
-    Returns:
-        Package: A new frictionless Package containing the merged resources.
-    """
-    return Package.from_descriptor(
-        {
-            "resources": [
-                res.to_descriptor() for pkg in datapackages for res in pkg.resources
+    return Resource(
+        name=resource.name,
+        description=plaintext_to_html(resource.title),
+        schema=Schema(
+            fields=[
+                Field(name=field.name, description=plaintext_to_html(field.description))
+                for field in resource.schema.fields
             ]
-        }
+        ),
     )

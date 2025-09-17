@@ -27,3 +27,8 @@ dependencies = [
 
 python-preference = "only-managed"
 python-downloads = "automatic"
+
+[dependency-groups]
+dev = [
+    "filprofiler>=2024.11.2",
+]

@@ -116,7 +116,7 @@ def __build_search_index(source_keys):
         pkg.sources = [{"title": source_key}]
         log.info(f"Cleaning up descriptors for {source_key}")
         all_resources.extend(
-            cleaners[source_key](resource) for resource in pkg.resources
+            cleaners[source_key](resource, source_key) for resource in pkg.resources
         )
         log.info(f"Cleaned up descriptors for {source_key}")
 
@@ -151,6 +151,7 @@ def __sort_resources_by_name(resource: Resource):
         return 2
     if name.startswith("_core"):
         return 3
+    return 4
 
 
 def create_app():
@@ -184,8 +185,8 @@ def create_app():
     login_manager = LoginManager()
     login_manager.init_app(app)
 
-    default_sources = ["pudl_parquet"]
-    ferc_sources = [
+    sources = [
+        "pudl_parquet",
         "ferc1_xbrl",
         "ferc2_xbrl",
         "ferc6_xbrl",
@@ -193,16 +194,7 @@ def create_app():
         "ferc714_xbrl",
     ]
 
-    search_sources = {
-        "default": default_sources,
-        "ferc_enabled": default_sources + ferc_sources,
-    }
-
-    # Store index and resources per source set
-    search_indices = {
-        key: __build_search_index(source_keys)
-        for key, source_keys in search_sources.items()
-    }
+    all_resources, search_index = __build_search_index(sources)
 
     @app.before_request
     def check_for_privacy_policy():
@@ -361,14 +353,8 @@ def create_app():
         query = request.args.get("q")
         log.info("search", url=request.full_path, query=query)
 
-        # TODO just make one index and filter the search
-        if is_flag_enabled("ferc_enabled"):
-            all_resources, index = search_indices["ferc_enabled"]
-        else:
-            all_resources, index = search_indices["default"]
-
         if query:
-            resources = run_search(ix=index, raw_query=query)
+            resources = run_search(ix=search_index, raw_query=query)
         else:
             resources = sorted(all_resources, key=__sort_resources_by_name)
 

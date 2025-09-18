@@ -49,7 +49,7 @@ def initialize_index(resources: list[Resource]) -> index.Index:
         name=TEXT(analyzer=analyzer, stored=True),
         description=TEXT(analyzer=analyzer),
         columns=TEXT(analyzer=analyzer),
-        source=KEYWORD(stored=True),
+        sources=KEYWORD(stored=True),
         tags=KEYWORD(stored=True),
         original_object=STORED,
     )
@@ -71,7 +71,7 @@ def initialize_index(resources: list[Resource]) -> index.Index:
         writer.add_document(
             name=resource.name,
             description=description,
-            source=resource.sources[0]["title"],
+            sources=" ".join(s["title"] for s in resource.sources),
             columns=columns,
             original_object=resource.to_dict(),
             tags=" ".join(tags),
@@ -101,7 +101,7 @@ def run_search(
         query_with_boosts = AndMaybe(user_query, Or([out_boost, preliminary_penalty]))
         if not is_flag_enabled("ferc_enabled"):
             results = searcher.search(
-                query_with_boosts, filter=Term("source", "pudl_parquet")
+                query_with_boosts, filter=Term("sources", "pudl_parquet")
             )
         else:
             results = searcher.search(query_with_boosts)

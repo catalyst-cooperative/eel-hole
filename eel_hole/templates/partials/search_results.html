@@ -5,6 +5,15 @@
       <h2 class="title is-4 level-item">{{r.name}}</h2>
     </div>
   </div>
+  <div class="level">
+    <div class="level-left">
+      {% for source in r.sources %}
+        <span class="tag level-item">database: {{ source["title"] }}</span>
+      {% endfor %}
+    </div>
+  </div>
+  {% if "pudl_parquet" in r.sources|map(attribute="title")|list %}
+
   <div class="block">
     {% if current_user.is_authenticated or config['LOGIN_DISABLED'] %}
     <button class="button is-primary preview-button" :disabled="db === null" :class="{'is-loading': loading}"
@@ -17,6 +26,7 @@
       href="https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/nightly/{{ r.name }}.parquet">Download full table as
       Parquet</a>
   </div>
+  {% endif %}
   <div class="level">
     {{r.description | safe}}
   </div>

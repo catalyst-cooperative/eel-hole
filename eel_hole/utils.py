@@ -128,7 +128,7 @@ def plaintext_to_html(text: str) -> str:
     return f"<main>\n{'\n'.join(html_parts)}\n</main>"
 
 
-def clean_pudl_resource(resource: Resource) -> Resource:
+def clean_pudl_resource(resource: Resource, source_key: str) -> Resource:
     """Clean up the PUDL datapackage descriptions for display.
 
     PUDL datapackage documentation is all in RST so we use Sphinx machinery to
@@ -137,6 +137,7 @@ def clean_pudl_resource(resource: Resource) -> Resource:
     return Resource(
         name=resource.name,
         description=rst_to_html(resource.description),
+        sources=[{"title": source_key}],
         schema=Schema(
             fields=[
                 Field(name=field.name, description=rst_to_html(field.description))
@@ -146,21 +147,19 @@ def clean_pudl_resource(resource: Resource) -> Resource:
     )
 
 
-def clean_ferc_xbrl_resource(resource: Resource) -> Resource:
+def clean_ferc_xbrl_resource(resource: Resource, source_key: str) -> Resource:
     """Clean up the FERC XBRL datapackage descriptions for display.
 
     These are written in no-format plaintext, so we have some custom HTML
     generation. Also, the table *descriptions* are useless but the table
     *titles* (not *name* which is the canonical name of the table) are merely
     nearly useless. So we replace the descriptions with the titles.
-
-    Since some FERC table names appear in multiple forms, we need to prepend the
-    form name to *all* the table names.
     """
 
     return Resource(
         name=resource.name,
         description=plaintext_to_html(resource.title),
+        sources=[{"title": source_key}],
         schema=Schema(
             fields=[
                 Field(name=field.name, description=plaintext_to_html(field.description))

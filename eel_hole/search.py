@@ -1,6 +1,7 @@
 """Interact with the document search."""
 
 import re
+from typing import Any
 
 from frictionless import Resource
 
@@ -19,6 +20,7 @@ from whoosh.qparser import MultifieldParser
 from whoosh.query import AndMaybe, Or, Term
 
 from eel_hole.logs import log
+from eel_hole.feature_flags import is_flag_enabled
 
 
 def custom_stemmer(word: str) -> str:
@@ -47,6 +49,7 @@ def initialize_index(resources: list[Resource]) -> index.Index:
         name=TEXT(analyzer=analyzer, stored=True),
         description=TEXT(analyzer=analyzer),
         columns=TEXT(analyzer=analyzer),
+        source=KEYWORD(stored=True),
         tags=KEYWORD(stored=True),
         original_object=STORED,
     )
@@ -68,6 +71,7 @@ def initialize_index(resources: list[Resource]) -> index.Index:
         writer.add_document(
             name=resource.name,
             description=description,
+            source=resource.sources[0]["title"],
             columns=columns,
             original_object=resource.to_dict(),
             tags=" ".join(tags),
@@ -78,7 +82,9 @@ def initialize_index(resources: list[Resource]) -> index.Index:
     return ix
 
 
-def run_search(ix: index.Index, raw_query: str) -> list[Resource]:
+def run_search(
+    ix: index.Index, raw_query: str, search_params=dict[str, Any]
+) -> list[Resource]:
     """Actually run a user query.
 
     This doctors the raw query with some field boosts + tag boosts.
@@ -89,10 +95,16 @@ def run_search(ix: index.Index, raw_query: str) -> list[Resource]:
             ix.schema,
             fieldboosts={"name": 1.5, "description": 1.0, "columns": 0.5},
         )
-        query = parser.parse(raw_query)
+        user_query = parser.parse(raw_query)
         out_boost = Term("tags", "out", boost=10.0)
         preliminary_penalty = Term("tags", "preliminary", boost=-10.0)
-        results = searcher.search(AndMaybe(query, Or([out_boost, preliminary_penalty])))
+        query_with_boosts = AndMaybe(user_query, Or([out_boost, preliminary_penalty]))
+        if not is_flag_enabled("ferc_enabled"):
+            results = searcher.search(
+                query_with_boosts, filter=Term("source", "pudl_parquet")
+            )
+        else:
+            results = searcher.search(query_with_boosts)
         for hit in results:
             log.debug(
                 "hit",

@@ -1,13 +1,11 @@
 import pytest
-import json
 from frictionless import Package, Resource, Schema, Field
 
 from eel_hole.utils import (
-    clean_descriptions,
+    clean_ferc_xbrl_resource,
+    clean_pudl_resource,
     rst_to_html,
     plaintext_to_html,
-    to_html,
-    merge_datapackages,
 )
 
 
@@ -39,64 +37,25 @@ def test_rst_to_html():
     assert rst_to_html(really_bad_string).replace("\n", "") == expected_output
 
 
-def test_merge_distinct_packages(make_package):
-    pkg1 = make_package(["table_a"])
-    pkg2 = make_package(["table_b"])
-    merged = merge_datapackages([pkg1, pkg2])
-    resource_names = [res.name for res in merged.resources]
-    assert set(resource_names) == {"table_a", "table_b"}
-
-
-def test_merge_with_duplicates(make_package, capsys):
-    pkg1 = make_package(["table_a", "table_b"])
-    pkg2 = make_package(["table_b", "table_c"])
-
-    merged = merge_datapackages([pkg1, pkg2])
-    resource_names = [res.name for res in merged.resources]
-    assert set(resource_names) == {"table_a", "table_b", "table_c"}
-    assert len(resource_names) == 3
-
-    # Capture stdout where structlog prints JSON logs
-    captured = capsys.readouterr()
-
-    # structlog outputs one JSON log per line, so parse lines separately
-    log_events = []
-    for line in captured.out.strip().split("\n"):
-        try:
-            log_json = json.loads(line)
-            log_events.append(log_json.get("event", ""))
-        except json.JSONDecodeError:
-            # Skip lines that aren't valid JSON
-            pass
-
-    assert "Duplicate resource name skipped: table_b" in log_events
-
-
-def test_merge_empty_input():
-    merged = merge_datapackages([])
-    assert isinstance(merged, Package)
-    assert merged.resources == []
-
-
 def test_plaintext_to_html_basic_formatting():
     text = "This is *italic* and **bold** text.\n\nNext paragraph.\nIgnore single linebreak."
     html_output = plaintext_to_html(text)
 
     # Check formatting
-    assert (
-        "<em>italic</em>" in html_output
-    ), "Expected italic text to be wrapped in <em> tags."
-    assert (
-        "<strong>bold</strong>" in html_output
-    ), "Expected bold text to be wrapped in <strong> tags."
+    assert "<em>italic</em>" in html_output, (
+        "Expected italic text to be wrapped in <em> tags."
+    )
+    assert "<strong>bold</strong>" in html_output, (
+        "Expected bold text to be wrapped in <strong> tags."
+    )
 
     # Check paragraph wrapping
     assert (
         "<p>This is <em>italic</em> and <strong>bold</strong> text.</p>" in html_output
     ), "Expected first paragraph to be wrapped in <p> tags with correct formatting."
-    assert (
-        "<p>Next paragraph.\nIgnore single linebreak.</p>" in html_output
-    ), "Expected second paragraph to be wrapped in <p> tags with single newline preserved."
+    assert "<p>Next paragraph.\nIgnore single linebreak.</p>" in html_output, (
+        "Expected second paragraph to be wrapped in <p> tags with single newline preserved."
+    )
 
 
 def test_plaintext_to_html_lists():
@@ -108,40 +67,48 @@ def test_plaintext_to_html_lists():
     assert "<li>second</li>" in html_output
 
 
-def test_to_html_rst_valid():
-    text = "Some text with a :ref:`link`."
-    html_output = to_html(text)
-    assert "<main>" in html_output
-    assert "link" in html_output
-
-
-def test_clean_descriptions():
-    pkg = Package(
-        {
-            "name": "test",
-            "description": "A *simple* description.",
-            "resources": [
-                {
-                    "name": "res1",
-                    "description": "1. First\n2. Second",
-                    "data": [],  # <-- Required field added
-                    "schema": {
-                        "fields": [
-                            {
-                                "name": "field1",
-                                "type": "string",
-                                "description": "**bold** field",
-                            }
-                        ]
-                    },
-                }
-            ],
-        }
+def test_clean_pudl_resource():
+    resource = Resource(
+        name="res1",
+        description="1. First\n2. Second",
+        data=[],  # <-- Required field added
+        schema=Schema(
+            fields=[
+                Field(
+                    name="field1",
+                    description="**bold** field",
+                )
+            ]
+        ),
     )
-    cleaned = clean_descriptions(pkg)
+    cleaned = clean_pudl_resource(resource, source_key="pudl_parquet")
 
-    assert "<em>simple</em>" in cleaned.description
-    res_desc = cleaned.get_resource("res1").description
-    assert "<ol" in res_desc and "<li><p>First</p></li>" in res_desc
-    field_desc = cleaned.get_resource("res1").schema.get_field("field1").description
-    assert "<strong>bold</strong>" in field_desc
+    resource_description = str(cleaned.description)
+    assert (
+        "<ol" in resource_description
+        and "<li><p>First</p></li>" in resource_description
+    )
+    field_description = str(cleaned.schema.get_field("field1").description)
+    assert "<strong>bold</strong>" in field_description
+
+
+def test_clean_ferc_xbrl_resource():
+    resource = Resource(
+        name="res1",
+        title="Something useful",
+        data=[],  # <-- Required field added
+        schema=Schema(
+            fields=[
+                Field(
+                    name="field1",
+                    description="RST would require two newlines here:\n1. First\n2. Second",
+                )
+            ]
+        ),
+    )
+    cleaned = clean_ferc_xbrl_resource(resource, source_key="ferc1_xbrl")
+
+    resource_description = str(cleaned.description)
+    assert "Something useful" in resource_description
+    field_description = str(cleaned.schema.get_field("field1").description)
+    assert "<ol" in field_description and "<li>First</li>" in field_description

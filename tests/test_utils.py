@@ -38,7 +38,10 @@ def test_rst_to_html():
 
 
 def test_plaintext_to_html_basic_formatting():
-    text = "This is *italic* and **bold** text.\n\nNext paragraph.\nIgnore single linebreak."
+    text = """This is *italic* and **bold** text.
+
+Next paragraph.
+Ignore single linebreak."""
     html_output = plaintext_to_html(text)
 
     # Check formatting
@@ -62,7 +65,9 @@ def test_plaintext_to_html_lists():
     text = "- item one\n- item two\n1. first\n2. second"
     html_output = plaintext_to_html(text)
     assert "<ul>" in html_output
+    assert "</ul>" in html_output
     assert "<ol>" in html_output
+    assert "</ol>" in html_output
     assert "<li>item one</li>" in html_output
     assert "<li>second</li>" in html_output
 
@@ -81,14 +86,14 @@ def test_clean_pudl_resource():
             ]
         ),
     )
-    cleaned = clean_pudl_resource(resource, source_key="pudl_parquet")
+    cleaned = clean_pudl_resource(resource)
 
     resource_description = str(cleaned.description)
     assert (
         "<ol" in resource_description
         and "<li><p>First</p></li>" in resource_description
     )
-    field_description = str(cleaned.schema.get_field("field1").description)
+    field_description = str(cleaned.columns[0].description)
     assert "<strong>bold</strong>" in field_description
 
 
@@ -106,9 +111,9 @@ def test_clean_ferc_xbrl_resource():
             ]
         ),
     )
-    cleaned = clean_ferc_xbrl_resource(resource, source_key="ferc1_xbrl")
+    cleaned = clean_ferc_xbrl_resource(resource, package_name="ferc1_xbrl")
 
     resource_description = str(cleaned.description)
     assert "Something useful" in resource_description
-    field_description = str(cleaned.schema.get_field("field1").description)
+    field_description = str(cleaned.columns[0].description)
     assert "<ol" in field_description and "<li>First</li>" in field_description

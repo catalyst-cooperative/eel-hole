@@ -1,5 +1,6 @@
 """Main app definition."""
 
+import itertools
 import json
 import os
 from dataclasses import asdict
@@ -85,43 +86,49 @@ def __init_db(db: SQLAlchemy, app: Flask):
     migrate.init_app(app, db)
 
 
-def __build_search_index(source_keys):
+def __build_search_index():
     """Create a search index.
 
     We currently convert a static YAML file into a Frictionless datapackage,
     then pass that in.
     """
 
-    s3_urls = {
-        source_key: f"https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/nightly/{source_key}_datapackage.json"
-        for source_key in source_keys
-    }
-
-    cleaners = {
-        "ferc1_xbrl": clean_ferc_xbrl_resource,
-        "ferc2_xbrl": clean_ferc_xbrl_resource,
-        "ferc6_xbrl": clean_ferc_xbrl_resource,
-        "ferc60_xbrl": clean_ferc_xbrl_resource,
-        "ferc714_xbrl": clean_ferc_xbrl_resource,
-        "pudl_parquet": clean_pudl_resource,
-    }
-
-    log.info(f"loading datapackage files from {', '.join(s3_urls)}")
-
-    all_resources: list[Resource] = []
-    for source_key, url in s3_urls.items():
+    def get_datapackage(datapackage_path: str) -> Package:
+        s3_base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/nightly"
+        url = f"{s3_base_url}/{datapackage_path}"
+        log.info(f"Getting datapackage from {url}")
         descriptor = requests.get(url).json()
         log.info(f"{url} downloaded")
-        pkg = Package.from_descriptor(descriptor)
-        pkg.sources = [{"title": source_key}]
-        log.info(f"Cleaning up descriptors for {source_key}")
-        all_resources.extend(
-            cleaners[source_key](resource, source_key) for resource in pkg.resources
-        )
-        log.info(f"Cleaned up descriptors for {source_key}")
+        return Package.from_descriptor(descriptor)
 
+    pudl_package = get_datapackage("pudl_parquet_datapackage.json")
+    log.info("Cleaning up descriptors for pudl")
+    pudl_resources = [
+        clean_pudl_resource(resource) for resource in pudl_package.resources
+    ]
+    log.info("Cleaned up descriptors for pudl")
+
+    ferc_xbrls = [
+        "ferc1_xbrl",
+        "ferc2_xbrl",
+        "ferc6_xbrl",
+        "ferc60_xbrl",
+        "ferc714_xbrl",
+    ]
+
+    ferc_xbrl_resources = []
+    for ferc_xbrl in ferc_xbrls:
+        ferc_xbrl_package = get_datapackage(f"{ferc_xbrl}_datapackage.json")
+        log.info(f"Cleaning up descriptors for {ferc_xbrl}")
+        ferc_xbrl_resources.extend(
+            clean_ferc_xbrl_resource(resource, ferc_xbrl)
+            for resource in ferc_xbrl_package.resources
+        )
+        log.info(f"Cleaned up descriptors for {ferc_xbrl}")
+
+    all_resources = pudl_resources + ferc_xbrl_resources
     index = initialize_index(all_resources)
-    log.info(f"index done")
+    log.info("index done")
 
     return all_resources, index
 
@@ -185,16 +192,12 @@ def create_app():
     login_manager = LoginManager()
     login_manager.init_app(app)
 
-    sources = [
-        "pudl_parquet",
-        "ferc1_xbrl",
-        "ferc2_xbrl",
-        "ferc6_xbrl",
-        "ferc60_xbrl",
-        "ferc714_xbrl",
-    ]
-
-    all_resources, search_index = __build_search_index(sources)
+    all_resources, search_index = __build_search_index()
+    sorted_pudl_only = sorted(
+        [resource for resource in all_resources if resource.package == "pudl"],
+        key=__sort_resources_by_name,
+    )
+    sorted_all_resources = sorted(all_resources, key=__sort_resources_by_name)
 
     @app.before_request
     def check_for_privacy_policy():
@@ -356,7 +359,11 @@ def create_app():
         if query:
             resources = run_search(ix=search_index, raw_query=query)
         else:
-            resources = sorted(all_resources, key=__sort_resources_by_name)
+            resources = (
+                sorted_all_resources
+                if is_flag_enabled("ferc_enabled")
+                else sorted_pudl_only
+            )
 
         return render_template(template, resources=resources, query=query)
 

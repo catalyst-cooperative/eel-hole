@@ -17,6 +17,20 @@ log = structlog.get_logger(__name__)
 SPHINX_TAGS = re.compile(r":(?:ref|func|doc):`([^`]+)`")
 
 
+@dataclass
+class ResourceDisplay:
+    name: str
+    package: str
+    description: str
+    columns: list["ColumnDisplay"]
+
+
+@dataclass
+class ColumnDisplay:
+    name: str
+    description: str
+
+
 def rst_to_html(rst: str) -> str:
     """
     Convert a reStructuredText (reST) string to HTML.
@@ -128,26 +142,28 @@ def plaintext_to_html(text: str) -> str:
     return f"<main>\n{'\n'.join(html_parts)}\n</main>"
 
 
-def clean_pudl_resource(resource: Resource, source_key: str) -> Resource:
+def clean_pudl_resource(resource: Resource) -> ResourceDisplay:
     """Clean up the PUDL datapackage descriptions for display.
 
-    PUDL datapackage documentation is all in RST so we use Sphinx machinery to
-    turn it into HTML that our Jinja templates understand.
+    PUDL datapackage documentation is all in RST so we use Sphinx
+    machinery to turn it into HTML that can be shoved into the
+    templates/partials/search_results.html Jinja template.
     """
-    return Resource(
+    return ResourceDisplay(
         name=resource.name,
-        description=rst_to_html(resource.description),
-        sources=[{"title": source_key}],
-        schema=Schema(
-            fields=[
-                Field(name=field.name, description=rst_to_html(field.description))
-                for field in resource.schema.fields
-            ]
-        ),
+        description=rst_to_html(getattr(resource, "description", "")),
+        package="pudl",
+        columns=[
+            ColumnDisplay(
+                name=field.name,
+                description=rst_to_html(getattr(field, "description", "")),
+            )
+            for field in resource.schema.fields
+        ],
     )
 
 
-def clean_ferc_xbrl_resource(resource: Resource, source_key: str) -> Resource:
+def clean_ferc_xbrl_resource(resource: Resource, package_name: str) -> ResourceDisplay:
     """Clean up the FERC XBRL datapackage descriptions for display.
 
     These are written in no-format plaintext, so we have some custom HTML
@@ -156,14 +172,15 @@ def clean_ferc_xbrl_resource(resource: Resource, source_key: str) -> Resource:
     nearly useless. So we replace the descriptions with the titles.
     """
 
-    return Resource(
+    return ResourceDisplay(
         name=resource.name,
-        description=plaintext_to_html(resource.title),
-        sources=[{"title": source_key}],
-        schema=Schema(
-            fields=[
-                Field(name=field.name, description=plaintext_to_html(field.description))
-                for field in resource.schema.fields
-            ]
-        ),
+        description=plaintext_to_html(getattr(resource, "title", "")),
+        package=package_name,
+        columns=[
+            ColumnDisplay(
+                name=field.name,
+                description=plaintext_to_html(getattr(field, "description", "")),
+            )
+            for field in resource.schema.fields
+        ],
     )

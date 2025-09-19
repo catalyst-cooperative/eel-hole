@@ -1,5 +1,6 @@
 """Interact with the document search."""
 
+import dataclasses
 import re
 from typing import Any
 
@@ -19,8 +20,9 @@ from whoosh.lang.porter import stem
 from whoosh.qparser import MultifieldParser
 from whoosh.query import AndMaybe, Or, Term
 
-from eel_hole.logs import log
 from eel_hole.feature_flags import is_flag_enabled
+from eel_hole.logs import log
+from eel_hole.utils import ResourceDisplay
 
 
 def custom_stemmer(word: str) -> str:
@@ -32,7 +34,7 @@ def custom_stemmer(word: str) -> str:
     return stem_map.get(word, stem(word))
 
 
-def initialize_index(resources: list[Resource]) -> index.Index:
+def initialize_index(resources: list[ResourceDisplay]) -> index.Index:
     """Index the resources from a datapackage for later searching.
 
     Search index is stored in memory since it's such a small dataset.
@@ -49,7 +51,7 @@ def initialize_index(resources: list[Resource]) -> index.Index:
         name=TEXT(analyzer=analyzer, stored=True),
         description=TEXT(analyzer=analyzer),
         columns=TEXT(analyzer=analyzer),
-        sources=KEYWORD(stored=True),
+        package=KEYWORD(stored=True),
         tags=KEYWORD(stored=True),
         original_object=STORED,
     )
@@ -59,10 +61,7 @@ def initialize_index(resources: list[Resource]) -> index.Index:
     for resource in resources:
         description = re.sub("<[^<]+?>", "", resource.description)
         columns = "".join(
-            (
-                " ".join([field.name, field.description])
-                for field in resource.schema.fields
-            )
+            (" ".join([col.name, col.description]) for col in resource.columns)
         )
         tags = [resource.name.strip("_").split("_")[0]]
         if resource.name.startswith("_"):
@@ -71,9 +70,9 @@ def initialize_index(resources: list[Resource]) -> index.Index:
         writer.add_document(
             name=resource.name,
             description=description,
-            sources=" ".join(s["title"] for s in resource.sources),
+            package=resource.package,
             columns=columns,
-            original_object=resource.to_dict(),
+            original_object=dataclasses.asdict(resource),
             tags=" ".join(tags),
         )
 
@@ -100,9 +99,7 @@ def run_search(
         preliminary_penalty = Term("tags", "preliminary", boost=-10.0)
         query_with_boosts = AndMaybe(user_query, Or([out_boost, preliminary_penalty]))
         if not is_flag_enabled("ferc_enabled"):
-            results = searcher.search(
-                query_with_boosts, filter=Term("sources", "pudl_parquet")
-            )
+            results = searcher.search(query_with_boosts, filter=Term("package", "pudl"))
         else:
             results = searcher.search(query_with_boosts)
         for hit in results:

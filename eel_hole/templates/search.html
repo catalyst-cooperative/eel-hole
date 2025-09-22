@@ -21,7 +21,7 @@
       type="text"
       name="q"
       hx-get="/search"
-      hx-vals="js:{ferc_enabled:new URLSearchParams(new URL(window.location).search).get('ferc_enabled')}"
+      {% if ferc_enabled %} hx-vals='{"ferc_enabled": "true"}' {% endif %}
       hx-trigger="input changed delay:300ms"
       hx-target="#search-results"
       hx-replace-url="true"

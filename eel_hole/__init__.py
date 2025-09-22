@@ -365,7 +365,12 @@ def create_app():
                 else sorted_pudl_only
             )
 
-        return render_template(template, resources=resources, query=query)
+        return render_template(
+            template,
+            resources=resources,
+            query=query,
+            ferc_enabled=is_flag_enabled("ferc_enabled"),
+        )
 
     @app.get("/api/duckdb")
     def duckdb():

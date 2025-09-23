@@ -27,3 +27,10 @@ dependencies = [
 
 python-preference = "only-managed"
 python-downloads = "automatic"
+
+[dependency-groups]
+dev = [
+    "filprofiler>=2024.11.2",
+    "playwright>=1.55.0",
+    "pytest-playwright>=0.7.1",
+]

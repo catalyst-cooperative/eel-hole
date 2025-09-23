@@ -1,6 +1,5 @@
 """Main app definition."""
 
-import itertools
 import json
 import os
 from dataclasses import asdict

@@ -274,7 +274,6 @@ dependencies = [
     { name = "frictionless" },
     { name = "psycopg2-binary" },
     { name = "pydantic" },
-    { name = "pytest" },
     { name = "pyyaml" },
     { name = "requests" },
     { name = "structlog" },
@@ -283,8 +282,8 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "filprofiler" },
     { name = "playwright" },
+    { name = "pytest" },
     { name = "pytest-playwright" },
 ]
 
@@ -301,7 +300,6 @@ requires-dist = [
     { name = "frictionless", specifier = ">=5.18.0" },
     { name = "psycopg2-binary", specifier = ">=2.9.10" },
     { name = "pydantic", specifier = ">=2.10.3" },
-    { name = "pytest", specifier = ">=8.3.4" },
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "requests", specifier = ">=2.32.3" },
     { name = "structlog", specifier = ">=25.1.0" },
@@ -310,24 +308,9 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "filprofiler", specifier = ">=2024.11.2" },
     { name = "playwright", specifier = ">=1.55.0" },
+    { name = "pytest", specifier = ">=8.4.2" },
     { name = "pytest-playwright", specifier = ">=0.7.1" },
-]
-
-[[package]]
-name = "filprofiler"
-version = "2024.11.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "threadpoolctl" },
-]
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ec/ea/a9e9f9af45b048f08d5c8b7cfc4cb9b879ef71614b8355f13cf189f901dc/filprofiler-2024.11.2-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:0d8e5355ff0a78afa5b06ce1a2da3cda22edf711e5a4f717da907df083fe4c2e", size = 491090, upload-time = "2024-11-04T00:52:43.772Z" },
-    { url = "https://files.pythonhosted.org/packages/b4/5f/a73a18ac37478413e863e956fe08193156e4a3550e436df26196bcadfa01/filprofiler-2024.11.2-cp313-cp313-macosx_11_0_x86_64.whl", hash = "sha256:07fdd470cb8faae7aa4cc87a5b478ce5c96697ba769195a581f96976200ed0c5", size = 508743, upload-time = "2024-11-04T00:52:45.182Z" },
-    { url = "https://files.pythonhosted.org/packages/be/73/a64d4ebc66e21121997110f509483b6f27f2b057f17a965107cc241a35e4/filprofiler-2024.11.2-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:93d93a344f9999258b9b13036cff3227e38f3eeecec8646cb7c29441f0f389fd", size = 1472462, upload-time = "2024-11-04T01:37:16.145Z" },
-    { url = "https://files.pythonhosted.org/packages/c3/62/81f15b683f62f5b7d4f814fbb06145ef17c164c6540a7174933d8d864c93/filprofiler-2024.11.2-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:f1e05647175bfc83dbadde95e65d4ce3bfe248fff0f64fddf96ebc54c73f34de", size = 1517731, upload-time = "2024-11-04T00:58:40.335Z" },
-    { url = "https://files.pythonhosted.org/packages/b1/65/8d53f2f6d25e62bbe9994a39543942f46ac47fb098fd477c72e5a886a4fe/filprofiler-2024.11.2-cp313-cp313t-manylinux_2_28_x86_64.whl", hash = "sha256:c662c341f87faf460a94af10c6fc0723295e0341b6ba49e2eae64326698b8ce7", size = 1517999, upload-time = "2024-11-04T00:58:42.203Z" },
 ]
 
 [[package]]
@@ -1019,15 +1002,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/ab/e2/e9a00f0ccb71718418230718b3d900e71a5d16e701a3dae079a21e9cd8f8/text-unidecode-1.3.tar.gz", hash = "sha256:bad6603bb14d279193107714b288be206cac565dfa49aa5b105294dd5c4aab93", size = 76885, upload-time = "2019-08-30T21:36:45.405Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a6/a5/c0b6468d3824fe3fde30dbb5e1f687b291608f9473681bbf7dabbf5a87d7/text_unidecode-1.3-py2.py3-none-any.whl", hash = "sha256:1311f10e8b895935241623731c2ba64f4c455287888b18189350b67134a822e8", size = 78154, upload-time = "2019-08-30T21:37:03.543Z" },
-]
-
-[[package]]
-name = "threadpoolctl"
-version = "3.6.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/b7/4d/08c89e34946fce2aec4fbb45c9016efd5f4d7f24af8e5d93296e935631d8/threadpoolctl-3.6.0.tar.gz", hash = "sha256:8ab8b4aa3491d812b623328249fab5302a68d2d71745c8a4c719a2fcaba9f44e", size = 21274, upload-time = "2025-03-13T13:49:23.031Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/32/d5/f9a850d79b0851d1d4ef6456097579a9005b31fea68726a4ae5f2d82ddd9/threadpoolctl-3.6.0-py3-none-any.whl", hash = "sha256:43a0b8fd5a2928500110039e43a5eed8480b918967083ea48dc3ab9f13c4a7fb", size = 18638, upload-time = "2025-03-13T13:49:21.846Z" },
 ]
 
 [[package]]

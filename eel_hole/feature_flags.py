@@ -6,8 +6,7 @@ from collections.abc import Callable
 
 
 def _coerce_flag_value(value: bool | int | str) -> bool:
-    """
-    Convert feature flag values to a boolean.
+    """Convert feature flag values to a boolean.
 
     Acceptable inputs:
       - Booleans: True, False
@@ -37,8 +36,7 @@ def _coerce_flag_value(value: bool | int | str) -> bool:
 
 
 def is_flag_enabled(flag_name: str) -> bool:
-    """
-    Determine if a feature flag is enabled.
+    """Determine if a feature flag is enabled.
 
     Checks for `flag_name` in the query string (e.g., ?my_flag=true),
     falling back to the Flask config under `FEATURE_FLAGS`.

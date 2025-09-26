@@ -1,8 +1,10 @@
 """Interact with the document search."""
 
+import dataclasses
 import re
+from typing import Any
 
-from frictionless import Package, Resource
+from frictionless import Resource
 
 # TODO 2025-01-15: think about switching this over to py-tantivy since that's better maintained
 from whoosh import index
@@ -18,7 +20,9 @@ from whoosh.lang.porter import stem
 from whoosh.qparser import MultifieldParser
 from whoosh.query import AndMaybe, Or, Term
 
+from eel_hole.feature_flags import is_flag_enabled
 from eel_hole.logs import log
+from eel_hole.utils import ResourceDisplay
 
 
 def custom_stemmer(word: str) -> str:
@@ -30,7 +34,7 @@ def custom_stemmer(word: str) -> str:
     return stem_map.get(word, stem(word))
 
 
-def initialize_index(datapackage: Package) -> index:
+def initialize_index(resources: list[ResourceDisplay]) -> index.Index:
     """Index the resources from a datapackage for later searching.
 
     Search index is stored in memory since it's such a small dataset.
@@ -47,19 +51,17 @@ def initialize_index(datapackage: Package) -> index:
         name=TEXT(analyzer=analyzer, stored=True),
         description=TEXT(analyzer=analyzer),
         columns=TEXT(analyzer=analyzer),
+        package=KEYWORD(stored=True),
         tags=KEYWORD(stored=True),
         original_object=STORED,
     )
     ix = storage.create_index(schema)
     writer = ix.writer()
 
-    for resource in datapackage.resources:
+    for resource in resources:
         description = re.sub("<[^<]+?>", "", resource.description)
         columns = "".join(
-            (
-                " ".join([field.name, field.description])
-                for field in resource.schema.fields
-            )
+            (" ".join([col.name, col.description]) for col in resource.columns)
         )
         tags = [resource.name.strip("_").split("_")[0]]
         if resource.name.startswith("_"):
@@ -68,8 +70,9 @@ def initialize_index(datapackage: Package) -> index:
         writer.add_document(
             name=resource.name,
             description=description,
+            package=resource.package,
             columns=columns,
-            original_object=resource.to_dict(),
+            original_object=dataclasses.asdict(resource),
             tags=" ".join(tags),
         )
 
@@ -78,7 +81,9 @@ def initialize_index(datapackage: Package) -> index:
     return ix
 
 
-def run_search(ix: index, raw_query: str) -> list[Resource]:
+def run_search(
+    ix: index.Index, raw_query: str, search_params=dict[str, Any]
+) -> list[Resource]:
     """Actually run a user query.
 
     This doctors the raw query with some field boosts + tag boosts.
@@ -89,10 +94,14 @@ def run_search(ix: index, raw_query: str) -> list[Resource]:
             ix.schema,
             fieldboosts={"name": 1.5, "description": 1.0, "columns": 0.5},
         )
-        query = parser.parse(raw_query)
+        user_query = parser.parse(raw_query)
         out_boost = Term("tags", "out", boost=10.0)
         preliminary_penalty = Term("tags", "preliminary", boost=-10.0)
-        results = searcher.search(AndMaybe(query, Or([out_boost, preliminary_penalty])))
+        query_with_boosts = AndMaybe(user_query, Or([out_boost, preliminary_penalty]))
+        if not is_flag_enabled("ferc_enabled"):
+            results = searcher.search(query_with_boosts, filter=Term("package", "pudl"))
+        else:
+            results = searcher.search(query_with_boosts)
         for hit in results:
             log.debug(
                 "hit",

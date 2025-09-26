@@ -28,7 +28,6 @@ def test_search_metadata(page: Page):
     expect(ownership_table).to_contain_text("Primary key")
 
 
-@pytest.mark.skip(reason="Haven't merged the ferc_enabled PR yet")
 def test_search_for_ferc_table(page: Page):
     page.goto("http://localhost:8080/search?ferc_enabled=true")
     search_input = page.get_by_role("textbox").and_(

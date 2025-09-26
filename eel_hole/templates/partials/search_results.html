@@ -5,31 +5,38 @@
       <h2 class="title is-4 level-item">{{r.name}}</h2>
     </div>
   </div>
-  <div class="block">
-    {% if current_user.is_authenticated or config['LOGIN_DISABLED'] %}
-    <button class="button is-primary preview-button" :disabled="db === null" :class="{'is-loading': loading}"
-      @click="showPreview = true; tableName = '{{r.name}}'">Preview / export as CSV</button>
-    {% else %}
-    <a class="button is-primary preview-button" href="/login?next_url={{ url_for(request.endpoint, **request.args) }}">Log
-      in or sign up to preview / export as CSV</a>
-    {% endif %}
-    <a class="button is-link is-light"
-      href="https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/nightly/{{ r.name }}.parquet">Download full table as
-      Parquet</a>
+  <div class="level">
+    <div class="level-left">
+      <span class="tag level-item">package: {{ r.package }}</span>
+    </div>
   </div>
+  {% if r.package == "pudl" %}
+    <div class="block">
+      {% if current_user.is_authenticated or config['LOGIN_DISABLED'] %}
+      <button class="button is-primary preview-button" :disabled="db === null" :class="{'is-loading': loading}"
+        @click="showPreview = true; tableName = '{{r.name}}'">Preview / export as CSV</button>
+      {% else %}
+      <a class="button is-primary preview-button" href="/login?next_url={{ url_for(request.endpoint, **request.args) }}">Log
+        in or sign up to preview / export as CSV</a>
+      {% endif %}
+      <a class="button is-link is-light"
+        href="https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/nightly/{{ r.name }}.parquet">Download full table as
+        Parquet</a>
+    </div>
+  {% endif %}
   <div class="level">
     {{r.description | safe}}
   </div>
   <div class="block">
     <details>
       <summary class="title is-5">Columns</summary>
-      {% for f in r.schema.fields %}
+      {% for col in columns %}
       <div class="mb-2">
         <div>
-          <strong>{{ f.name }}</strong>
+          <strong>{{ col.name }}</strong>
         </div>
         <div class="pl-4">
-          {{ f.description | safe }}
+          {{ col.description | safe }}
         </div>
       </div>
       {% endfor %}

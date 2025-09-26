@@ -1,5 +1,6 @@
 """Main app definition."""
 
+import itertools
 import json
 import os
 from dataclasses import asdict
@@ -25,13 +26,14 @@ from flask_login import (
 )
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
-from frictionless import Package
+from frictionless import Package, Resource
 
 from eel_hole.models import db, User
 from eel_hole.duckdb_query import ag_grid_to_duckdb, Filter
 from eel_hole.logs import log
 from eel_hole.search import initialize_index, run_search
-from eel_hole.utils import clean_descriptions
+from eel_hole.utils import clean_pudl_resource, clean_ferc_xbrl_resource
+from eel_hole.feature_flags import is_flag_enabled
 
 AUTH0_DOMAIN = os.getenv("PUDL_VIEWER_AUTH0_DOMAIN")
 CLIENT_ID = os.getenv("PUDL_VIEWER_AUTH0_CLIENT_ID")
@@ -84,18 +86,54 @@ def __init_db(db: SQLAlchemy, app: Flask):
     migrate.init_app(app, db)
 
 
-def __build_search_index(app):
-    """Create a search index from a Frictionless datapackage."""
-    s3_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/nightly/pudl_parquet_datapackage.json"
+def __build_search_index():
+    """Create a search index.
 
-    log.info(f"loading datapackage from {s3_url}")
-    datapackage_descriptor = requests.get(s3_url).json()
-    datapackage = clean_descriptions(Package.from_descriptor(datapackage_descriptor))
-    index = initialize_index(datapackage)
-    return datapackage, index
+    We currently convert a static YAML file into a Frictionless datapackage,
+    then pass that in.
+    """
+
+    def get_datapackage(datapackage_path: str) -> Package:
+        s3_base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/nightly"
+        url = f"{s3_base_url}/{datapackage_path}"
+        log.info(f"Getting datapackage from {url}")
+        descriptor = requests.get(url).json()
+        log.info(f"{url} downloaded")
+        return Package.from_descriptor(descriptor)
+
+    pudl_package = get_datapackage("pudl_parquet_datapackage.json")
+    log.info("Cleaning up descriptors for pudl")
+    pudl_resources = [
+        clean_pudl_resource(resource) for resource in pudl_package.resources
+    ]
+    log.info("Cleaned up descriptors for pudl")
+
+    ferc_xbrls = [
+        "ferc1_xbrl",
+        "ferc2_xbrl",
+        "ferc6_xbrl",
+        "ferc60_xbrl",
+        "ferc714_xbrl",
+    ]
+
+    ferc_xbrl_resources = []
+    for ferc_xbrl in ferc_xbrls:
+        ferc_xbrl_package = get_datapackage(f"{ferc_xbrl}_datapackage.json")
+        log.info(f"Cleaning up descriptors for {ferc_xbrl}")
+        ferc_xbrl_resources.extend(
+            clean_ferc_xbrl_resource(resource, ferc_xbrl)
+            for resource in ferc_xbrl_package.resources
+        )
+        log.info(f"Cleaned up descriptors for {ferc_xbrl}")
+
+    all_resources = pudl_resources + ferc_xbrl_resources
+    index = initialize_index(all_resources)
+    log.info("index done")
+
+    return all_resources, index
 
 
-def __sort_resources_by_name(resource):
+def __sort_resources_by_name(resource: Resource):
     """Helper function to enforce resource ordering with no query.
 
     Four recommended tables show up first, then we order by layer.
@@ -120,6 +158,7 @@ def __sort_resources_by_name(resource):
         return 2
     if name.startswith("_core"):
         return 3
+    return 4
 
 
 def create_app():
@@ -153,9 +192,12 @@ def create_app():
     login_manager = LoginManager()
     login_manager.init_app(app)
 
-    datapackage, index = __build_search_index(app)
-
-    sorted_resources = sorted(datapackage.resources, key=__sort_resources_by_name)
+    all_resources, search_index = __build_search_index()
+    sorted_pudl_only = sorted(
+        [resource for resource in all_resources if resource.package == "pudl"],
+        key=__sort_resources_by_name,
+    )
+    sorted_all_resources = sorted(all_resources, key=__sort_resources_by_name)
 
     @app.before_request
     def check_for_privacy_policy():
@@ -315,11 +357,20 @@ def create_app():
         log.info("search", url=request.full_path, query=query)
 
         if query:
-            resources = run_search(ix=index, raw_query=query)
+            resources = run_search(ix=search_index, raw_query=query)
         else:
-            resources = sorted_resources
+            resources = (
+                sorted_all_resources
+                if is_flag_enabled("ferc_enabled")
+                else sorted_pudl_only
+            )
 
-        return render_template(template, resources=resources, query=query)
+        return render_template(
+            template,
+            resources=resources,
+            query=query,
+            ferc_enabled=is_flag_enabled("ferc_enabled"),
+        )
 
     @app.get("/api/duckdb")
     def duckdb():

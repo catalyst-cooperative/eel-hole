@@ -1,7 +1,9 @@
 {% for r in resources %}
-<div class="block">
+<div class="block" data-testid="{{r.name}}">
   <div class="level">
-    <h2 class="title is-4 level-left">{{r.name}}</h2>
+    <div class="level-left">
+      <h2 class="title is-4 level-item">{{r.name}}</h2>
+    </div>
   </div>
   <div class="block">
     {% if current_user.is_authenticated or config['LOGIN_DISABLED'] %}

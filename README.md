@@ -98,11 +98,23 @@ set those callback and logout URLs with `localhost`.
 
 ## Tests
 
-We only have a few unit tests right now - no frontend testing or anything.
+To run the unit tests:
 
 ```
-$ uv run pytest
+$ uv run pytest tests/unit
 ```
+
+We haven't hooked up the integration tests to the login system yet, so you have to turn off logins when running integration tests:
+
+```
+$ # If you haven't gotten playwright set up, you'll need to run `playwright install chromium` to give it *some* browser to drive
+$ playwright install chromium
+$ PUDL_VIEWER_LOGIN_DISABLED=true docker compose up
+$ uv run pytest tests/integration
+```
+
+This uses `playwright` to run through some user flows.
+Make sure you have a stable Internet connection, otherwise you'll hit a bunch of timeouts.
 
 ## Feature Flags
 In order to make testing out features more convenient, you can toggle feature flags in a query parameter in the url or via a config file.

@@ -19,6 +19,7 @@ def user_id_adder(logger, log_method, event_dict):
     """
     if current_user:
         event_dict["user_id"] = current_user.get_id()
+        event_dict["user_domain"] = current_user.get_domain() if current_user.get_id() else None
     return event_dict
 
 

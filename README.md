@@ -104,7 +104,7 @@ To run the unit tests:
 $ uv run pytest tests/test_*
 ```
 
-To run the integration tests: 
+To run the integration tests:
 
 We haven't hooked up the integration tests to the login system yet, so you have to turn off logins.
 

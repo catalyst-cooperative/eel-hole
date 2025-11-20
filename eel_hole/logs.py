@@ -13,7 +13,7 @@ def user_info_adder(logger, log_method, event_dict):
     `user_id` and `user_domain` will not be added to the log event.
 
     When there is a user in context but the user is anonymous,
-    `user_id` and `user_domain`will be added to the log event,
+    `user_id` and `user_domain` will be added to the log event,
     but with value `null`.
 
     Must be added to processor list *before* JSONRenderer, otherwise event_dict

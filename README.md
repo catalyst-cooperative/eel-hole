@@ -101,14 +101,16 @@ set those callback and logout URLs with `localhost`.
 To run the unit tests:
 
 ```
-$ uv run pytest tests/unit
+$ uv run pytest tests/test_*
 ```
 
-We haven't hooked up the integration tests to the login system yet, so you have to turn off logins when running integration tests:
+To run the integration tests: 
+
+We haven't hooked up the integration tests to the login system yet, so you have to turn off logins.
 
 ```
 $ # If you haven't gotten playwright set up, you'll need to run `playwright install chromium` to give it *some* browser to drive
-$ playwright install chromium
+$ uv run playwright install chromium
 $ PUDL_VIEWER_LOGIN_DISABLED=true docker compose up
 $ uv run pytest tests/integration
 ```
@@ -121,7 +123,7 @@ In order to make testing out features more convenient, you can toggle feature fl
 
 To enable a feature flag temporarily during development, append it as a query string in the URL:
 ```
-http://localhost:5000/somepage?my_feature=true
+http://localhost:8080/somepage?my_feature=true
 ```
 You can also define persistent feature flags via the Flask config:
 ```

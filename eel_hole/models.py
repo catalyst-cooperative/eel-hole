@@ -25,6 +25,9 @@ class User(UserMixin, db.Model):
     do_individual_outreach: Mapped[bool] = mapped_column(server_default=false())
     send_newsletter: Mapped[bool] = mapped_column(server_default=false())
 
+    def get_domain(self) -> str:
+        return self.email.partition("@")[-1]
+
     @staticmethod
     def get(user_id):
         return User.query.get(int(user_id))

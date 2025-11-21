@@ -391,7 +391,7 @@ async function _addTableToDuckDB(db: duckdb.AsyncDuckDB, tableName: string) {
   /**
    * Register the table in DuckDB so that it can cache useful metadata etc.
    */
-  const baseUrl = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/nightly/"
+  const baseUrl = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/eel-hole/"
   const filename = `${tableName}.parquet`;
   const url = `${baseUrl}${filename}`;
   await db.registerFileURL(filename, url, duckdb.DuckDBDataProtocol.HTTP, false);

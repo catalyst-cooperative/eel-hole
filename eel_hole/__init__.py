@@ -94,7 +94,7 @@ def __build_search_index():
     """
 
     def get_datapackage(datapackage_path: str) -> Package:
-        s3_base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/nightly"
+        s3_base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/eel-hole"
         url = f"{s3_base_url}/{datapackage_path}"
         log.info(f"Getting datapackage from {url}")
         descriptor = requests.get(url).json()

@@ -44,7 +44,7 @@ interface QueryEndpointPayload {
   perPage: number
 }
 
-interface UnitializedTableState extends AlpineComponent<{}> {
+interface UninitializedTableState extends AlpineComponent<{}> {
   /**
    * Weird mirror to make the types play nice - lots of stuff is only defined after init() is called.
    */
@@ -86,7 +86,7 @@ interface TableState extends AlpineComponent<{}> {
   csvText: () => string;
 }
 
-const data: UnitializedTableState = {
+const data: UninitializedTableState = {
   tableName: null,
   numRowsMatched: null,
   numRowsDisplayed: 0,

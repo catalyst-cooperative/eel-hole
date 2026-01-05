@@ -461,4 +461,29 @@ def create_app():
             query = None
         return redirect(url_for("search", q=query))
 
+    @app.get("/preview/<database_name>/<table_name>")
+    def preview(database_name: str, table_name: str):
+        """Preview data for a specific table.
+
+        Displays table metadata and a tabular view from which you can filter and
+        export the data as CSV.
+
+        Params:
+            database_name: the database containing the table (e.g., "pudl")
+            table_name: the name of the table to preview
+        """
+        log.info("preview", database_name=database_name, table_name=table_name)
+
+        # Find the specific resource matching the table name
+        resource = next((r for r in all_resources if r.name == table_name), None)
+
+        if not resource:
+            return render_template("404.html"), 404
+
+        return render_template(
+            "preview.html",
+            resources=[resource],
+            table_name=table_name,
+        )
+
     return app

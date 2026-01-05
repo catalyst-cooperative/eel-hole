@@ -82,7 +82,7 @@ Alpine.data("previewTableState", (tableName: string) => ({
   addedTables: new Set(),
   csvExportPageSize: 1_000_000,
   exporting: false,
-  loading: false,
+  loading: true,  // Start as loading since we load data immediately in init()
   darkMode: window.matchMedia('(prefers-color-scheme: dark)').matches,
   gridApi: null as any,  // Initialized in init()
   db: null as any,       // Initialized in init()
@@ -93,17 +93,13 @@ Alpine.data("previewTableState", (tableName: string) => ({
      * Alpine will automatically call this before rendering the component -
      * see https://alpinejs.dev/globals/alpine-data#init-functions
      *
-     * - makes sure duckDB is alive
-     * - makes an AG Grid
+     * - makes an AG Grid with loading overlay showing
+     * - initializes duckDB (slow, loading overlay shows during this)
      * - loads the table data immediately
      */
     console.log("Initializing preview for table:", this.tableName);
 
-    this.db = await _initializeDuckDB();
-
-    this.conn = await this.db.connect();
-    await this.conn.query("SET default_collation='nocase';");
-
+    // Create grid first so loading overlay can show during DB initialization
     const gridOptions: GridOptions = {
       onFilterChanged: async () => refreshTable(this),
       tooltipShowDelay: 500,
@@ -111,9 +107,14 @@ Alpine.data("previewTableState", (tableName: string) => ({
     }
     const host = document.getElementById("data-table")!;
     this.gridApi = createGrid(host, gridOptions);
+    this.gridApi.setGridOption('loading', true);
 
-    // Load the table data immediately
-    this.loading = true;
+    // Initialize DuckDB (loading overlay shows during this)
+    this.db = await _initializeDuckDB();
+    this.conn = await this.db.connect();
+    await this.conn.query("SET default_collation='nocase';");
+
+    // Load the table data
     await refreshTable(this);
     this.loading = false;
 

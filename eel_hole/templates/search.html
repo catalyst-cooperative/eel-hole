@@ -1,9 +1,26 @@
 {% extends "base.html" %}
 
-{% block extra_head %}
-<script type="module" src="{{ url_for('static', filename='index.js') }}"></script>
-{% endblock %}
 {% block title %}PUDL Data Viewer{% endblock %}
+
+{% block extra_head %}
+<script>
+  // Populate search input from URL query parameter
+  function restoreSearchQuery() {
+    const params = new URLSearchParams(window.location.search);
+    const query = params.get('q');
+    const searchInput = document.querySelector('input[name="q"]');
+    if (searchInput && query) {
+      searchInput.value = query;
+    }
+  }
+
+  // Restore on initial page load
+  document.addEventListener('DOMContentLoaded', restoreSearchQuery);
+
+  // Restore on HTMX history navigation
+  document.addEventListener('htmx:historyRestore', restoreSearchQuery);
+</script>
+{% endblock %}
 
 {% block content %}
 
@@ -17,7 +34,7 @@
     <button class="delete" @click="open = !open"></button>
   </div>
 </div>
-<div id="app" class="columns container is-fluid is-flex-grow-1" x-data="tableState">
+<div class="columns container is-fluid is-flex-grow-1">
   <div class="data-dictionary column my-3 is-flex is-flex-direction-column">
     <input
       class="input is-medium block"
@@ -34,28 +51,6 @@
     <div class="data-dictionary is-flex-grow-1" id="search-results">
       {% include 'partials/search_results.html' %}
     </div>
-  </div>
-  <div class="preview-panel mt-3 mb-5 box column is-two-thirds is-flex-direction-column" x-show="showPreview"
-    x-transition>
-    <div class="level">
-      <div class="level-left">
-        <h2 id="table-name" class="title is-4 level-item my-auto" x-text="tableName ? tableName : ''"></h2>
-      </div>
-      <div class="level-right">
-        <button class="button level-item is-primary" :disabled="exporting || !csvAllowed()" @click="exportCsv"
-          :class="{'is-loading': exporting}" x-text="csvText()" x-show="numRowsMatched !== null"></button>
-        <button class="delete level-item" @click="showPreview = false;"></button>
-      </div>
-    </div>
-    <h3 x-show="numRowsMatched && !loading" class="subtitle is-6">
-      Showing
-      <span class="has-text-weight-bold" x-text="numRowsDisplayed.toLocaleString()"></span>
-      rows out of
-      <span class="has-text-weight-bold" :class="{'has-text-warning': numRowsDisplayed < numRowsMatched}"
-        x-text="numRowsMatched?.toLocaleString()"></span>
-      rows that match your filters
-    </h3>
-    <div id="data-table" class="is-flex-grow-1" x-show="!loading"></div>
   </div>
 </div>
 

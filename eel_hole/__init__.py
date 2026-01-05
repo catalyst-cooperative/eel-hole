@@ -461,18 +461,21 @@ def create_app():
             query = None
         return redirect(url_for("search", q=query))
 
-    @app.get("/preview/<database_name>/<table_name>")
-    def preview(database_name: str, table_name: str):
+    @login_required
+    @app.get("/preview/<package>/<table_name>")
+    def preview(package: str, table_name: str):
         """Preview data for a specific table.
 
         Displays table metadata and a tabular view from which you can filter and
-        export the data as CSV.
+        export the data as CSV. Returns full page for direct navigation or content
+        fragment for HTMX requests.
 
         Params:
             database_name: the database containing the table (e.g., "pudl")
             table_name: the name of the table to preview
         """
-        log.info("preview", database_name=database_name, table_name=table_name)
+        template = "partials/preview_content.html" if htmx else "preview.html"
+        log.info("preview", package=package, table_name=table_name)
 
         # Find the specific resource matching the table name
         resource = next((r for r in all_resources if r.name == table_name), None)
@@ -481,8 +484,8 @@ def create_app():
             return render_template("404.html"), 404
 
         return render_template(
-            "preview.html",
-            resources=[resource],
+            template,
+            resource=resource,
             table_name=table_name,
         )
 

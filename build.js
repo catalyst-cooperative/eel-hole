@@ -4,7 +4,7 @@ const path = require("path");
 
 async function build() {
     await esbuild.build({
-        entryPoints: ["src/index.ts", "src/preview.ts"],
+        entryPoints: ["src/preview.ts"],
         plugins: [],
         outdir: "dist",
         format: "esm",

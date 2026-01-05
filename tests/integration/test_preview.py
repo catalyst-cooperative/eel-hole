@@ -35,4 +35,17 @@ def test_preview_page(page: Page):
     expect(table_metadata).to_contain_text("Primary key")
 
     # Verify only one table is shown in the sidebar (not multiple like in search view)
-    expect(page.locator("#search-results > *")).to_have_count(1)
+    expect(page.locator("#sidebar > *")).to_have_count(1)
+
+
+def test_preview_loading_indicator(page: Page):
+    """The AG Grid loading overlay should be visible on initial data load, so we look for it
+    immediately after page load - in theory it's possible to finish all the initialization
+    before we check, but unlikely."""
+    page.goto("http://localhost:8080/preview/pudl/core_pudl__codes_datasources")
+
+    loading_overlay = page.locator(".ag-overlay-loading-center")
+    expect(loading_overlay).to_be_visible()
+
+    page.locator("#data-table").get_by_text("epacems").wait_for(state="visible")
+    expect(loading_overlay).not_to_be_visible()

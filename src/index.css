@@ -14,6 +14,11 @@
   overflow-y: scroll;
 }
 
+#sidebar {
+  overflow-y: auto;
+  max-height: calc(100vh - 6rem);
+}
+
 .field-name {
   max-width: 40%;
   overflow: wrap;
@@ -21,6 +26,7 @@
 
 .preview-panel {
   display: flex;
+  overflow-y: auto;
 }
 
 @media (prefers-color-scheme: dark) {

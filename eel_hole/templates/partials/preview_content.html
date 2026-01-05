@@ -1,0 +1,30 @@
+<div id="app" class="columns container is-fluid is-flex-grow-1" x-data="previewTableState('{{ table_name }}')">
+  <div class="data-dictionary column my-3 is-flex is-flex-direction-column">
+    <div class="data-dictionary is-flex-grow-1" id="sidebar">
+      {% include 'partials/preview_metadata.html' %}
+    </div>
+  </div>
+  <div class="preview-panel mt-3 mb-5 box column is-two-thirds is-flex-direction-column">
+    <div class="level">
+      <div class="level-left">
+        <h2 id="table-name" class="title is-4 level-item my-auto" x-text="tableName ? tableName : ''"></h2>
+      </div>
+      <div class="level-right">
+        <button class="button level-item is-primary" :disabled="exporting || !csvAllowed()" @click="exportCsv"
+          :class="{'is-loading': exporting}" x-text="csvText()" x-show="numRowsMatched !== null"></button>
+      </div>
+    </div>
+    <h3 x-show="numRowsMatched === null" class="subtitle is-6">
+      Loading data...
+    </h3>
+    <h3 x-show="numRowsMatched !== null" class="subtitle is-6">
+      Showing
+      <span class="has-text-weight-bold" x-text="numRowsDisplayed.toLocaleString()"></span>
+      rows out of
+      <span class="has-text-weight-bold" :class="{'has-text-warning': numRowsDisplayed < numRowsMatched}"
+        x-text="numRowsMatched?.toLocaleString()"></span>
+      rows that match your filters
+    </h3>
+    <div id="data-table" class="is-flex-grow-1"></div>
+  </div>
+</div>

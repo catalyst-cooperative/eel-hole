@@ -456,10 +456,8 @@ def create_app():
         redirect location.
         """
         if table_name:
-            query = f"name:{table_name}"
-        else:
-            query = None
-        return redirect(url_for("search", q=query))
+            return redirect(url_for("preview", package="pudl", table_name=table_name))
+        return redirect(url_for("search"))
 
     @login_required
     @app.get("/preview/<package>/<table_name>")

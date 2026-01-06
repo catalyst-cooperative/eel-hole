@@ -1,4 +1,7 @@
-<div id="app" class="columns container is-fluid is-flex-grow-1" x-data="previewTableState('{{ table_name }}')">
+<!-- title tag here so HTMX request updates page title -->
+<title>{{ table_name }} - PUDL Data Viewer</title>
+
+<div class="columns container is-fluid is-flex-grow-1" x-data="previewTableState('{{ table_name }}')">
   <div class="data-dictionary column my-3 is-flex is-flex-direction-column">
     <div class="data-dictionary is-flex-grow-1" id="sidebar">
       {% include 'partials/preview_metadata.html' %}

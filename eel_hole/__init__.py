@@ -475,7 +475,7 @@ def create_app():
         template = "partials/preview_content.html" if htmx else "preview.html"
         log.info("preview", package=package, table_name=table_name)
 
-        # Find the specific resource matching the table name
+        # We need a *resource* so we can grab the metadata (description, columns, etc.)
         resource = next((r for r in all_resources if r.name == table_name), None)
 
         if not resource:

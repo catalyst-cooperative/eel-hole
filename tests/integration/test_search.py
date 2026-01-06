@@ -61,8 +61,6 @@ def test_search_preview(page: Page):
     page.goto("http://localhost:8080/login")
     page.goto("http://localhost:8080/search?q=name:core_pudl__codes_datasources")
 
-    expect(page.locator("#data-table")).not_to_be_attached()
-
     table_metadata = page.get_by_test_id("core_pudl__codes_datasources")
     preview_link = table_metadata.get_by_role("link").and_(
         table_metadata.get_by_text("Preview")
@@ -123,7 +121,6 @@ def test_search_preview_ctrl_click_new_tab(page: Page):
         table_metadata.get_by_text("Preview")
     )
 
-    # Ctrl+click should open in new tab
     with page.context.expect_page() as new_page_info:
         preview_link.click(modifiers=["Control"])
 

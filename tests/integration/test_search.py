@@ -130,3 +130,12 @@ def test_search_preview_ctrl_click_new_tab(page: Page):
 
     # Original page should still be on search
     expect(page).to_have_url("http://localhost:8080/search?q=name:core_pudl__codes_datasources")
+
+
+def test_search_redirect_legacy_datasette_urls(page: Page):
+    page.goto("http://localhost:8080/pudl/core_pudl__codes_datasources")
+    page.wait_for_url("http://localhost:8080/preview/pudl/core_pudl__codes_datasources")
+    page.goto("http://localhost:8080/pudl")
+    page.wait_for_url("http://localhost:8080/search")
+    page.goto("http://localhost:8080/pudl/")
+    page.wait_for_url("http://localhost:8080/search")

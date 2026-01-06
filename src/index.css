@@ -2,10 +2,6 @@
   max-height: 100vh;
 }
 
-#app {
-  min-height: 0;
-}
-
 .navbar {
   height: 3rem;
 }

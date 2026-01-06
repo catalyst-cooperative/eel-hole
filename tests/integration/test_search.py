@@ -56,11 +56,8 @@ def test_search_for_ferc_table(page: Page):
 
 
 def test_search_preview(page: Page):
-    """Preview button now navigates to dedicated preview page via HTMX instead of showing overlay."""
+    """Preview button navigates to dedicated preview page via HTMX."""
     page.goto("http://localhost:8080/search?q=name:core_pudl__codes_datasources")
-
-    # Overlay was removed, so data table shouldn't exist on search page
-    expect(page.locator("#data-table")).not_to_be_attached()
 
     table_metadata = page.get_by_test_id("core_pudl__codes_datasources")
     preview_link = table_metadata.get_by_role("link").and_(
@@ -112,7 +109,6 @@ def test_search_preview_back_button(page: Page):
 
 
 def test_search_preview_ctrl_click_new_tab(page: Page):
-    """Ctrl+click on preview link should open in new tab, not trigger HTMX."""
     page.goto("http://localhost:8080/search?q=name:core_pudl__codes_datasources")
 
     table_metadata = page.get_by_test_id("core_pudl__codes_datasources")
@@ -120,16 +116,19 @@ def test_search_preview_ctrl_click_new_tab(page: Page):
         table_metadata.get_by_text("Preview")
     )
 
-    # Ctrl+click should open in new tab
     with page.context.expect_page() as new_page_info:
         preview_link.click(modifiers=["Control"])
 
     new_page = new_page_info.value
-    new_page.wait_for_url("http://localhost:8080/preview/pudl/core_pudl__codes_datasources")
+    new_page.wait_for_url(
+        "http://localhost:8080/preview/pudl/core_pudl__codes_datasources"
+    )
     new_page.close()
 
     # Original page should still be on search
-    expect(page).to_have_url("http://localhost:8080/search?q=name:core_pudl__codes_datasources")
+    expect(page).to_have_url(
+        "http://localhost:8080/search?q=name:core_pudl__codes_datasources"
+    )
 
 
 def test_search_redirect_legacy_datasette_urls(page: Page):

@@ -99,7 +99,6 @@ Alpine.data("previewTableState", (tableName: string) => ({
      */
     console.log("Initializing preview for table:", this.tableName);
 
-    // Create grid first so loading overlay can show during DB initialization
     const gridOptions: GridOptions = {
       onFilterChanged: async () => refreshTable(this),
       tooltipShowDelay: 500,
@@ -109,12 +108,10 @@ Alpine.data("previewTableState", (tableName: string) => ({
     this.gridApi = createGrid(host, gridOptions);
     this.gridApi.setGridOption('loading', true);
 
-    // Initialize DuckDB (loading overlay shows during this)
     this.db = await _initializeDuckDB();
     this.conn = await this.db.connect();
     await this.conn.query("SET default_collation='nocase';");
 
-    // Load the table data
     await refreshTable(this);
     this.loading = false;
 

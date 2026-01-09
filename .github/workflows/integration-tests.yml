@@ -46,8 +46,6 @@ jobs:
 
       - name: Run integration tests
         run: uv run pytest tests/integration -v
-        env:
-          PUDL_VIEWER_INTEGRATION_TEST: true
 
       - name: Show Docker logs on failure
         if: failure()

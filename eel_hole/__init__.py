@@ -424,9 +424,34 @@ def create_app():
         redirect location.
         """
         if table_name:
-            query = f"name:{table_name}"
-        else:
-            query = None
-        return redirect(url_for("search", q=query))
+            return redirect(url_for("preview", package="pudl", table_name=table_name))
+        return redirect(url_for("search"))
+
+    @app.get("/preview/<package>/<table_name>")
+    def preview(package: str, table_name: str):
+        """Preview data for a specific table.
+
+        Displays table metadata and a tabular view from which you can filter and
+        export the data as CSV. Returns full page for direct navigation or content
+        fragment for HTMX requests.
+
+        Params:
+            database_name: the database containing the table (e.g., "pudl")
+            table_name: the name of the table to preview
+        """
+        template = "partials/preview_content.html" if htmx else "preview.html"
+        log.info("preview", package=package, table_name=table_name)
+
+        # We need a *resource* so we can grab the metadata (description, columns, etc.)
+        resource = next((r for r in all_resources if r.name == table_name), None)
+
+        if not resource:
+            return render_template("404.html"), 404
+
+        return render_template(
+            template,
+            resource=resource,
+            table_name=table_name,
+        )
 
     return app

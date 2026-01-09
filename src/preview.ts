@@ -44,14 +44,14 @@ interface QueryEndpointPayload {
   perPage: number
 }
 
-interface TableState extends AlpineComponent<{}> {
+interface PreviewTableState extends AlpineComponent<{}> {
   /**
-   * Table state for the Alpine component.
+   * Table state for the preview page Alpine component.
    *
-   * Properties that remain nullable are set externally or after first data load.
+   * Properties that remain nullable are set after first data load.
    */
-  // Set externally (via Alpine binding) - can be null if no table selected
-  tableName: string | null;
+  // Set on construction - table name is fixed for preview pages
+  tableName: string;
 
   // Set after first data load
   numRowsMatched: number | null;
@@ -59,7 +59,6 @@ interface TableState extends AlpineComponent<{}> {
   // Set during construction
   numRowsDisplayed: number;
   addedTables: Set<string>;
-  showPreview: boolean;
   csvExportPageSize: number;
   exporting: boolean;
   loading: boolean;
@@ -76,15 +75,14 @@ interface TableState extends AlpineComponent<{}> {
   csvText: () => string;
 }
 
-const data: TableState = {
-  tableName: null,
+Alpine.data("previewTableState", (tableName: string) => ({
+  tableName,
   numRowsMatched: null,
   numRowsDisplayed: 0,
   addedTables: new Set(),
-  showPreview: false,
   csvExportPageSize: 1_000_000,
   exporting: false,
-  loading: false,
+  loading: true,  // Start as loading since we load data immediately in init()
   darkMode: window.matchMedia('(prefers-color-scheme: dark)').matches,
   gridApi: null as any,  // Initialized in init()
   db: null as any,       // Initialized in init()
@@ -95,16 +93,11 @@ const data: TableState = {
      * Alpine will automatically call this before rendering the component -
      * see https://alpinejs.dev/globals/alpine-data#init-functions
      *
-     * - makes sure duckDB is alive
-     * - makes an AG Grid
-     * - attaches event handlers.
+     * - makes an AG Grid with loading overlay showing
+     * - initializes duckDB (slow, loading overlay shows during this)
+     * - loads the table data immediately
      */
-    console.log("Initializing");
-
-    this.db = await _initializeDuckDB();
-
-    this.conn = await this.db.connect();
-    await this.conn.query("SET default_collation='nocase';");
+    console.log("Initializing preview for table:", this.tableName);
 
     const gridOptions: GridOptions = {
       onFilterChanged: async () => refreshTable(this),
@@ -113,12 +106,14 @@ const data: TableState = {
     }
     const host = document.getElementById("data-table")!;
     this.gridApi = createGrid(host, gridOptions);
-    this.$watch("tableName", async () => {
-      this.loading = true;
-      this.gridApi?.setFilterModel({});
-      await refreshTable(this);
-      this.loading = false;
-    });
+    this.gridApi.setGridOption('loading', true);
+
+    this.db = await _initializeDuckDB();
+    this.conn = await this.db.connect();
+    await this.conn.query("SET default_collation='nocase';");
+
+    await refreshTable(this);
+    this.loading = false;
 
     const setTheme = () => {
       console.log("setting theme");
@@ -163,12 +158,11 @@ const data: TableState = {
     }
     return `Export ${this.numRowsMatched.toLocaleString()} rows as ${numPages.toLocaleString()} CSVs`;
   }
-};
+}));
 
-Alpine.data("tableState", () => data);
 Alpine.start();
 
-async function refreshTable(state: TableState) {
+async function refreshTable(state: PreviewTableState) {
   /**
    * Re-query the data given the current table state.
    *

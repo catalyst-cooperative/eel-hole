@@ -2,7 +2,7 @@
 <div class="block" data-testid="{{r.name}}">
   <div class="level">
     <div class="level-left">
-      <h2 class="title is-4 level-item">{{r.name}}</h2>
+      <h2 class="title is-4 level-item" data-testid="metadata-table-name">{{r.name}}</h2>
     </div>
   </div>
   <div class="level">
@@ -13,8 +13,12 @@
   {% if r.package == "pudl" %}
     <div class="block">
       {% if current_user.is_authenticated or config['LOGIN_DISABLED'] %}
-      <button class="button is-primary preview-button" :disabled="db === null" :class="{'is-loading': loading}"
-        @click="showPreview = true; tableName = '{{r.name}}'">Preview / export as CSV</button>
+      <a class="button is-primary preview-button"
+         href="/preview/{{ r.package }}/{{ r.name }}"
+         hx-get="/preview/{{ r.package }}/{{ r.name }}"
+         hx-target="#main-content"
+         hx-push-url="true"
+         onclick="if (event.ctrlKey || event.metaKey || event.shiftKey) { event.stopImmediatePropagation(); return; }">Preview / export as CSV</a>
       {% else %}
       <a class="button is-primary preview-button" href="/login?next_url={{ url_for(request.endpoint, **request.args) }}">Log
         in or sign up to preview / export as CSV</a>

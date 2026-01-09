@@ -459,7 +459,6 @@ def create_app():
             return redirect(url_for("preview", package="pudl", table_name=table_name))
         return redirect(url_for("search"))
 
-    @login_required
     @app.get("/preview/<package>/<table_name>")
     def preview(package: str, table_name: str):
         """Preview data for a specific table.

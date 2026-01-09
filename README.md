@@ -19,9 +19,8 @@ npm run build
 ```
 
 In most cases, you don't need to actually log in locally.
-In those cases you can set the `PUDL_VIEWER_LOGIN_DISABLED` environment variable to `true`.
-This will let you access the whole site,
-including things that are usually gated behind login like the table previews.
+For integration testing, you can set the `PUDL_VIEWER_INTEGRATION_TEST` environment variable to `true`.
+This will automatically create a test user that bypasses Auth0 and has already accepted the privacy policy.
 
 But if you're testing something related to the login flow, you will need to set that up:
 
@@ -44,13 +43,13 @@ $ npm run build
 $ docker compose build && docker compose up
 ```
 
-If you want to skip the auth0 setup and just disable the authentication altogether, set the `PUDL_VIEWER_LOGIN_DISABLED` env var:
+If you want to skip the auth0 setup for integration testing, set the `PUDL_VIEWER_INTEGRATION_TEST` env var:
 
 ```bash
-$ PUDL_VIEWER_LOGIN_DISABLED=true docker compose up
+$ PUDL_VIEWER_INTEGRATION_TEST=true docker compose up
 ```
 
-You won't be able to log in, but you won't have to, to see the preview functionality.
+This creates a test user that can log in and access preview functionality.
 
 ## auth0 setup
 
@@ -106,12 +105,10 @@ $ uv run pytest tests/test_*
 
 To run the integration tests:
 
-We haven't hooked up the integration tests to the login system yet, so you have to turn off logins.
-
 ```
 $ # If you haven't gotten playwright set up, you'll need to run `playwright install chromium` to give it *some* browser to drive
 $ uv run playwright install chromium
-$ PUDL_VIEWER_LOGIN_DISABLED=true docker compose up
+$ PUDL_VIEWER_INTEGRATION_TEST=true docker compose up
 $ uv run pytest tests/integration
 ```
 

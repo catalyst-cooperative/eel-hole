@@ -37,18 +37,18 @@ jobs:
       - name: Start Docker Compose services
         run: docker compose up -d
         env:
-          PUDL_VIEWER_LOGIN_DISABLED: true
+          PUDL_VIEWER_INTEGRATION_TEST: true
 
       - name: Wait for services to be ready
         run: |
           echo "Waiting for services to be ready..."
           timeout 90 bash -c 'until curl -f http://localhost:8080 > /dev/null 2>&1; do sleep 2; done' || (echo "Service failed to start" && docker compose logs && exit 1)
 
-      # TODO 2025-12-29: instead of disabling login, create a test user so we can test login flow
+      - name: Run database migrations
+        run: docker compose exec -T eel_hole uv run flask --app eel_hole db upgrade
+
       - name: Run integration tests
         run: uv run pytest tests/integration -v
-        env:
-          PUDL_VIEWER_LOGIN_DISABLED: true
 
       - name: Show Docker logs on failure
         if: failure()

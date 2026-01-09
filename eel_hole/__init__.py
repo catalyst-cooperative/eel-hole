@@ -245,17 +245,17 @@ def create_app():
         Params:
             next_url: the next URL to redirect to once logged in.
         """
-        if app.config['INTEGRATION_TEST']:
+        if app.config["INTEGRATION_TEST"]:
             # Create or get the integration test user
-            user = User.query.filter_by(email='integration_test@catalyst.coop').first()
+            user = User.query.filter_by(email="integration_test@catalyst.coop").first()
             if not user:
                 user = User(
-                    auth0_id='integration_test_auth0_id',
-                    email='integration_test@catalyst.coop',
-                    username='integration_test',
+                    auth0_id="integration_test_auth0_id",
+                    email="integration_test@catalyst.coop",
+                    username="integration_test",
                     accepted_privacy_policy=True,
                     do_individual_outreach=False,
-                    send_newsletter=False
+                    send_newsletter=False,
                 )
                 db.session.add(user)
                 db.session.commit()
@@ -295,19 +295,18 @@ def create_app():
     @login_required
     @app.route("/logout")
     def logout():
-        """Log out user from our session & auth0 session, then go home."""
-        # Check user type BEFORE logging out (current_user won't be available after)
-        is_integration_test_user = current_user.email == 'integration_test@catalyst.coop'
+        """Log out user from our session & auth0 session, then go home.
 
+        Before logging out, check if user was integration test user and skip
+        the auth0 stuff if so.
+        """
+        was_integration_test = current_user.email == "integration_test@catalyst.coop"
         logout_user()
         session.clear()
 
-        # Determine redirect URL based on user type
-        if is_integration_test_user:
-            # Integration test user never went through Auth0, skip that redirect
+        if was_integration_test:
             redirect_url = url_for("home")
         else:
-            # Real user needs full Auth0 logout
             return_to = quote(url_for("home", _external=True))
             redirect_url = (
                 f"https://{AUTH0_DOMAIN}/v2/logout?"

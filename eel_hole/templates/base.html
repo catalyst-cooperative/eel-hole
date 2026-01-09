@@ -6,7 +6,7 @@
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}" />
-    {% if current_user.is_authenticated %}
+    {% if current_user.is_authenticated or config['LOGIN_DISABLED'] %}
     <script type="module" src="{{ url_for('static', filename='preview.js') }}"></script>
     {% endif %}
     {% block extra_head %}

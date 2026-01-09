@@ -11,7 +11,7 @@
   </div>
   {% if resource.package == "pudl" %}
     <div class="block">
-      {% if not current_user.is_authenticated %}
+      {% if not(current_user.is_authenticated or config['LOGIN_DISABLED']) %}
       <a class="button is-primary preview-button" href="/login?next_url={{ request.full_path }}">Log
         in or sign up to preview / export as CSV</a>
       {% endif %}

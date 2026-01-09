@@ -56,6 +56,10 @@ def test_search_for_ferc_table(page: Page):
 
 
 def test_search_preview(page: Page):
+    # Log in first to access preview functionality
+    page.goto("http://localhost:8080/login")
+    page.wait_for_url("http://localhost:8080/search")
+
     page.goto("http://localhost:8080/search?q=name:core_pudl__codes_datasources")
     data_table = page.locator("#data-table")
     expect(data_table).to_be_hidden()

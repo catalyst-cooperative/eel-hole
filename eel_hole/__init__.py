@@ -515,4 +515,8 @@ def create_app():
         session["beta_notification_dismissed"] = True
         return ""
 
+    @app.route("/xyzzy/")
+    def landing():
+        return render_template("welcome.html")
+
     return app

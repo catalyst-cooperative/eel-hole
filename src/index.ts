@@ -126,6 +126,8 @@ const data: UnitializedTableState = {
     const host = document.getElementById("data-table")!;
     this.gridApi = createGrid(host, gridOptions);
     this.$watch("tableName, partitionChangedToggle", async () => {
+      // If the partition key has changed but tableName is not set do nothing
+      if (!this.tableName) return
       this.loading = true;
       this.gridApi?.setFilterModel({});
       await refreshTable(this as TableState);
@@ -150,10 +152,13 @@ const data: UnitializedTableState = {
     const { conn, tableName, gridApi, csvExportPageSize } = state;
     state.exporting = true;
     const numPages = Math.ceil(state.numRowsMatched / state.csvExportPageSize);
+    const partitionKey = state.$refs[`${tableName}Partition`]?.value
+    const tableRef = tableName + (partitionKey ?? "");
+    const filenamePrefix = partitionKey ? `${tableName}_${partitionKey}` : tableName;
 
     for (let i = 1; i <= numPages; i++) {
-      const filename = numPages === 1 ? tableName : `${tableName}_part${i}`;
-      await exportPage(gridApi, filename, { conn, tableName, page: i, perPage: csvExportPageSize, filters: getFilters(gridApi) })
+      const filename = numPages === 1 ? filenamePrefix : `${filenamePrefix}_part${i}`;
+      await exportPage(gridApi, filename, { conn, tableRef, page: i, perPage: csvExportPageSize, filters: getFilters(gridApi) })
     }
     state.exporting = false;
   },

@@ -11,7 +11,23 @@
     </div>
   </div>
   {% if r.package == "pudl" %}
-    <div class="block">
+  <div class="block">
+      {% if r.path is iterable and (r.path is not string) %}
+      <div class="level-left">
+        <label for="partition">This table is partitioned. Select a partition for preview:</label>
+        <select id="partition" x-ref="{{ r.name }}Partition" @change="partitionChangedToggle = !partitionChangedToggle">
+        {% for part in r.path %}
+          {% set parsed_part = part.split('/')[-1].split('.')[0] %}
+          <option value="/{{parsed_part}}">{{ parsed_part }}</option>
+        {% endfor %}
+        </select>
+      </div>
+      <div class="level-left">
+        <span class="has-text-weight-bold has-text-warning">Note: some partitioned tables are quite large and may take several minutes to load a preview.</span>
+      </div>
+      {% endif %}
+  </div>
+  <div class="block">
       {% if current_user.is_authenticated or config['LOGIN_DISABLED'] %}
       <button class="button is-primary preview-button" :disabled="db === null" :class="{'is-loading': loading}"
         @click="showPreview = true; tableName = '{{r.name}}'">Preview / export as CSV</button>

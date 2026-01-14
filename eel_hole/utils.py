@@ -22,6 +22,7 @@ class ResourceDisplay:
     name: str
     package: str
     description: str
+    path: str | list[str]
     columns: list["ColumnDisplay"]
 
 
@@ -160,6 +161,7 @@ def clean_pudl_resource(resource: Resource) -> ResourceDisplay:
             )
             for field in resource.schema.fields
         ],
+        path=resource.paths if len(resource.paths) > 1 else resource.path
     )
 
 
@@ -183,4 +185,5 @@ def clean_ferc_xbrl_resource(resource: Resource, package_name: str) -> ResourceD
             )
             for field in resource.schema.fields
         ],
+        path=resource.path
     )

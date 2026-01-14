@@ -38,7 +38,7 @@ interface QueryEndpointPayload {
    * TODO 2025-02-13: conn probably shouldn't be in here.
    */
   conn: duckdb.AsyncDuckDBConnection;
-  tableName: string;
+  tableRef: string;
   filters: Array<Filter>;
   page: number;
   perPage: number
@@ -49,6 +49,7 @@ interface UnitializedTableState extends AlpineComponent<{}> {
    * Weird mirror to make the types play nice - lots of stuff is only defined after init() is called.
    */
   tableName: string | null;
+  partitionChangedToggle: boolean;
   numRowsMatched: number | null;
   numRowsDisplayed: number;
   addedTables: Set<string>;
@@ -70,6 +71,7 @@ interface TableState extends AlpineComponent<{}> {
    * The strict version of the table state type, which has everything non-null.
    */
   tableName: string;
+  partitionChangedToggle: boolean;
   numRowsMatched: number;
   numRowsDisplayed: number;
   addedTables: Set<string>;
@@ -88,6 +90,7 @@ interface TableState extends AlpineComponent<{}> {
 
 const data: UnitializedTableState = {
   tableName: null,
+  partitionChangedToggle: false,
   numRowsMatched: null,
   numRowsDisplayed: 0,
   addedTables: new Set(),
@@ -122,7 +125,7 @@ const data: UnitializedTableState = {
     }
     const host = document.getElementById("data-table")!;
     this.gridApi = createGrid(host, gridOptions);
-    this.$watch("tableName", async () => {
+    this.$watch("tableName, partitionChangedToggle", async () => {
       this.loading = true;
       this.gridApi?.setFilterModel({});
       await refreshTable(this as TableState);
@@ -191,12 +194,14 @@ async function refreshTable(state: TableState) {
 
   gridApi.setGridOption('loading', true);
 
-  if (tableName && !addedTables.has(tableName)) {
-    await _addTableToDuckDB(db, tableName);
-    addedTables.add(tableName);
+  const partitionKey = state.$refs[`${tableName}Partition`]?.value
+  const tableRef = tableName + (partitionKey ?? "");
+  if (tableName && !addedTables.has(tableRef)) {
+    await _addTableToDuckDB(db, tableRef);
+    addedTables.add(tableRef);
   }
   const filters = getFilters(gridApi);
-  const { arrowData, numRowsMatched } = await getAndCountData({ conn, tableName, filters, page: 1, perPage: 10_000 });
+  const { arrowData, numRowsMatched } = await getAndCountData({ conn, tableRef, filters, page: 1, perPage: 10_000 });
   const gridOptions = arrowTableToAgGridOptions(arrowData);
   gridApi.updateGridOptions(gridOptions);
 
@@ -230,9 +235,9 @@ async function getAndCountData(params: QueryEndpointPayload) {
    * - run the main query and the count query on DuckDB
    * - return both
    */
-  const { conn, tableName, filters, page, perPage } = params;
+  const { conn, tableRef, filters, page, perPage } = params;
   const { statement, count_statement: countStatement, values: filterVals } = await _getDuckDBQuery(
-    { tableName, filters: filters, page, perPage }
+    { tableRef, filters: filters, page, perPage }
   );
   const stmt = await conn.prepare(statement);
   const counter = await conn.prepare(countStatement);
@@ -252,9 +257,9 @@ async function getData(params: QueryEndpointPayload) {
    * - get the DuckDB query
    * - run the main query on DuckDB
    */
-  const { conn, tableName, filters, page, perPage } = params;
+  const { conn, tableRef, filters, page, perPage } = params;
   const { statement, values: filterVals } = await _getDuckDBQuery(
-    { tableName, filters: filters, page, perPage }
+    { tableRef, filters: filters, page, perPage }
   );
   const stmt = await conn.prepare(statement);
   const arrowData = await stmt.query(...filterVals);
@@ -387,27 +392,28 @@ async function _initializeDuckDB(): Promise<duckdb.AsyncDuckDB> {
 }
 
 
-async function _addTableToDuckDB(db: duckdb.AsyncDuckDB, tableName: string) {
+async function _addTableToDuckDB(db: duckdb.AsyncDuckDB, tableRef: string) {
   /**
    * Register the table in DuckDB so that it can cache useful metadata etc.
    */
-  const baseUrl = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/eel-hole/"
-  const filename = `${tableName}.parquet`;
-  const url = `${baseUrl}${filename}`;
+  const baseUrl = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop"
+  const filename = `${tableRef}.parquet`;
+  const url = tableRef.includes("ferceqr") ? `${baseUrl}/ferceqr/${filename}` : `${baseUrl}/eel-hole/${filename}`;
+  console.log("URL:", url)
   await db.registerFileURL(filename, url, duckdb.DuckDBDataProtocol.HTTP, false);
 }
 
 
 async function _getDuckDBQuery(
-  { tableName, filters, page = 1, perPage = 10000 }
-    : { tableName: string, filters: Array<Filter>, page?: number, perPage?: number }
+  { tableRef, filters, page = 1, perPage = 10000 }
+    : { tableRef: string, filters: Array<Filter>, page?: number, perPage?: number }
 ): Promise<QuerySpec> {
   /**
    * Get DuckDB query from the backend, based on the filter rules & what table we're looking at.
    */
   const params = new URLSearchParams(
     {
-      name: `${tableName}.parquet`,
+      name: `'${tableRef}.parquet'`,
       filters: JSON.stringify(filters),
       page: page.toString(),
       perPage: perPage.toString()

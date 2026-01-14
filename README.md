@@ -204,6 +204,6 @@ The database is *only* used for storing users right now.
 ## Frameworks
 
 * [Bulma](https://bulma.io/) for static CSS and component layout
-* [Alpine](https://alpinejs.dev/) for general interactivity and dynamic display
-* [HTMX](https://htmx.org/) for partial DOM updates
+* [Alpine](https://alpinejs.dev/) for client-side interactivity
+* [HTMX](https://htmx.org/) for server-side interactivity and partial DOM updates
 * [AG Grid](https://www.ag-grid.com/) for display of interactive tabular data

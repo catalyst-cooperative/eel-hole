@@ -429,4 +429,8 @@ def create_app():
             query = None
         return redirect(url_for("search", q=query))
 
+    @app.route("/xyzzy/")
+    def landing():
+        return render_template("welcome.html")
+
     return app

@@ -185,3 +185,10 @@ For **preview**:
 3. The data comes back as Apache Arrow tables, which we convert into JS arrays to feed into [AG Grid](https://www.ag-grid.com/) viewer.
 
 The database is *only* used for storing users right now.
+
+## Frameworks
+
+* [Bulma](https://bulma.io/) for static CSS and component layout
+* [Alpine](https://alpinejs.dev/) for general interactivity and dynamic display
+* [HTMX](https://htmx.org/) for partial DOM updates
+* [AG Grid](https://www.ag-grid.com/) for display of interactive tabular data

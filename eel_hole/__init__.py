@@ -94,12 +94,16 @@ def __build_search_index():
     """
 
     def get_datapackage(datapackage_path: str) -> Package:
-        s3_base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/eel-hole"
-        url = f"{s3_base_url}/{datapackage_path}"
-        log.info(f"Getting datapackage from {url}")
-        descriptor = requests.get(url).json()
-        log.info(f"{url} downloaded")
-        return Package.from_descriptor(descriptor)
+        if datapackage_path != "pudl_parquet_datapackage.json":
+            s3_base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/eel-hole"
+            url = f"{s3_base_url}/{datapackage_path}"
+            log.info(f"Getting datapackage from {url}")
+            descriptor = requests.get(url).json()
+            log.info(f"{url} downloaded")
+            return Package.from_descriptor(descriptor)
+        else:
+            with open(datapackage_path) as f:
+                return Package.from_descriptor(json.load(f))
 
     pudl_package = get_datapackage("pudl_parquet_datapackage.json")
     log.info("Cleaning up descriptors for pudl")

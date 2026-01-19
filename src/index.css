@@ -72,3 +72,11 @@
   padding-inline-start: 40px;
   margin-top: 0.5em;
 }
+
+/* 768px is Bulma's mobile breakpoint - columns stack below this width.
+   See https://bulma.io/documentation/start/responsiveness/ */
+@media screen and (max-width: 768px) {
+  #data-table {
+    height: calc(100vh - 8rem);
+  }
+}

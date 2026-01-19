@@ -12,6 +12,9 @@ async function build() {
         target: "es2022",
         assetNames: "[name]",
     });
+
+    // Rename preview.css to index.css since base.html references index.css
+    fs.renameSync("dist/preview.css", "dist/index.css");
 }
 
 build();

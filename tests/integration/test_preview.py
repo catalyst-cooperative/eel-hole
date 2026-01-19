@@ -40,3 +40,20 @@ def test_preview_loading_indicator(page: Page):
 
     page.locator("#data-table").get_by_text("epacems").wait_for(state="visible")
     expect(loading_overlay).not_to_be_visible()
+
+
+def test_preview_narrow_viewport(page: Page):
+    """The data table should remain visible at narrow viewports.
+
+    At narrow viewports (<=768px), Bulma stacks columns vertically instead of
+    side-by-side. The table should still be visible with adequate height."""
+    iphone_width = 375
+    iphone_height = 667
+    page.set_viewport_size({"width": iphone_width, "height": iphone_height})
+    page.goto("http://localhost:8080/preview/pudl/core_pudl__codes_datasources")
+
+    ag_root = page.locator("#data-table .ag-root-wrapper")
+    expect(ag_root).to_be_visible()
+    ag_box = ag_root.bounding_box()
+    assert ag_box is not None
+    assert ag_box["height"] > iphone_height * 0.5

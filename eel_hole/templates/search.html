@@ -1,55 +1,71 @@
-{% extends "base.html" %}
-
-{% block extra_head %}
+{% extends "base.html" %} {% block extra_head %}
 <script>
-  // Populate search input from URL query parameter
-  function restoreSearchQuery() {
-    const params = new URLSearchParams(window.location.search);
-    const query = params.get('q');
-    const searchInput = document.querySelector('input[name="q"]');
-    if (searchInput && query) {
-      searchInput.value = query;
+    // Populate search input from URL query parameter
+    function restoreSearchQuery() {
+        const params = new URLSearchParams(window.location.search);
+        const query = params.get("q");
+        const searchInput = document.querySelector('input[name="q"]');
+        if (searchInput && query) {
+            searchInput.value = query;
+        }
     }
-  }
 
-  // Restore on initial page load
-  document.addEventListener('DOMContentLoaded', restoreSearchQuery);
+    // Restore on initial page load
+    document.addEventListener("DOMContentLoaded", restoreSearchQuery);
 
-  // Restore on HTMX history navigation
-  document.addEventListener('htmx:historyRestore', restoreSearchQuery);
+    // Restore on HTMX history navigation
+    document.addEventListener("htmx:historyRestore", restoreSearchQuery);
 </script>
-{% endblock %}
-
-{% block content %}
+{% endblock %} {% block content %}
 
 <div class="container is-fluid">
-
-
-  <div class="notification has-background-info has-text-dark my-3" x-data="{open: true}" x-show="open">
-    Welcome! The PUDL data viewer is in beta right now. We filmed a short <a class="inline"
-      href="https://youtu.be/-mU7QwAZY8c">tutorial video</a>, and would love any <a class="is-inline"
-      href="https://forms.gle/ohzyKRoQutqxY3WZ6">feedback</a> you have for the site!
-    <button class="delete" @click="open = !open"></button>
-  </div>
+    <div
+        class="notification has-background-info has-text-dark my-3"
+        x-data="{open: true}"
+        x-show="open"
+    >
+        Welcome! The PUDL data viewer is in beta right now. We filmed a short
+        <a class="inline" href="https://youtu.be/-mU7QwAZY8c">tutorial video</a
+        >, and would love any
+        <a class="is-inline" href="https://forms.gle/ohzyKRoQutqxY3WZ6"
+            >feedback</a
+        >
+        you have for the site!
+        <button class="delete" @click="open = !open"></button>
+    </div>
 </div>
 <div class="columns container is-fluid is-flex-grow-1">
-  <div class="data-dictionary column my-3 is-flex is-flex-direction-column">
-    <input
-      class="input is-medium block"
-      type="text"
-      name="q"
-      hx-get="/search"
-      {% if ferc_enabled %} hx-vals='{"ferc_enabled": "true"}' {% endif %}
-      hx-trigger="input changed delay:300ms"
-      hx-target="#search-results"
-      hx-replace-url="true"
-      placeholder="Search..."
-      {% if query %} value="{{ query }}" {% endif %}
-    />
-    <div class="data-dictionary is-flex-grow-1" id="search-results">
-      {% include 'partials/search_results.html' %}
+    <div class="data-dictionary column my-3 is-flex is-flex-direction-column">
+        <input
+            class="input is-medium block"
+            type="text"
+            name="q"
+            hx-get="/search"
+            {%
+            if
+            ferc_enabled
+            %}
+            hx-vals='{"ferc_enabled": "true"}'
+            {%
+            endif
+            %}
+            hx-trigger="input changed delay:300ms"
+            hx-target="#search-results"
+            hx-replace-url="true"
+            placeholder="Search..."
+            {%
+            if
+            query
+            %}
+            value="{{ query }}"
+            {%
+            endif
+            %}
+        />
+        <div class="data-dictionary is-flex-grow-1" id="search-results">
+            {% include 'partials/search_results.html' %}
+        </div>
     </div>
-  </div>
 </div>
 
 {% endblock %}

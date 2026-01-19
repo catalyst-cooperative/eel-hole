@@ -1,14 +1,6 @@
 import re
 
-import pytest
 from playwright.sync_api import Page, expect
-
-
-@pytest.fixture(scope="function")
-def page(browser):
-    page = browser.new_page()
-    yield page
-    page.close()
 
 
 def test_search_metadata(page: Page):

@@ -19,6 +19,16 @@
     <div class="full-app is-flex is-flex-direction-column">
         {% include 'partials/navbar.html' %}
 
+        <div class="container is-fluid">
+            <div class="notification has-background-info has-text-dark my-3">
+                Welcome! The PUDL data viewer is in beta right now. We filmed a short
+                <a class="inline" href="https://youtu.be/-mU7QwAZY8c">tutorial video</a>, and would love any
+                <a class="is-inline" href="https://forms.gle/ohzyKRoQutqxY3WZ6">feedback</a>
+                you have for the site!
+                <button class="delete" onclick="this.closest('.notification').style.display='none'"></button>
+            </div>
+        </div>
+
         <main id="main-content">
             {% block content %}
             {% endblock %}

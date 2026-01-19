@@ -11,8 +11,8 @@ from authlib.integrations.flask_client import OAuth
 from flask import (
     Flask,
     redirect,
-    request,
     render_template,
+    request,
     session,
     url_for,
 )
@@ -28,12 +28,12 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from frictionless import Package, Resource
 
-from eel_hole.models import db, User
-from eel_hole.duckdb_query import ag_grid_to_duckdb, Filter
-from eel_hole.logs import log
-from eel_hole.search import initialize_index, run_search
-from eel_hole.utils import clean_pudl_resource, clean_ferc_xbrl_resource
+from eel_hole.duckdb_query import Filter, ag_grid_to_duckdb
 from eel_hole.feature_flags import is_flag_enabled
+from eel_hole.logs import log
+from eel_hole.models import User, db
+from eel_hole.search import initialize_index, run_search
+from eel_hole.utils import clean_ferc_xbrl_resource, clean_pudl_resource
 
 AUTH0_DOMAIN = os.getenv("PUDL_VIEWER_AUTH0_DOMAIN")
 CLIENT_ID = os.getenv("PUDL_VIEWER_AUTH0_CLIENT_ID")

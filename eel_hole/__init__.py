@@ -486,4 +486,10 @@ def create_app():
             table_name=table_name,
         )
 
+    @app.post("/dismiss-notification")
+    def dismiss_notification():
+        """Mark the beta notification as dismissed in the session."""
+        session["beta_notification_dismissed"] = True
+        return ""
+
     return app

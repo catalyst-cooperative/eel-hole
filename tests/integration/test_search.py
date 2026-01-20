@@ -1,18 +1,10 @@
 import re
 
-import pytest
 from playwright.sync_api import Page, expect
 
 
-@pytest.fixture(scope="function")
-def page(browser):
-    page = browser.new_page()
-    yield page
-    page.close()
-
-
 def test_search_metadata(page: Page):
-    page.goto("http://localhost:8080/search")
+    _ = page.goto("http://localhost:8080/search")
     search_input = page.get_by_role("textbox").and_(
         page.get_by_placeholder("Search...")
     )
@@ -38,7 +30,7 @@ def test_search_metadata(page: Page):
 
 
 def test_search_for_ferc_table(page: Page):
-    page.goto("http://localhost:8080/search?ferc_enabled=true")
+    _ = page.goto("http://localhost:8080/search?ferc_enabled=true")
     search_input = page.get_by_role("textbox").and_(
         page.get_by_placeholder("Search...")
     )
@@ -56,16 +48,90 @@ def test_search_for_ferc_table(page: Page):
 
 
 def test_search_preview(page: Page):
+    """Preview button now navigates to dedicated preview page via HTMX instead of showing overlay."""
     # Log in first to access preview functionality
-    page.goto("http://localhost:8080/login")
-    page.wait_for_url("http://localhost:8080/search")
+    _ = page.goto("http://localhost:8080/login")
+    _ = page.goto("http://localhost:8080/search?q=name:core_pudl__codes_datasources")
 
-    page.goto("http://localhost:8080/search?q=name:core_pudl__codes_datasources")
-    data_table = page.locator("#data-table")
-    expect(data_table).to_be_hidden()
-    # grab a tiny table for speed
     table_metadata = page.get_by_test_id("core_pudl__codes_datasources")
-    table_metadata.get_by_role("button").and_(
+    preview_link = table_metadata.get_by_role("link").and_(
         table_metadata.get_by_text("Preview")
-    ).click()
+    )
+    preview_link.click()
+
+    page.wait_for_url("http://localhost:8080/preview/pudl/core_pudl__codes_datasources")
     page.locator("#data-table").get_by_text("epacems").wait_for(state="visible")
+    expect(page.locator("input[type='search']")).not_to_be_visible()
+
+
+def test_search_preview_back_button(page: Page):
+    """We should preserve search results and query when using browser back button.
+
+    We start from /search and then type in the query, because if we navigate
+    *directly* to /search?q=foo the query is already populated server-side.
+    """
+    _ = page.goto("http://localhost:8080/login")
+    _ = page.goto("http://localhost:8080/search")
+    search_input = page.get_by_role("textbox").and_(
+        page.get_by_placeholder("Search...")
+    )
+    search_input.fill("name:core_pudl__codes_datasources")
+
+    # Wait for HTMX to update URL and results (: gets URL encoded to %3A)
+    page.wait_for_url(
+        "http://localhost:8080/search?q=name%3Acore_pudl__codes_datasources"
+    )
+    table_metadata = page.get_by_test_id("core_pudl__codes_datasources")
+    expect(table_metadata).to_be_visible()
+
+    preview_link = table_metadata.get_by_role("link").and_(
+        table_metadata.get_by_text("Preview")
+    )
+    preview_link.click()
+
+    page.wait_for_url("http://localhost:8080/preview/pudl/core_pudl__codes_datasources")
+
+    # Use JavaScript to trigger back navigation so HTMX can intercept it
+    page.evaluate("window.history.back()")
+
+    page.wait_for_url(
+        "http://localhost:8080/search?q=name%3Acore_pudl__codes_datasources"
+    )
+    expect(table_metadata).to_be_visible()
+
+    # Search query should be restored in the input field (via our JS, not server template)
+    expect(search_input).to_have_value("name:core_pudl__codes_datasources")
+
+
+def test_search_preview_ctrl_click_new_tab(page: Page):
+    """Ctrl+click on preview link should open in new tab, not trigger HTMX."""
+    _ = page.goto("http://localhost:8080/login")
+    _ = page.goto("http://localhost:8080/search?q=name:core_pudl__codes_datasources")
+
+    table_metadata = page.get_by_test_id("core_pudl__codes_datasources")
+    preview_link = table_metadata.get_by_role("link").and_(
+        table_metadata.get_by_text("Preview")
+    )
+
+    with page.context.expect_page() as new_page_info:
+        preview_link.click(modifiers=["Control"])
+
+    new_page = new_page_info.value
+    new_page.wait_for_url(
+        "http://localhost:8080/preview/pudl/core_pudl__codes_datasources"
+    )
+    new_page.close()
+
+    # Original page should still be on search
+    expect(page).to_have_url(
+        "http://localhost:8080/search?q=name:core_pudl__codes_datasources"
+    )
+
+
+def test_search_redirect_legacy_datasette_urls(page: Page):
+    _ = page.goto("http://localhost:8080/pudl/core_pudl__codes_datasources")
+    page.wait_for_url("http://localhost:8080/preview/pudl/core_pudl__codes_datasources")
+    _ = page.goto("http://localhost:8080/pudl")
+    page.wait_for_url("http://localhost:8080/search")
+    _ = page.goto("http://localhost:8080/pudl/")
+    page.wait_for_url("http://localhost:8080/search")

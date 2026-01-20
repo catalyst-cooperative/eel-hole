@@ -4,7 +4,7 @@ const path = require("path");
 
 async function build() {
     await esbuild.build({
-        entryPoints: ["src/index.ts"],
+        entryPoints: ["src/preview.ts"],
         plugins: [],
         outdir: "dist",
         format: "esm",
@@ -13,10 +13,8 @@ async function build() {
         assetNames: "[name]",
     });
 
-    fs.writeFileSync(
-        path.join(__dirname, "dist/index.html"),
-        fs.readFileSync(path.join(__dirname, "src/index.html")).toString()
-    );
+    // Rename preview.css to index.css since base.html references index.css
+    fs.renameSync("dist/preview.css", "dist/index.css");
 }
 
 build();

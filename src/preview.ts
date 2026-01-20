@@ -44,90 +44,76 @@ interface QueryEndpointPayload {
   perPage: number
 }
 
-interface UnitializedTableState extends AlpineComponent<{}> {
+interface PreviewTableState extends AlpineComponent<{}> {
   /**
-   * Weird mirror to make the types play nice - lots of stuff is only defined after init() is called.
+   * Table state for the preview page Alpine component.
+   *
+   * Properties that remain nullable are set after first data load.
    */
-  tableName: string | null;
-  numRowsMatched: number | null;
-  numRowsDisplayed: number;
-  addedTables: Set<string>;
-  showPreview: boolean;
-  csvExportPageSize: number;
-  exporting: boolean;
-  loading: boolean;
-  darkMode: boolean;
-  gridApi: GridApi | null;
-  db: duckdb.AsyncDuckDB | null;
-  conn: duckdb.AsyncDuckDBConnection | null;
-  exportCsv: () => void;
-  csvAllowed: () => boolean;
-  csvText: () => string;
-}
-
-interface TableState extends AlpineComponent<{}> {
-  /**
-   * The strict version of the table state type, which has everything non-null.
-   */
+  // Set on construction - table name is fixed for preview pages
   tableName: string;
-  numRowsMatched: number;
+
+  // Set after first data load
+  numRowsMatched: number | null;
+
+  // Set during construction
   numRowsDisplayed: number;
   addedTables: Set<string>;
-  showPreview: boolean;
   csvExportPageSize: number;
   exporting: boolean;
   loading: boolean;
   darkMode: boolean;
+
+  // Initialized in init() - guaranteed non-null after Alpine starts
   gridApi: GridApi;
   db: duckdb.AsyncDuckDB;
   conn: duckdb.AsyncDuckDBConnection;
-  exportCsv: () => void;
+
+  init(): Promise<void>;
+  exportCsv: () => Promise<void>;
   csvAllowed: () => boolean;
   csvText: () => string;
 }
 
-const data: UnitializedTableState = {
-  tableName: null,
+Alpine.data("previewTableState", (tableName: string) => ({
+  tableName,
   numRowsMatched: null,
   numRowsDisplayed: 0,
   addedTables: new Set(),
-  showPreview: false,
   csvExportPageSize: 1_000_000,
   exporting: false,
-  loading: false,
+  loading: true,  // Start as loading since we load data immediately in init()
   darkMode: window.matchMedia('(prefers-color-scheme: dark)').matches,
-  gridApi: null,
-  db: null,
-  conn: null,
+  gridApi: null as any,  // Initialized in init()
+  db: null as any,       // Initialized in init()
+  conn: null as any,     // Initialized in init()
 
   async init() {
     /**
-     * Initialization function:
+     * Alpine will automatically call this before rendering the component -
+     * see https://alpinejs.dev/globals/alpine-data#init-functions
      *
-     * - makes sure duckDB is alive
-     * - makes an AG Grid
-     * - attaches event handlers.
+     * - makes an AG Grid with loading overlay showing
+     * - initializes duckDB (slow, loading overlay shows during this)
+     * - loads the table data immediately
      */
-    console.log("Initializing");
-
-    this.db = await _initializeDuckDB();
-
-    this.conn = await this.db.connect();
-    await this.conn.query("SET default_collation='nocase';");
+    console.log("Initializing preview for table:", this.tableName);
 
     const gridOptions: GridOptions = {
-      onFilterChanged: async () => refreshTable(this as TableState),
+      onFilterChanged: async () => refreshTable(this),
       tooltipShowDelay: 500,
       tooltipHideDelay: 15000,
     }
     const host = document.getElementById("data-table")!;
     this.gridApi = createGrid(host, gridOptions);
-    this.$watch("tableName", async () => {
-      this.loading = true;
-      this.gridApi?.setFilterModel({});
-      await refreshTable(this as TableState);
-      this.loading = false;
-    });
+    this.gridApi.setGridOption('loading', true);
+
+    this.db = await _initializeDuckDB();
+    this.conn = await this.db.connect();
+    await this.conn.query("SET default_collation='nocase';");
+
+    await refreshTable(this);
+    this.loading = false;
 
     const setTheme = () => {
       console.log("setting theme");
@@ -143,38 +129,40 @@ const data: UnitializedTableState = {
     /**
      * Download data one giant page at a time, and then export to CSV.
      */
-    const state = this as TableState;
-    const { conn, tableName, gridApi, csvExportPageSize } = state;
-    state.exporting = true;
-    const numPages = Math.ceil(state.numRowsMatched / state.csvExportPageSize);
+    const { conn, tableName, gridApi, csvExportPageSize, numRowsMatched } = this;
+    if (!tableName || !numRowsMatched) return;
+
+    this.exporting = true;
+    const numPages = Math.ceil(numRowsMatched / csvExportPageSize);
 
     for (let i = 1; i <= numPages; i++) {
       const filename = numPages === 1 ? tableName : `${tableName}_part${i}`;
       await exportPage(gridApi, filename, { conn, tableName, page: i, perPage: csvExportPageSize, filters: getFilters(gridApi) })
     }
-    state.exporting = false;
+    this.exporting = false;
   },
 
   csvAllowed() {
-    return this.numRowsMatched <= 5 * this.csvExportPageSize;
+    return this.numRowsMatched !== null && this.numRowsMatched <= 5 * this.csvExportPageSize;
   },
 
   csvText() {
+    if (!this.numRowsMatched) return "No data to export";
+
     const numPages = Math.ceil(this.numRowsMatched / this.csvExportPageSize);
     if (!this.csvAllowed()) {
       return "Over export limit (5M rows) - try filtering!";
     }
     if (numPages === 1) {
-      return `Export ${this.numRowsMatched?.toLocaleString()} rows as CSV`;
+      return `Export ${this.numRowsMatched.toLocaleString()} rows as CSV`;
     }
-    return `Export ${this.numRowsMatched?.toLocaleString()} rows as ${numPages.toLocaleString()} CSVs`;
+    return `Export ${this.numRowsMatched.toLocaleString()} rows as ${numPages.toLocaleString()} CSVs`;
   }
-};
+}));
 
-Alpine.data("tableState", () => data);
 Alpine.start();
 
-async function refreshTable(state: TableState) {
+async function refreshTable(state: PreviewTableState) {
   /**
    * Re-query the data given the current table state.
    *
@@ -191,7 +179,12 @@ async function refreshTable(state: TableState) {
 
   gridApi.setGridOption('loading', true);
 
-  if (tableName && !addedTables.has(tableName)) {
+  if (!tableName) {
+    gridApi.setGridOption('loading', false);
+    return;
+  }
+
+  if (!addedTables.has(tableName)) {
     await _addTableToDuckDB(db, tableName);
     addedTables.add(tableName);
   }

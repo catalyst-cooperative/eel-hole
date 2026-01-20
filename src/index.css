@@ -2,16 +2,17 @@
   max-height: 100vh;
 }
 
-#app {
-  min-height: 0;
-}
-
 .navbar {
   height: 3rem;
 }
 
 .data-dictionary {
   overflow-y: scroll;
+}
+
+#sidebar {
+  overflow-y: auto;
+  max-height: calc(100vh - 6rem);
 }
 
 .field-name {
@@ -21,6 +22,7 @@
 
 .preview-panel {
   display: flex;
+  overflow-y: auto;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -69,4 +71,12 @@
   list-style-type: disc;
   padding-inline-start: 40px;
   margin-top: 0.5em;
+}
+
+/* 768px is Bulma's mobile breakpoint - columns stack below this width.
+   See https://bulma.io/documentation/start/responsiveness/ */
+@media screen and (max-width: 768px) {
+  #data-table {
+    height: calc(100vh - 8rem);
+  }
 }

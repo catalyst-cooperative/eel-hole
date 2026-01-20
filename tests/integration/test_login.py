@@ -58,11 +58,9 @@ def test_login_logout_flow(page: Page):
     page.get_by_text("Log in or sign up to preview / export as CSV").first.click()
     expect(page).to_have_url("http://localhost:8080/search")
 
-    # Now we should see "Preview / export as CSV" buttons
+    # should see preview buttons, but no login buttons
     expect(
-        page.get_by_role("button")
-        .filter(has_text="Preview / export as CSV", has_not_text="Log in")
-        .first
+        page.get_by_text("Preview / export as CSV").filter(has_not_text="Log in").first
     ).to_be_visible()
     expect(
         page.get_by_text("Log in or sign up to preview / export as CSV")

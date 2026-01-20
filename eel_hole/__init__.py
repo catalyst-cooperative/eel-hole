@@ -11,8 +11,8 @@ from authlib.integrations.flask_client import OAuth
 from flask import (
     Flask,
     redirect,
-    request,
     render_template,
+    request,
     session,
     url_for,
 )
@@ -28,12 +28,12 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from frictionless import Package, Resource
 
-from eel_hole.models import db, User
-from eel_hole.duckdb_query import ag_grid_to_duckdb, Filter
-from eel_hole.logs import log
-from eel_hole.search import initialize_index, run_search
-from eel_hole.utils import clean_pudl_resource, clean_ferc_xbrl_resource
+from eel_hole.duckdb_query import Filter, ag_grid_to_duckdb
 from eel_hole.feature_flags import is_flag_enabled
+from eel_hole.logs import log
+from eel_hole.models import User, db
+from eel_hole.search import initialize_index, run_search
+from eel_hole.utils import clean_ferc_xbrl_resource, clean_pudl_resource
 
 AUTH0_DOMAIN = os.getenv("PUDL_VIEWER_AUTH0_DOMAIN")
 CLIENT_ID = os.getenv("PUDL_VIEWER_AUTH0_CLIENT_ID")
@@ -456,9 +456,40 @@ def create_app():
         redirect location.
         """
         if table_name:
-            query = f"name:{table_name}"
-        else:
-            query = None
-        return redirect(url_for("search", q=query))
+            return redirect(url_for("preview", package="pudl", table_name=table_name))
+        return redirect(url_for("search"))
+
+    @app.get("/preview/<package>/<table_name>")
+    def preview(package: str, table_name: str):
+        """Preview data for a specific table.
+
+        Displays table metadata and a tabular view from which you can filter and
+        export the data as CSV. Returns full page for direct navigation or content
+        fragment for HTMX requests.
+
+        Params:
+            database_name: the database containing the table (e.g., "pudl")
+            table_name: the name of the table to preview
+        """
+        template = "partials/preview_content.html" if htmx else "preview.html"
+        log.info("preview", package=package, table_name=table_name)
+
+        # We need a *resource* so we can grab the metadata (description, columns, etc.)
+        resource = next((r for r in all_resources if r.name == table_name), None)
+
+        if not resource:
+            return render_template("404.html"), 404
+
+        return render_template(
+            template,
+            resource=resource,
+            table_name=table_name,
+        )
+
+    @app.post("/dismiss-notification")
+    def dismiss_notification():
+        """Mark the beta notification as dismissed in the session."""
+        session["beta_notification_dismissed"] = True
+        return ""
 
     return app

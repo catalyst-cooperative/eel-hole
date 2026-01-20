@@ -12,7 +12,7 @@
   </div>
   {% if r.package == "pudl" %}
     <div class="block">
-      {% if current_user.is_authenticated or config['LOGIN_DISABLED'] %}
+      {% if current_user.is_authenticated %}
       <button class="button is-primary preview-button" :disabled="db === null" :class="{'is-loading': loading}"
         @click="showPreview = true; tableName = '{{r.name}}'">Preview / export as CSV</button>
       {% else %}

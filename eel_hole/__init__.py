@@ -179,7 +179,7 @@ def create_app():
     app.config.from_mapping(
         SECRET_KEY=os.getenv("PUDL_VIEWER_SECRET_KEY"),
         TEMPLATES_AUTO_RELOAD=True,
-        LOGIN_DISABLED=os.getenv("PUDL_VIEWER_LOGIN_DISABLED", False),
+        INTEGRATION_TEST=os.getenv("PUDL_VIEWER_INTEGRATION_TEST", False),
     )
 
     auth0 = __init_auth0(app)
@@ -240,11 +240,32 @@ def create_app():
     def login():
         """Redirect to auth0 to handle actual logging in.
 
+        In integration test mode, automatically create and log in a test user.
+
         Params:
             next_url: the next URL to redirect to once logged in.
         """
+        if app.config["INTEGRATION_TEST"]:
+            # Create or get the integration test user
+            user = User.query.filter_by(email="integration_test@catalyst.coop").first()
+            if not user:
+                user = User(
+                    auth0_id="integration_test_auth0_id",
+                    email="integration_test@catalyst.coop",
+                    username="integration_test",
+                    accepted_privacy_policy=True,
+                    do_individual_outreach=False,
+                    send_newsletter=False,
+                )
+                db.session.add(user)
+                db.session.commit()
+            login_user(user, remember=True)
+            next_url = request.args.get("next_url", url_for("search"))
+            return redirect(next_url)
+
+        # Normal Auth0 flow
         next_url = request.args.get("next_url")
-        if next:
+        if next_url:
             redirect_uri = url_for("callback", next_url=next_url, _external=True)
         else:
             redirect_uri = url_for("callback", _external=True)
@@ -274,15 +295,26 @@ def create_app():
     @login_required
     @app.route("/logout")
     def logout():
-        """Log out user from our session & auth0 session, then go home."""
+        """Log out user from our session & auth0 session, then go home.
+
+        Before logging out, check if user was integration test user and skip
+        the auth0 stuff if so.
+        """
+        was_integration_test = current_user.email == "integration_test@catalyst.coop"
         logout_user()
         session.clear()
-        return_to = quote(url_for("home", _external=True))
-        response = redirect(
-            f"https://{AUTH0_DOMAIN}/v2/logout?"
-            f"client_id={CLIENT_ID}&"
-            f"return_to={return_to}"
-        )
+
+        if was_integration_test:
+            redirect_url = url_for("home")
+        else:
+            return_to = quote(url_for("home", _external=True))
+            redirect_url = (
+                f"https://{AUTH0_DOMAIN}/v2/logout?"
+                f"client_id={CLIENT_ID}&"
+                f"return_to={return_to}"
+            )
+
+        response = redirect(redirect_url)
         response.delete_cookie("remember_token")
         response.delete_cookie("session")
         return response

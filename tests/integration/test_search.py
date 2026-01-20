@@ -4,7 +4,7 @@ from playwright.sync_api import Page, expect
 
 
 def test_search_metadata(page: Page):
-    page.goto("http://localhost:8080/search")
+    _ = page.goto("http://localhost:8080/search")
     search_input = page.get_by_role("textbox").and_(
         page.get_by_placeholder("Search...")
     )
@@ -30,7 +30,7 @@ def test_search_metadata(page: Page):
 
 
 def test_search_for_ferc_table(page: Page):
-    page.goto("http://localhost:8080/search?ferc_enabled=true")
+    _ = page.goto("http://localhost:8080/search?ferc_enabled=true")
     search_input = page.get_by_role("textbox").and_(
         page.get_by_placeholder("Search...")
     )
@@ -50,8 +50,8 @@ def test_search_for_ferc_table(page: Page):
 def test_search_preview(page: Page):
     """Preview button now navigates to dedicated preview page via HTMX instead of showing overlay."""
     # Log in first to access preview functionality
-    page.goto("http://localhost:8080/login")
-    page.goto("http://localhost:8080/search?q=name:core_pudl__codes_datasources")
+    _ = page.goto("http://localhost:8080/login")
+    _ = page.goto("http://localhost:8080/search?q=name:core_pudl__codes_datasources")
 
     table_metadata = page.get_by_test_id("core_pudl__codes_datasources")
     preview_link = table_metadata.get_by_role("link").and_(
@@ -70,8 +70,8 @@ def test_search_preview_back_button(page: Page):
     We start from /search and then type in the query, because if we navigate
     *directly* to /search?q=foo the query is already populated server-side.
     """
-    page.goto("http://localhost:8080/login")
-    page.goto("http://localhost:8080/search")
+    _ = page.goto("http://localhost:8080/login")
+    _ = page.goto("http://localhost:8080/search")
     search_input = page.get_by_role("textbox").and_(
         page.get_by_placeholder("Search...")
     )
@@ -105,8 +105,8 @@ def test_search_preview_back_button(page: Page):
 
 def test_search_preview_ctrl_click_new_tab(page: Page):
     """Ctrl+click on preview link should open in new tab, not trigger HTMX."""
-    page.goto("http://localhost:8080/login")
-    page.goto("http://localhost:8080/search?q=name:core_pudl__codes_datasources")
+    _ = page.goto("http://localhost:8080/login")
+    _ = page.goto("http://localhost:8080/search?q=name:core_pudl__codes_datasources")
 
     table_metadata = page.get_by_test_id("core_pudl__codes_datasources")
     preview_link = table_metadata.get_by_role("link").and_(
@@ -129,9 +129,9 @@ def test_search_preview_ctrl_click_new_tab(page: Page):
 
 
 def test_search_redirect_legacy_datasette_urls(page: Page):
-    page.goto("http://localhost:8080/pudl/core_pudl__codes_datasources")
+    _ = page.goto("http://localhost:8080/pudl/core_pudl__codes_datasources")
     page.wait_for_url("http://localhost:8080/preview/pudl/core_pudl__codes_datasources")
-    page.goto("http://localhost:8080/pudl")
+    _ = page.goto("http://localhost:8080/pudl")
     page.wait_for_url("http://localhost:8080/search")
-    page.goto("http://localhost:8080/pudl/")
+    _ = page.goto("http://localhost:8080/pudl/")
     page.wait_for_url("http://localhost:8080/search")

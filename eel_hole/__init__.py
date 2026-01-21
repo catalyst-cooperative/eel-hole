@@ -94,6 +94,14 @@ def __build_search_index():
     """
 
     def get_datapackage(datapackage_path: str) -> Package:
+        # NOTE (2026-01-21): Temporarily loading from local file for EQR integration testing
+        if os.path.exists(datapackage_path):
+            log.info(f"Getting datapackage from local file {datapackage_path}")
+            with open(datapackage_path) as f:
+                descriptor = json.load(f)
+            log.info(f"{datapackage_path} loaded")
+            return Package.from_descriptor(descriptor)
+
         s3_base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/eel-hole"
         url = f"{s3_base_url}/{datapackage_path}"
         log.info(f"Getting datapackage from {url}")

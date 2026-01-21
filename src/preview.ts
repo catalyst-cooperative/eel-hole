@@ -1,9 +1,21 @@
-import * as duckdb from '@duckdb/duckdb-wasm';
-import * as arrow from 'apache-arrow';
+import * as duckdb from "@duckdb/duckdb-wasm";
+import * as arrow from "apache-arrow";
 
-import { DATE_TS_TYPE_IDS, DATE_TYPE_IDS, TIMESTAMP_TYPE_IDS } from './constants';
-import { createGrid, themeQuartz, colorSchemeDark, ModuleRegistry, AllCommunityModule, GridApi, GridOptions } from 'ag-grid-community';
-import Alpine, { AlpineComponent } from 'alpinejs';
+import {
+  DATE_TS_TYPE_IDS,
+  DATE_TYPE_IDS,
+  TIMESTAMP_TYPE_IDS,
+} from "./constants";
+import {
+  createGrid,
+  themeQuartz,
+  colorSchemeDark,
+  ModuleRegistry,
+  AllCommunityModule,
+  GridApi,
+  GridOptions,
+} from "ag-grid-community";
+import Alpine, { AlpineComponent } from "alpinejs";
 
 import "./index.css";
 
@@ -41,7 +53,7 @@ interface QueryEndpointPayload {
   tableName: string;
   filters: Array<Filter>;
   page: number;
-  perPage: number
+  perPage: number;
 }
 
 interface PreviewTableState extends AlpineComponent<{}> {
@@ -82,11 +94,11 @@ Alpine.data("previewTableState", (tableName: string) => ({
   addedTables: new Set(),
   csvExportPageSize: 1_000_000,
   exporting: false,
-  loading: true,  // Start as loading since we load data immediately in init()
-  darkMode: window.matchMedia('(prefers-color-scheme: dark)').matches,
-  gridApi: null as any,  // Initialized in init()
-  db: null as any,       // Initialized in init()
-  conn: null as any,     // Initialized in init()
+  loading: true, // Start as loading since we load data immediately in init()
+  darkMode: window.matchMedia("(prefers-color-scheme: dark)").matches,
+  gridApi: null as any, // Initialized in init()
+  db: null as any, // Initialized in init()
+  conn: null as any, // Initialized in init()
 
   async init() {
     /**
@@ -103,10 +115,10 @@ Alpine.data("previewTableState", (tableName: string) => ({
       onFilterChanged: async () => refreshTable(this),
       tooltipShowDelay: 500,
       tooltipHideDelay: 15000,
-    }
+    };
     const host = document.getElementById("data-table")!;
     this.gridApi = createGrid(host, gridOptions);
-    this.gridApi.setGridOption('loading', true);
+    this.gridApi.setGridOption("loading", true);
 
     this.db = await _initializeDuckDB();
     this.conn = await this.db.connect();
@@ -117,19 +129,26 @@ Alpine.data("previewTableState", (tableName: string) => ({
 
     const setTheme = () => {
       console.log("setting theme");
-      const darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const theme = darkMode ? themeQuartz.withPart(colorSchemeDark) : themeQuartz;
+      const darkMode = window.matchMedia(
+        "(prefers-color-scheme: dark)",
+      ).matches;
+      const theme = darkMode
+        ? themeQuartz.withPart(colorSchemeDark)
+        : themeQuartz;
       this.gridApi.setGridOption("theme", theme);
     };
     setTheme();
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', setTheme);
+    window
+      .matchMedia("(prefers-color-scheme: dark)")
+      .addEventListener("change", setTheme);
   },
 
   async exportCsv() {
     /**
      * Download data one giant page at a time, and then export to CSV.
      */
-    const { conn, tableName, gridApi, csvExportPageSize, numRowsMatched } = this;
+    const { conn, tableName, gridApi, csvExportPageSize, numRowsMatched } =
+      this;
     if (!tableName || !numRowsMatched) return;
 
     this.exporting = true;
@@ -137,13 +156,22 @@ Alpine.data("previewTableState", (tableName: string) => ({
 
     for (let i = 1; i <= numPages; i++) {
       const filename = numPages === 1 ? tableName : `${tableName}_part${i}`;
-      await exportPage(gridApi, filename, { conn, tableName, page: i, perPage: csvExportPageSize, filters: getFilters(gridApi) })
+      await exportPage(gridApi, filename, {
+        conn,
+        tableName,
+        page: i,
+        perPage: csvExportPageSize,
+        filters: getFilters(gridApi),
+      });
     }
     this.exporting = false;
   },
 
   csvAllowed() {
-    return this.numRowsMatched !== null && this.numRowsMatched <= 5 * this.csvExportPageSize;
+    return (
+      this.numRowsMatched !== null &&
+      this.numRowsMatched <= 5 * this.csvExportPageSize
+    );
   },
 
   csvText() {
@@ -157,7 +185,7 @@ Alpine.data("previewTableState", (tableName: string) => ({
       return `Export ${this.numRowsMatched.toLocaleString()} rows as CSV`;
     }
     return `Export ${this.numRowsMatched.toLocaleString()} rows as ${numPages.toLocaleString()} CSVs`;
-  }
+  },
 }));
 
 Alpine.start();
@@ -177,10 +205,10 @@ async function refreshTable(state: PreviewTableState) {
    */
   const { tableName, conn, db, gridApi, addedTables } = state;
 
-  gridApi.setGridOption('loading', true);
+  gridApi.setGridOption("loading", true);
 
   if (!tableName) {
-    gridApi.setGridOption('loading', false);
+    gridApi.setGridOption("loading", false);
     return;
   }
 
@@ -189,13 +217,19 @@ async function refreshTable(state: PreviewTableState) {
     addedTables.add(tableName);
   }
   const filters = getFilters(gridApi);
-  const { arrowData, numRowsMatched } = await getAndCountData({ conn, tableName, filters, page: 1, perPage: 10_000 });
+  const { arrowData, numRowsMatched } = await getAndCountData({
+    conn,
+    tableName,
+    filters,
+    page: 1,
+    perPage: 10_000,
+  });
   const gridOptions = arrowTableToAgGridOptions(arrowData);
   gridApi.updateGridOptions(gridOptions);
 
   state.numRowsMatched = numRowsMatched;
   state.numRowsDisplayed = arrowData.numRows;
-  gridApi.setGridOption('loading', false);
+  gridApi.setGridOption("loading", false);
 }
 
 function getFilters(gridApi: GridApi): Array<Filter> {
@@ -207,12 +241,18 @@ function getFilters(gridApi: GridApi): Array<Filter> {
    * the Filter type altogether.
    */
   console.log(gridApi.getFilterModel());
-  return Object.entries(gridApi.getFilterModel())
-    .map(
-      ([fieldName, { filterType, type, filter, filterTo, dateFrom, dateTo }]) => (
-        { fieldName, fieldType: filterType, operation: type, value: filter || dateFrom, valueTo: filterTo || dateTo }
-      )
-    );
+  return Object.entries(gridApi.getFilterModel()).map(
+    ([
+      fieldName,
+      { filterType, type, filter, filterTo, dateFrom, dateTo },
+    ]) => ({
+      fieldName,
+      fieldType: filterType,
+      operation: type,
+      value: filter || dateFrom,
+      valueTo: filterTo || dateTo,
+    }),
+  );
 }
 
 async function getAndCountData(params: QueryEndpointPayload) {
@@ -224,18 +264,22 @@ async function getAndCountData(params: QueryEndpointPayload) {
    * - return both
    */
   const { conn, tableName, filters, page, perPage } = params;
-  const { statement, count_statement: countStatement, values: filterVals } = await _getDuckDBQuery(
-    { tableName, filters: filters, page, perPage }
-  );
+  const {
+    statement,
+    count_statement: countStatement,
+    values: filterVals,
+  } = await _getDuckDBQuery({ tableName, filters: filters, page, perPage });
   const stmt = await conn.prepare(statement);
   const counter = await conn.prepare(countStatement);
-  const [countResult, arrowData] = await Promise.all(
-    [counter.query(...filterVals), stmt.query(...filterVals)]
+  const [countResult, arrowData] = await Promise.all([
+    counter.query(...filterVals),
+    stmt.query(...filterVals),
+  ]);
+  const numRowsMatched = parseInt(
+    countResult?.getChild("count_star()")?.get(0),
   );
-  const numRowsMatched = parseInt(countResult?.getChild("count_star()")?.get(0));
 
-  return { arrowData, numRowsMatched }
-
+  return { arrowData, numRowsMatched };
 }
 
 async function getData(params: QueryEndpointPayload) {
@@ -246,16 +290,22 @@ async function getData(params: QueryEndpointPayload) {
    * - run the main query on DuckDB
    */
   const { conn, tableName, filters, page, perPage } = params;
-  const { statement, values: filterVals } = await _getDuckDBQuery(
-    { tableName, filters: filters, page, perPage }
-  );
+  const { statement, values: filterVals } = await _getDuckDBQuery({
+    tableName,
+    filters: filters,
+    page,
+    perPage,
+  });
   const stmt = await conn.prepare(statement);
   const arrowData = await stmt.query(...filterVals);
   return arrowData;
 }
 
-
-async function exportPage(gridApi: GridApi, filename: string, params: QueryEndpointPayload) {
+async function exportPage(
+  gridApi: GridApi,
+  filename: string,
+  params: QueryEndpointPayload,
+) {
   /**
    * Actually do the downloading/CSV export for a single page.
    *
@@ -267,23 +317,25 @@ async function exportPage(gridApi: GridApi, filename: string, params: QueryEndpo
   const arrowTable = await getData(params);
   const { rowData } = arrowTableToAgGridOptions(arrowTable);
 
-  const columns = gridApi.getColumns()?.map(col => col.colId) ?? [];
+  const columns = gridApi.getColumns()?.map((col) => col.colId) ?? [];
   const headers = columns.join(",");
 
   // get row values in the order of the columns passed in, then do one big string conversion using JSON.stringify.
-  const rows = JSON.stringify(rowData!.map(row => columns.map(col => row[col])))
-    .replace(/\],\[/g, '\n')
-    .replace(/\[\[|\]\]/g, '');
+  const rows = JSON.stringify(
+    rowData!.map((row) => columns.map((col) => row[col])),
+  )
+    .replace(/\],\[/g, "\n")
+    .replace(/\[\[|\]\]/g, "");
 
   // make a binary file to download.
-  const blob = new Blob([`${headers}\n${rows}`], { type: 'text/csv' });
+  const blob = new Blob([`${headers}\n${rows}`], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
+  const link = document.createElement("a");
   link.href = url;
   link.download = `${filename}.csv`;
   link.click();
   URL.revokeObjectURL(url);
-};
+}
 
 function arrowTableToAgGridOptions(table: arrow.Table): GridOptions {
   /**
@@ -300,28 +352,38 @@ function arrowTableToAgGridOptions(table: arrow.Table): GridOptions {
     const filterUTC = filter.getTime() - filter.getTimezoneOffset() * 60_000;
     return cell.getTime() - filterUTC;
   };
-  const timestampOpts = new Map([...TIMESTAMP_TYPE_IDS].map(tid => [tid, {
-    valueFormatter: p => `${p.value?.toISOString().split(".")[0]}`,
-    filterParams: {
-      maxNumConditions: 1,
-      buttons: ["apply", "clear", "reset"],
-      comparator: utcComparator,
-      browserDatePicker: false,
-      dateFormat: "yyyy-MM-dd",
-    },
-  }]));
+  const timestampOpts = new Map(
+    [...TIMESTAMP_TYPE_IDS].map((tid) => [
+      tid,
+      {
+        valueFormatter: (p) => `${p.value?.toISOString().split(".")[0]}`,
+        filterParams: {
+          maxNumConditions: 1,
+          buttons: ["apply", "clear", "reset"],
+          comparator: utcComparator,
+          browserDatePicker: false,
+          dateFormat: "yyyy-MM-dd",
+        },
+      },
+    ]),
+  );
 
-  const dateOpts = new Map([...DATE_TYPE_IDS].map(tid => [tid, {
-    valueFormatter: p => p.value?.toISOString().split("T")[0],
-    filterParams: {
-      maxNumConditions: 1,
-      buttons: ["apply", "clear", "reset"],
-      comparator: utcComparator,
-      browserDatePicker: false,
-      dateFormat: "yyyy-MM-dd",
-    },
-  }]));
-  const typeOpts = new Map([...timestampOpts, ...dateOpts])
+  const dateOpts = new Map(
+    [...DATE_TYPE_IDS].map((tid) => [
+      tid,
+      {
+        valueFormatter: (p) => p.value?.toISOString().split("T")[0],
+        filterParams: {
+          maxNumConditions: 1,
+          buttons: ["apply", "clear", "reset"],
+          comparator: utcComparator,
+          browserDatePicker: false,
+          dateFormat: "yyyy-MM-dd",
+        },
+      },
+    ]),
+  );
+  const typeOpts = new Map([...timestampOpts, ...dateOpts]);
 
   // TODO 2025-02-19: it would be nice to add the column descriptions into the header tooltip. might want to grab the datapackage.json for that.
   const defaultOpts = {
@@ -334,27 +396,33 @@ function arrowTableToAgGridOptions(table: arrow.Table): GridOptions {
   };
 
   const schema = table.schema;
-  const columnDefs = schema.fields.map(
-    f => ({
-      ...defaultOpts,
-      ...(typeOpts.get(f.type.typeId) ?? {}),
-      field: f.name,
-      headerName: f.name,
-    })
-  );
-  const timestampColumns = schema.fields.filter(f => DATE_TS_TYPE_IDS.has(f.type.typeId)).map(f => f.name);
-  const rowData = table.toArray().map(row => convertDatetimes(timestampColumns, row.toJSON()));
+  const columnDefs = schema.fields.map((f) => ({
+    ...defaultOpts,
+    ...(typeOpts.get(f.type.typeId) ?? {}),
+    field: f.name,
+    headerName: f.name,
+  }));
+  const timestampColumns = schema.fields
+    .filter((f) => DATE_TS_TYPE_IDS.has(f.type.typeId))
+    .map((f) => f.name);
+  const rowData = table
+    .toArray()
+    .map((row) => convertDatetimes(timestampColumns, row.toJSON()));
   return { columnDefs, rowData };
 }
 
-function convertDatetimes(timestampColumns: Array<string>, row: Object): Object {
+function convertDatetimes(
+  timestampColumns: Array<string>,
+  row: Object,
+): Object {
   /**
    * Convert the integer timestamps that Arrow uses into JS Date objects.
    */
-  timestampColumns.forEach(col => { row[col] = new Date(row[col]) });
+  timestampColumns.forEach((col) => {
+    row[col] = new Date(row[col]);
+  });
   return row;
 }
-
 
 async function _initializeDuckDB(): Promise<duckdb.AsyncDuckDB> {
   /**
@@ -367,7 +435,9 @@ async function _initializeDuckDB(): Promise<duckdb.AsyncDuckDB> {
   const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
 
   const worker_url = URL.createObjectURL(
-    new Blob([`importScripts("${bundle.mainWorker!}");`], { type: 'text/javascript' })
+    new Blob([`importScripts("${bundle.mainWorker!}");`], {
+      type: "text/javascript",
+    }),
   );
 
   // Instantiate the asynchronous version of DuckDB-wasm
@@ -379,35 +449,44 @@ async function _initializeDuckDB(): Promise<duckdb.AsyncDuckDB> {
   return db;
 }
 
-
 async function _addTableToDuckDB(db: duckdb.AsyncDuckDB, tableName: string) {
   /**
    * Register the table in DuckDB so that it can cache useful metadata etc.
    */
-  const baseUrl = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/eel-hole/"
+  const baseUrl =
+    "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/eel-hole/";
   const filename = `${tableName}.parquet`;
   const url = `${baseUrl}${filename}`;
-  await db.registerFileURL(filename, url, duckdb.DuckDBDataProtocol.HTTP, false);
+  await db.registerFileURL(
+    filename,
+    url,
+    duckdb.DuckDBDataProtocol.HTTP,
+    false,
+  );
 }
 
-
-async function _getDuckDBQuery(
-  { tableName, filters, page = 1, perPage = 10000 }
-    : { tableName: string, filters: Array<Filter>, page?: number, perPage?: number }
-): Promise<QuerySpec> {
+async function _getDuckDBQuery({
+  tableName,
+  filters,
+  page = 1,
+  perPage = 10000,
+}: {
+  tableName: string;
+  filters: Array<Filter>;
+  page?: number;
+  perPage?: number;
+}): Promise<QuerySpec> {
   /**
    * Get DuckDB query from the backend, based on the filter rules & what table we're looking at.
    */
-  const params = new URLSearchParams(
-    {
-      name: `${tableName}.parquet`,
-      filters: JSON.stringify(filters),
-      page: page.toString(),
-      perPage: perPage.toString()
-    }
-  );
+  const params = new URLSearchParams({
+    name: `${tableName}.parquet`,
+    filters: JSON.stringify(filters),
+    page: page.toString(),
+    perPage: perPage.toString(),
+  });
   const resp = await fetch("/api/duckdb?" + params);
   const query = await resp.json();
   console.log("QuerySpec:", query);
-  return query
+  return query;
 }

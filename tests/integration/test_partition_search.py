@@ -1,0 +1,76 @@
+"""Integration tests for EQR partition search functionality."""
+
+from playwright.sync_api import Page, expect
+
+
+def test_eqr_tables_have_partition_dropdowns(page: Page):
+    """Search for EQR tables should show 4 cards, each with a partition dropdown."""
+    _ = page.goto("http://localhost:8080/search?q=name:core_ferceqr__")
+
+    page.get_by_test_id("core_ferceqr__quarterly_identity").wait_for(
+        state="visible", timeout=5000
+    )
+
+    # NOTE (2026-01-21): If we add more EQR tables for any reason this will fail but we should just update the test.
+    eqr_tables = page.locator("#search-results > *")
+    expect(eqr_tables).to_have_count(4)
+
+    for i in range(4):
+        card = eqr_tables.nth(i)
+        dropdown = card.locator("select#partition")
+        expect(dropdown).to_be_visible()
+        expect(dropdown).to_have_attribute("id", "partition")
+
+
+def test_partition_dropdown_has_correct_options(page: Page):
+    """Partition dropdown should contain the available partitions for each table."""
+    _ = page.goto(
+        "http://localhost:8080/search?q=name:core_ferceqr__quarterly_identity"
+    )
+
+    table_card = page.get_by_test_id("core_ferceqr__quarterly_identity")
+    expect(table_card).to_be_visible(timeout=5000)
+
+    dropdown = table_card.locator("select#partition")
+    expect(dropdown).to_be_visible(timeout=5000)
+
+    # NOTE (2026-01-21): EQR tables should have at least 49 partitions - that's 2013q1 through 2025q2
+    options = dropdown.locator("option")
+    options_count = options.count()
+    assert options_count >= 49, (
+        f"Expected partition dropdown to have at least 49 options, but found {options_count}"
+    )
+
+    first_option_text = options.first.text_content()
+    assert first_option_text is not None and len(first_option_text.strip()) > 0
+
+
+def test_changing_partition_does_not_navigate(page: Page):
+    """Updating the partition dropdown should NOT trigger preview navigation.
+
+    The dropdown change should update which partition will be previewed when the
+    Preview button is clicked, but shouldn't navigate anywhere by itself.
+    """
+    _ = page.goto("http://localhost:8080/login")
+    _ = page.goto(
+        "http://localhost:8080/search?q=name:core_ferceqr__quarterly_identity"
+    )
+
+    table_card = page.get_by_test_id("core_ferceqr__quarterly_identity")
+    dropdown = table_card.locator("select#partition")
+
+    initial_url = page.url
+
+    selected_partition = dropdown.select_option(index=1, timeout=5000)
+
+    page.wait_for_timeout(500)
+
+    assert page.url == initial_url
+
+    expect(page.locator("input[name='q']")).to_be_visible()
+
+    preview_link = table_card.get_by_role("link", name="Preview")
+    expect(preview_link).to_have_attribute(
+        "href",
+        f"/preview/core_ferceqr__quarterly_identity?partition={selected_partition[0]}",
+    )

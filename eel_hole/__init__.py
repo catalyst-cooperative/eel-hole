@@ -1,6 +1,5 @@
 """Main app definition."""
 
-import itertools
 import json
 import os
 from dataclasses import asdict
@@ -489,19 +488,14 @@ def create_app():
         if not resource:
             return render_template("404.html"), 404
 
-        if resource.normpaths:
+        partitioned_resource = len(resource.normpaths) > 1
+        if partitioned_resource:
             if not partition:
                 return render_template("404.html"), 404
-            log.info(
-                "preview",
-                searching_for=f"{partition}.parquet",
-                num_paths=len(resource.normpaths),
-            )
             path = next(
                 (p for p in resource.normpaths if p.endswith(f"{partition}.parquet")),
                 None,
             )
-            log.info("preview", found_path=path)
             if not path:
                 return render_template("404.html"), 404
         else:
@@ -518,6 +512,7 @@ def create_app():
             resource=resource,
             table_name=table_name,
             url=url,
+            partition=partition,
         )
 
     @app.post("/dismiss-notification")

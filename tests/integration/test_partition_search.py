@@ -20,6 +20,7 @@ def test_eqr_tables_have_partition_dropdowns(page: Page):
         dropdown = card.locator("select#partition")
         expect(dropdown).to_be_visible()
         expect(dropdown).to_have_attribute("id", "partition")
+        expect(dropdown).to_have_value("Select a partition...")
 
 
 def test_partition_dropdown_has_correct_options(page: Page):
@@ -74,3 +75,52 @@ def test_changing_partition_does_not_navigate(page: Page):
         "href",
         f"/preview/core_ferceqr__quarterly_identity?partition={selected_partition[0]}",
     )
+
+
+def test_partition_dropdown_has_label(page: Page):
+    """Partitioned tables should have a descriptive label above the dropdown."""
+    _ = page.goto(
+        "http://localhost:8080/search?q=name:core_ferceqr__quarterly_identity"
+    )
+
+    table_card = page.get_by_test_id("core_ferceqr__quarterly_identity")
+    expect(table_card).to_be_visible(timeout=5000)
+
+    label = table_card.locator("label").filter(
+        has_text="This table is partitioned. Choose one to preview or download:"
+    )
+    expect(label).to_be_visible()
+
+
+def test_buttons_disabled_until_partition_selected(page: Page):
+    """For partitioned tables, preview/download buttons should be disabled until partition selected."""
+    _ = page.goto("http://localhost:8080/login")
+    _ = page.goto(
+        "http://localhost:8080/search?q=name:core_ferceqr__quarterly_identity"
+    )
+
+    table_card = page.get_by_test_id("core_ferceqr__quarterly_identity")
+    expect(table_card).to_be_visible(timeout=5000)
+
+    preview_button = table_card.get_by_role("link").filter(has_text="Preview")
+    download_button = table_card.get_by_role("link").filter(
+        has_text="Download full table as Parquet"
+    )
+
+    expect(preview_button).to_be_disabled()
+    expect(download_button).to_be_disabled()
+
+    dropdown = table_card.locator("select#partition")
+    selected_partition = dropdown.select_option(index=0)
+
+    expect(preview_button).to_be_visible()
+    expect(download_button).to_be_visible()
+
+    preview_href = preview_button.get_attribute("href")
+    download_href = download_button.get_attribute("href")
+
+    assert (
+        preview_href
+        == f"/preview/pudl/core_ferceqr__quarterly_identity/{selected_partition[0]}"
+    )
+    assert download_href.endswith(f"{selected_partition[0]}.parquet")

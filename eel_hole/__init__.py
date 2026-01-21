@@ -460,30 +460,56 @@ def create_app():
         return redirect(url_for("search"))
 
     @app.get("/preview/<package>/<table_name>")
-    def preview(package: str, table_name: str):
-        """Preview data for a specific table.
+    @app.get("/preview/<package>/<table_name>/<partition>")
+    def preview(package: str, table_name: str, partition: str | None = None):
+        """Preview data for a specific table, optionally for a specific partition.
 
         Displays table metadata and a tabular view from which you can filter and
         export the data as CSV. Returns full page for direct navigation or content
         fragment for HTMX requests.
 
         Params:
-            database_name: the database containing the table (e.g., "pudl")
+            package: the package containing the table (e.g., "pudl")
             table_name: the name of the table to preview
+            partition: optional partition identifier (e.g., "2024q1" for EQR tables)
         """
         template = "partials/preview_content.html" if htmx else "preview.html"
-        log.info("preview", package=package, table_name=table_name)
+        log.info("preview", package=package, table_name=table_name, partition=partition)
 
-        # We need a *resource* so we can grab the metadata (description, columns, etc.)
         resource = next((r for r in all_resources if r.name == table_name), None)
 
         if not resource:
             return render_template("404.html"), 404
 
+        if resource.normpaths:
+            if not partition:
+                return render_template("404.html"), 404
+            log.info(
+                "preview",
+                searching_for=f"{partition}.parquet",
+                num_paths=len(resource.normpaths),
+            )
+            path = next(
+                (p for p in resource.normpaths if p.endswith(f"{partition}.parquet")),
+                None,
+            )
+            log.info("preview", found_path=path)
+            if not path:
+                return render_template("404.html"), 404
+        else:
+            path = resource.path
+
+        if path.startswith("http://") or path.startswith("https://"):
+            url = path
+        else:
+            base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/eel-hole"
+            url = f"{base_url}/{path}"
+
         return render_template(
             template,
             resource=resource,
             table_name=table_name,
+            url=url,
         )
 
     @app.post("/dismiss-notification")

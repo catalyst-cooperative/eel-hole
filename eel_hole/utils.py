@@ -19,10 +19,18 @@ SPHINX_TAGS = re.compile(r":(?:ref|func|doc):`([^`]+)`")
 
 @dataclass
 class ResourceDisplay:
+    """Display metadata for a data resource.
+
+    For partitioned tables (e.g., EQR tables), normpaths contains all partition URLs.
+    For non-partitioned tables, normpaths is None and path is the single data URL.
+    """
+
     name: str
     package: str
     description: str
     columns: list["ColumnDisplay"]
+    path: str
+    normpaths: list[str] | None = None
 
 
 @dataclass
@@ -160,6 +168,8 @@ def clean_pudl_resource(resource: Resource) -> ResourceDisplay:
             )
             for field in resource.schema.fields
         ],
+        path=resource.path,
+        normpaths=getattr(resource, "normpaths", None),
     )
 
 
@@ -183,4 +193,6 @@ def clean_ferc_xbrl_resource(resource: Resource, package_name: str) -> ResourceD
             )
             for field in resource.schema.fields
         ],
+        path=resource.path,
+        normpaths=getattr(resource, "normpaths", None),
     )

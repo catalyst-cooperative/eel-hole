@@ -54,14 +54,18 @@ def test_preview_page_shows_partitioned_data(page: Page):
 def test_different_partitions_load_different_data(page: Page):
     """Different partition selections should load different data."""
     _ = page.goto("http://localhost:8080/login")
-    _ = page.goto("http://localhost:8080/pudl/core_ferceqr__quarterly_identity/2024q1")
+    _ = page.goto(
+        "http://localhost:8080/preview/pudl/core_ferceqr__quarterly_identity/2024q1"
+    )
 
     page.locator("#data-table .ag-cell").first.wait_for(state="visible", timeout=30000)
     expect(
         page.locator("#data-table .ag-cell[col-id='year_quarter']").first
     ).to_have_text("2024q1")
 
-    _ = page.goto("http://localhost:8080/pudl/core_ferceqr__quarterly_identity/2024q2")
+    _ = page.goto(
+        "http://localhost:8080/preview/pudl/core_ferceqr__quarterly_identity/2024q2"
+    )
 
     page.locator("#data-table .ag-cell").first.wait_for(state="visible", timeout=30000)
     expect(

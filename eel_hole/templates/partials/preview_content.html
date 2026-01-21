@@ -1,10 +1,30 @@
 <!-- title tag here so HTMX request updates page title -->
 <title>{{ table_name }} - PUDL Data Viewer</title>
 
+<<<<<<< HEAD
 <div class="columns container is-fluid is-flex-grow-1" x-data="previewTableState('{{ table_name }}')">
   <div class="data-dictionary column my-3 is-flex is-flex-direction-column">
     <div class="data-dictionary is-flex-grow-1" id="sidebar">
       {% include 'partials/preview_metadata.html' %}
+||||||| parent of ded4f93 (feat: add preview-partition functionality)
+<div
+    class="columns container is-fluid is-flex-grow-1"
+    x-data="previewTableState('{{ table_name }}')"
+>
+    <div class="data-dictionary column my-3 is-flex is-flex-direction-column">
+        <div class="data-dictionary is-flex-grow-1" id="sidebar">
+            {% include 'partials/preview_metadata.html' %}
+        </div>
+=======
+<div
+    class="columns container is-fluid is-flex-grow-1"
+    x-data="previewTableState('{{ table_name }}', '{{ url }}')"
+>
+    <div class="data-dictionary column my-3 is-flex is-flex-direction-column">
+        <div class="data-dictionary is-flex-grow-1" id="sidebar">
+            {% include 'partials/preview_metadata.html' %}
+        </div>
+>>>>>>> ded4f93 (feat: add preview-partition functionality)
     </div>
   </div>
   {% if current_user.is_authenticated or config['LOGIN_DISABLED'] %}

@@ -3,23 +3,29 @@
     x-data='{ selectedPartition: "", downloadPaths: {{ r.download_paths | tojson | safe }} }'
 >
     <!-- TODO add a proper dropdown here, which populates the paths -->
-    <div class="level-left">
-        <label for="partition"
-            >Select a partition to preview or download:</label
-        >
-        <select id="partition" x-model="selectedPartition">
-            <option value="" selected>Select a partition...</option>
-            {% for part in r.preview_paths %} {% set parsed_part =
-            part.split('/')[-1].split('.')[0] %}
-            <option value="{{parsed_part}}">{{ parsed_part }}</option>
-            {% endfor %}
-        </select>
+    <div class="level">
+        <div class="level-left">
+            <label for="partition"
+                >Select a partition to preview or download:</label
+            >
+            <div class="select">
+                <select id="partition" x-model="selectedPartition">
+                    <option value="" selected>Select a partition...</option>
+                    {% for part in r.preview_paths %} {% set parsed_part =
+                    part.split('/')[-1].split('.')[0] %}
+                    <option value="{{parsed_part}}">{{ parsed_part }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
     </div>
-    <div class="level-left">
-        <span class="has-text-weight-bold has-text-warning"
-            >Note: some partitioned tables are quite large and may take several
-            minutes to load a preview.</span
-        >
+    <div class="level">
+        <div class="level-left">
+            <span class="has-text-weight-bold has-text-warning"
+                >Note: some partitioned tables are quite large and may take
+                several minutes to load a preview.</span
+            >
+        </div>
     </div>
 
     {% if current_user.is_authenticated %}

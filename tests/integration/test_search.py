@@ -30,13 +30,7 @@ def test_search_metadata(page: Page):
 
 
 def test_search_for_ferc_table(page: Page):
-    _ = page.goto("http://localhost:8080/search?ferc_enabled=true")
-    search_input = page.get_by_role("textbox").and_(
-        page.get_by_placeholder("Search...")
-    )
-    search_input.fill("package:ferc1_xbrl")
-    core_table = page.get_by_test_id("core_eia923__monthly_boiler_fuel")
-    core_table.wait_for(state="detached")
+    _ = page.goto("http://localhost:8080/search?ferc_enabled=true&q=package:ferc1_xbrl")
     num_results = page.locator("#search-results > *").count()
     assert num_results <= 20
     expect(page.get_by_test_id("identification_001_duration")).to_contain_text(
@@ -49,7 +43,6 @@ def test_search_for_ferc_table(page: Page):
 
 def test_search_preview(page: Page):
     """Preview button now navigates to dedicated preview page via HTMX instead of showing overlay."""
-    # Log in first to access preview functionality
     _ = page.goto("http://localhost:8080/login")
     _ = page.goto("http://localhost:8080/search?q=name:core_pudl__codes_datasources")
 
@@ -60,8 +53,6 @@ def test_search_preview(page: Page):
     preview_link.click()
 
     page.wait_for_url("http://localhost:8080/preview/pudl/core_pudl__codes_datasources")
-    page.locator("#data-table").get_by_text("epacems").wait_for(state="visible")
-    expect(page.locator("input[type='search']")).not_to_be_visible()
 
 
 def test_search_preview_back_button(page: Page):

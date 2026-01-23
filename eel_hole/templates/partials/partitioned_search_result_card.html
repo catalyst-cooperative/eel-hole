@@ -1,10 +1,33 @@
-<div class="block">
-    {% if current_user.is_authenticated %}
+<div
+    class="block"
+    x-data='{ selectedPartition: "", downloadPaths: {{ r.download_paths | tojson | safe }} }'
+>
     <!-- TODO add a proper dropdown here, which populates the paths -->
+    <div class="level-left">
+        <label for="partition"
+            >Select a partition to preview or download:</label
+        >
+        <select id="partition" x-model="selectedPartition">
+            <option value="" selected>Select a partition...</option>
+            {% for part in r.preview_paths %} {% set parsed_part =
+            part.split('/')[-1].split('.')[0] %}
+            <option value="{{parsed_part}}">{{ parsed_part }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="level-left">
+        <span class="has-text-weight-bold has-text-warning"
+            >Note: some partitioned tables are quite large and may take several
+            minutes to load a preview.</span
+        >
+    </div>
+
+    {% if current_user.is_authenticated %}
     <a
         class="button is-primary preview-button"
-        href="/preview/{{ r.package }}/{{ r.name }}"
-        hx-get="/preview/{{ r.package }}/{{ r.name }}"
+        :disabled="!selectedPartition"
+        :href="selectedPartition ? '/preview/{{ r.package }}/{{ r.name }}/' + selectedPartition : '#'"
+        :hx-get="selectedPartition ? '/preview/{{ r.package }}/{{ r.name }}/' + selectedPartition : '#'"
         hx-target="#main-content"
         hx-push-url="true"
         onclick="
@@ -18,13 +41,15 @@
     {% else %}
     <a
         class="button is-primary preview-button"
+        :disabled="!selectedPartition"
         href="/login?next_url={{ url_for(request.endpoint, **request.args) }}"
         >Log in or sign up to preview / export as CSV</a
     >
     {% endif %}
     <a
         class="button is-link is-light"
-        href="https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/nightly/{{ r.name }}.parquet"
+        :disabled="!selectedPartition"
+        :href="selectedPartition ? downloadPaths[selectedPartition] : '#'"
         >Download full table as Parquet</a
     >
 </div>

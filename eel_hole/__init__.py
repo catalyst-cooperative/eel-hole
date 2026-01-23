@@ -100,21 +100,22 @@ def __build_search_index():
 
     def get_datapackage(datapackage_path: str) -> Package:
         # NOTE (2026-01-21): Temporarily loading from local file for EQR integration testing
-        if os.path.exists(datapackage_path):
-            log.info(f"Getting datapackage from local file {datapackage_path}")
-            with open(datapackage_path) as f:
+        potential_local_path = datapackage_path.rsplit("/")[-1]
+        if os.path.exists(potential_local_path):
+            log.info(f"Getting datapackage from local file {potential_local_path}")
+            with open(potential_local_path) as f:
                 descriptor = json.load(f)
-            log.info(f"{datapackage_path} loaded")
+            log.info(f"{potential_local_path} loaded")
             return Package.from_descriptor(descriptor)
-
-        s3_base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/eel-hole"
-        url = f"{s3_base_url}/{datapackage_path}"
-        log.info(f"Getting datapackage from {url}")
-        descriptor = requests.get(url).json()
-        log.info(f"{url} downloaded")
+        log.info(f"Getting datapackage from {datapackage_path}")
+        descriptor = requests.get(datapackage_path).json()
+        log.info(f"{datapackage_path} downloaded")
         return Package.from_descriptor(descriptor)
 
-    pudl_package = get_datapackage("pudl_parquet_datapackage.json")
+    s3_base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop"
+    pudl_package = get_datapackage(
+        f"{s3_base_url}/eel-hole/pudl_parquet_datapackage.json"
+    )
     log.info("Cleaning up descriptors for pudl")
     # NOTE (2026-01-23): only need to filter out the EQR resources until they stop showing up in the PUDL datapackage.
     pudl_resources = [
@@ -124,7 +125,9 @@ def __build_search_index():
     ]
     log.info("Cleaned up descriptors for pudl")
 
-    ferceqr_package = get_datapackage("ferceqr_parquet_datapackage.json")
+    ferceqr_package = get_datapackage(
+        f"{s3_base_url}/ferceqr/ferceqr_parquet_datapackage.json"
+    )
     log.info("Cleaning up descriptors for ferceqr")
     ferceqr_resources = [
         clean_ferceqr_resource(resource) for resource in ferceqr_package.resources
@@ -141,7 +144,9 @@ def __build_search_index():
 
     ferc_xbrl_resources = []
     for ferc_xbrl in ferc_xbrls:
-        ferc_xbrl_package = get_datapackage(f"{ferc_xbrl}_datapackage.json")
+        ferc_xbrl_package = get_datapackage(
+            f"{s3_base_url}/eel-hole/{ferc_xbrl}_datapackage.json"
+        )
         log.info(f"Cleaning up descriptors for {ferc_xbrl}")
         ferc_xbrl_resources.extend(
             clean_ferc_xbrl_resource(resource, ferc_xbrl)
@@ -505,7 +510,6 @@ def create_app():
             return render_template("404.html"), 404
 
         is_partitioned = isinstance(resource, PartitionedResourceDisplay)
-        log.info("preview", is_partitioned=is_partitioned, type=type(resource))
         if is_partitioned:
             if partition not in resource.preview_paths:
                 return render_template("404.html"), 404

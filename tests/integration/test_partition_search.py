@@ -20,7 +20,7 @@ def test_eqr_tables_have_partition_dropdowns(page: Page):
         dropdown = card.locator("select#partition")
         expect(dropdown).to_be_visible()
         expect(dropdown).to_have_attribute("id", "partition")
-        expect(dropdown).to_have_value("Select a partition...")
+        expect(dropdown).to_have_value("")
 
 
 def test_partition_dropdown_has_correct_options(page: Page):
@@ -73,7 +73,7 @@ def test_changing_partition_does_not_navigate(page: Page):
     preview_link = table_card.get_by_role("link", name="Preview")
     expect(preview_link).to_have_attribute(
         "href",
-        f"/preview/core_ferceqr__quarterly_identity?partition={selected_partition[0]}",
+        f"/preview/pudl/core_ferceqr__quarterly_identity/{selected_partition[0]}",
     )
 
 
@@ -87,7 +87,7 @@ def test_partition_dropdown_has_label(page: Page):
     expect(table_card).to_be_visible(timeout=5000)
 
     label = table_card.locator("label").filter(
-        has_text="This table is partitioned. Choose one to preview or download:"
+        has_text="Select a partition to preview or download:"
     )
     expect(label).to_be_visible()
 
@@ -107,11 +107,14 @@ def test_buttons_disabled_until_partition_selected(page: Page):
         has_text="Download full table as Parquet"
     )
 
-    expect(preview_button).to_be_disabled()
-    expect(download_button).to_be_disabled()
+    # NOTE (2026-01-23): can't use expect().to_be_disabled() since these are
+    # actually `a` tags - since they're really *links* that merely look like
+    # buttons.
+    expect(preview_button).to_have_attribute("disabled", "disabled")
+    expect(download_button).to_have_attribute("disabled", "disabled")
 
     dropdown = table_card.locator("select#partition")
-    selected_partition = dropdown.select_option(index=0)
+    selected_partition = dropdown.select_option(index=1)
 
     expect(preview_button).to_be_visible()
     expect(download_button).to_be_visible()

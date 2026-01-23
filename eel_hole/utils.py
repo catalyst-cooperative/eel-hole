@@ -19,18 +19,36 @@ SPHINX_TAGS = re.compile(r":(?:ref|func|doc):`([^`]+)`")
 
 @dataclass
 class ResourceDisplay:
-    """Display metadata for a data resource.
-
-    For partitioned tables (e.g., EQR tables), normpaths contains all partition URLs.
-    For non-partitioned tables, normpaths is None and path is the single data URL.
-    """
+    """Display metadata for a data resource."""
 
     name: str
     package: str
     description: str
     columns: list["ColumnDisplay"]
-    path: str
-    normpaths: list[str] | None = None
+    preview_path: str
+    download_path: str
+
+
+@dataclass
+class PartitionedResourceDisplay:
+    """Display metadata for a *partitioned* data resource."""
+
+    name: str
+    package: str
+    description: str
+    columns: list["ColumnDisplay"]
+    preview_paths: dict[str, str]
+    download_paths: dict[str, str]
+
+    def to_single_partition(self, partition: str) -> ResourceDisplay:
+        return ResourceDisplay(
+            name=self.name,
+            package=self.package,
+            description=self.description,
+            columns=self.columns,
+            preview_path=self.preview_paths[partition],
+            download_path=self.download_paths[partition],
+        )
 
 
 @dataclass
@@ -157,6 +175,8 @@ def clean_pudl_resource(resource: Resource) -> ResourceDisplay:
     machinery to turn it into HTML that can be shoved into the
     templates/partials/search_results.html Jinja template.
     """
+    preview_base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/eel-hole"
+    download_base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/eel-hole"
     return ResourceDisplay(
         name=resource.name,
         description=rst_to_html(getattr(resource, "description", "")),
@@ -168,8 +188,36 @@ def clean_pudl_resource(resource: Resource) -> ResourceDisplay:
             )
             for field in resource.schema.fields
         ],
-        path=resource.path,
-        normpaths=getattr(resource, "normpaths", None),
+        preview_path=f"{preview_base_url}/{resource.path}",
+        download_path=f"{download_base_url}/{resource.path}",
+    )
+
+
+def clean_ferceqr_resource(resource: Resource) -> PartitionedResourceDisplay:
+    """Clean up the FERC EQR datapackage descriptions for display.
+
+    Same format as PUDL datapackage documentation, just using different paths.
+
+    We even still claim to be from the same package.
+    """
+    base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/ferceqr"
+    paths = {
+        p.rsplit("/")[-1].rstrip(".parquet"): f"{base_url}/{p}"
+        for p in resource.normpaths
+    }
+    return PartitionedResourceDisplay(
+        name=resource.name,
+        description=rst_to_html(getattr(resource, "description", "")),
+        package="pudl",
+        columns=[
+            ColumnDisplay(
+                name=field.name,
+                description=rst_to_html(getattr(field, "description", "")),
+            )
+            for field in resource.schema.fields
+        ],
+        preview_paths=paths,
+        download_paths=paths,
     )
 
 
@@ -180,6 +228,12 @@ def clean_ferc_xbrl_resource(resource: Resource, package_name: str) -> ResourceD
     generation. Also, the table *descriptions* are useless but the table
     *titles* (not *name* which is the canonical name of the table) are merely
     nearly useless. So we replace the descriptions with the titles.
+
+    NOTE (2026-01-23): the preview_path and the download_path are currently
+    invalid links to local SQLite files on the extractor VMs. We'll need to
+    update how the datapackage is produced, potentially bringing it in line with
+    frictionless datapackage validation, as well as think about pulling out the
+    table name from the datapackage.
     """
 
     return ResourceDisplay(
@@ -193,6 +247,6 @@ def clean_ferc_xbrl_resource(resource: Resource, package_name: str) -> ResourceD
             )
             for field in resource.schema.fields
         ],
-        path=resource.path,
-        normpaths=getattr(resource, "normpaths", None),
+        preview_path=resource.path,
+        download_path=resource.path,
     )

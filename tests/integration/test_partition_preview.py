@@ -64,5 +64,4 @@ def test_preview_page_download_link_includes_partition(page: Page):
     expect(download_button).to_be_visible()
 
     href = download_button.get_attribute("href")
-    assert href is not None
     assert href.endswith("2024q1.parquet")

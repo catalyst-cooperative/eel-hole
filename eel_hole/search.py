@@ -9,12 +9,12 @@ from frictionless import Resource
 # TODO 2025-01-15: think about switching this over to py-tantivy since that's better maintained
 from whoosh import index
 from whoosh.analysis import (
-    RegexTokenizer,
     LowercaseFilter,
-    StopFilter,
+    RegexTokenizer,
     StemFilter,
+    StopFilter,
 )
-from whoosh.fields import Schema, KEYWORD, TEXT, STORED
+from whoosh.fields import KEYWORD, STORED, TEXT, Schema
 from whoosh.filedb.filestore import RamStorage
 from whoosh.lang.porter import stem
 from whoosh.qparser import MultifieldParser
@@ -22,7 +22,7 @@ from whoosh.query import AndMaybe, Or, Term
 
 from eel_hole.feature_flags import is_flag_enabled
 from eel_hole.logs import log
-from eel_hole.utils import ResourceDisplay
+from eel_hole.utils import PartitionedResourceDisplay, ResourceDisplay
 
 
 def custom_stemmer(word: str) -> str:
@@ -34,7 +34,9 @@ def custom_stemmer(word: str) -> str:
     return stem_map.get(word, stem(word))
 
 
-def initialize_index(resources: list[ResourceDisplay]) -> index.Index:
+def initialize_index(
+    resources: list[ResourceDisplay | PartitionedResourceDisplay],
+) -> index.Index:
     """Index the resources from a datapackage for later searching.
 
     Search index is stored in memory since it's such a small dataset.

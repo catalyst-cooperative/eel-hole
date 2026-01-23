@@ -32,7 +32,13 @@ from eel_hole.feature_flags import is_flag_enabled
 from eel_hole.logs import log
 from eel_hole.models import User, db
 from eel_hole.search import initialize_index, run_search
-from eel_hole.utils import clean_ferc_xbrl_resource, clean_pudl_resource
+from eel_hole.utils import (
+    PartitionedResourceDisplay,
+    ResourceDisplay,
+    clean_ferc_xbrl_resource,
+    clean_ferceqr_resource,
+    clean_pudl_resource,
+)
 
 AUTH0_DOMAIN = os.getenv("PUDL_VIEWER_AUTH0_DOMAIN")
 CLIENT_ID = os.getenv("PUDL_VIEWER_AUTH0_CLIENT_ID")
@@ -110,10 +116,20 @@ def __build_search_index():
 
     pudl_package = get_datapackage("pudl_parquet_datapackage.json")
     log.info("Cleaning up descriptors for pudl")
+    # NOTE (2026-01-23): only need to filter out the EQR resources until they stop showing up in the PUDL datapackage.
     pudl_resources = [
-        clean_pudl_resource(resource) for resource in pudl_package.resources
+        clean_pudl_resource(resource)
+        for resource in pudl_package.resources
+        if not resource.name.startswith("core_ferceqr__")
     ]
     log.info("Cleaned up descriptors for pudl")
+
+    ferceqr_package = get_datapackage("ferceqr_parquet_datapackage.json")
+    log.info("Cleaning up descriptors for ferceqr")
+    ferceqr_resources = [
+        clean_ferceqr_resource(resource) for resource in ferceqr_package.resources
+    ]
+    log.info("Cleaned up descriptors for ferceqr")
 
     ferc_xbrls = [
         "ferc1_xbrl",
@@ -133,7 +149,7 @@ def __build_search_index():
         )
         log.info(f"Cleaned up descriptors for {ferc_xbrl}")
 
-    all_resources = pudl_resources + ferc_xbrl_resources
+    all_resources = pudl_resources + ferceqr_resources + ferc_xbrl_resources
     index = initialize_index(all_resources)
     log.info("index done")
 
@@ -488,30 +504,16 @@ def create_app():
         if not resource:
             return render_template("404.html"), 404
 
-        partitioned_resource = len(resource.normpaths) > 1
-        if partitioned_resource:
-            if not partition:
+        is_partitioned = isinstance(resource, PartitionedResourceDisplay)
+        log.info("preview", is_partitioned=is_partitioned, type=type(resource))
+        if is_partitioned:
+            if partition not in resource.preview_paths:
                 return render_template("404.html"), 404
-            path = next(
-                (p for p in resource.normpaths if p.endswith(f"{partition}.parquet")),
-                None,
-            )
-            if not path:
-                return render_template("404.html"), 404
-        else:
-            path = resource.path
-
-        if path.startswith("http://") or path.startswith("https://"):
-            url = path
-        else:
-            base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/eel-hole"
-            url = f"{base_url}/{path}"
+            resource = resource.to_single_partition(partition)
 
         return render_template(
             template,
             resource=resource,
-            table_name=table_name,
-            url=url,
             partition=partition,
         )
 

@@ -1,0 +1,30 @@
+<div class="block">
+    {% if current_user.is_authenticated %}
+    <!-- TODO add a proper dropdown here, which populates the paths -->
+    <a
+        class="button is-primary preview-button"
+        href="/preview/{{ r.package }}/{{ r.name }}"
+        hx-get="/preview/{{ r.package }}/{{ r.name }}"
+        hx-target="#main-content"
+        hx-push-url="true"
+        onclick="
+            if (event.ctrlKey || event.metaKey || event.shiftKey) {
+                event.stopImmediatePropagation();
+                return;
+            }
+        "
+        >Preview / export as CSV</a
+    >
+    {% else %}
+    <a
+        class="button is-primary preview-button"
+        href="/login?next_url={{ url_for(request.endpoint, **request.args) }}"
+        >Log in or sign up to preview / export as CSV</a
+    >
+    {% endif %}
+    <a
+        class="button is-link is-light"
+        href="https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/nightly/{{ r.name }}.parquet"
+        >Download full table as Parquet</a
+    >
+</div>

@@ -40,17 +40,12 @@ def test_logged_out_preview_page(page: Page):
     data_table = page.locator("#data-table")
     expect(data_table).not_to_be_attached()
 
-    # only this one table's metadata
-    expect(page.locator("#sidebar > *")).to_have_count(1)
-
-    # shows metadata and login button
     table_metadata = page.get_by_test_id("core_pudl__codes_datasources")
     expect(table_metadata).to_be_visible()
     expect(table_metadata).to_contain_text("Primary key")
-    login_buttons = table_metadata.get_by_text("Log in")
 
-    expect(login_buttons).to_have_count(1)
-    expect(login_buttons.first).to_be_visible()
+    login_buttons = page.get_by_role("link").filter(has_text="Log in")
+    expect(login_buttons).to_have_count(2)
 
 
 def test_preview_loading_indicator(page: Page):

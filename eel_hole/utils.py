@@ -25,23 +25,25 @@ class ResourceDisplay:
     package: str
     description: str
     columns: list["ColumnDisplay"]
+
+
+@dataclass
+class SingletonResourceDisplay(ResourceDisplay):
+    """Display metadata for an *unpartitioned* data resource."""
+
     preview_path: str
     download_path: str
 
 
 @dataclass
-class PartitionedResourceDisplay:
+class PartitionedResourceDisplay(ResourceDisplay):
     """Display metadata for a *partitioned* data resource."""
 
-    name: str
-    package: str
-    description: str
-    columns: list["ColumnDisplay"]
     preview_paths: dict[str, str]
     download_paths: dict[str, str]
 
-    def to_single_partition(self, partition: str) -> ResourceDisplay:
-        return ResourceDisplay(
+    def to_singleton(self, partition: str) -> SingletonResourceDisplay:
+        return SingletonResourceDisplay(
             name=self.name,
             package=self.package,
             description=self.description,
@@ -168,7 +170,7 @@ def plaintext_to_html(text: str) -> str:
     return f"<main>\n{'\n'.join(html_parts)}\n</main>"
 
 
-def clean_pudl_resource(resource: Resource) -> ResourceDisplay:
+def clean_pudl_resource(resource: Resource) -> SingletonResourceDisplay:
     """Clean up the PUDL datapackage descriptions for display.
 
     PUDL datapackage documentation is all in RST so we use Sphinx
@@ -177,7 +179,7 @@ def clean_pudl_resource(resource: Resource) -> ResourceDisplay:
     """
     preview_base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/eel-hole"
     download_base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/eel-hole"
-    return ResourceDisplay(
+    return SingletonResourceDisplay(
         name=resource.name,
         description=rst_to_html(getattr(resource, "description", "")),
         package="pudl",
@@ -221,7 +223,9 @@ def clean_ferceqr_resource(resource: Resource) -> PartitionedResourceDisplay:
     )
 
 
-def clean_ferc_xbrl_resource(resource: Resource, package_name: str) -> ResourceDisplay:
+def clean_ferc_xbrl_resource(
+    resource: Resource, package_name: str
+) -> SingletonResourceDisplay:
     """Clean up the FERC XBRL datapackage descriptions for display.
 
     These are written in no-format plaintext, so we have some custom HTML
@@ -236,7 +240,7 @@ def clean_ferc_xbrl_resource(resource: Resource, package_name: str) -> ResourceD
     table name from the datapackage.
     """
 
-    return ResourceDisplay(
+    return SingletonResourceDisplay(
         name=resource.name,
         description=plaintext_to_html(getattr(resource, "title", "")),
         package=package_name,

@@ -22,7 +22,7 @@ from whoosh.query import AndMaybe, Or, Term
 
 from eel_hole.feature_flags import is_flag_enabled
 from eel_hole.logs import log
-from eel_hole.utils import PartitionedResourceDisplay, ResourceDisplay
+from eel_hole.utils import ResourceDisplay
 
 
 def custom_stemmer(word: str) -> str:
@@ -35,7 +35,7 @@ def custom_stemmer(word: str) -> str:
 
 
 def initialize_index(
-    resources: list[ResourceDisplay | PartitionedResourceDisplay],
+    resources: list[ResourceDisplay],
 ) -> index.Index:
     """Index the resources from a datapackage for later searching.
 

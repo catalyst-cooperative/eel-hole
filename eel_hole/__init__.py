@@ -34,7 +34,6 @@ from eel_hole.models import User, db
 from eel_hole.search import initialize_index, run_search
 from eel_hole.utils import (
     PartitionedResourceDisplay,
-    ResourceDisplay,
     clean_ferc_xbrl_resource,
     clean_ferceqr_resource,
     clean_pudl_resource,
@@ -513,7 +512,7 @@ def create_app():
         if is_partitioned:
             if partition not in resource.preview_paths:
                 return render_template("404.html"), 404
-            resource = resource.to_single_partition(partition)
+            resource = resource.to_singleton(partition)
 
         return render_template(
             template,

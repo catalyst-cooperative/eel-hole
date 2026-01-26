@@ -7,7 +7,8 @@
           name="accept_privacy_policy"
           {{ "checked" if current_user.accepted_privacy_policy }}
         />
-        <span class="has-text-danger">*</span> I accept the terms of this privacy policy.
+        <span class="has-text-danger">*</span> I accept the terms of this
+        privacy policy.
       </label>
     </div>
     <div class="control">
@@ -17,7 +18,8 @@
           name="send_newsletter"
           {{ "checked" if current_user.send_newsletter }}
         />
-        (optional) I agree to receive the PUDL newsletter at the email address associated with my account ({{ current_user.email }}).
+        (optional) I agree to receive the PUDL newsletter at the email address
+        associated with my account ({{ current_user.email }}).
       </label>
     </div>
     <div class="control">
@@ -27,21 +29,17 @@
           name="do_individual_outreach"
           {{ "checked" if current_user.do_individual_outreach }}
         />
-        (optional) I agree to be contacted based on my usage history to
-        discuss potential PUDL improvements and/or my user experience.
+        (optional) I agree to be contacted based on my usage history to discuss
+        potential PUDL improvements and/or my user experience.
       </label>
     </div>
   </div>
   {% if next_url %}
-    <input type="hidden" name="next_url" value={{ next_url }} />
+    <input type="hidden" name="next_url" value="{{ next_url }}" />
   {% endif %}
   <div class="field">
     <div class="control">
-      <input
-        class="button is-primary"
-        type="submit"
-        value="Save"
-      />
+      <input class="button is-primary" type="submit" value="Save" />
     </div>
   </div>
 </form>

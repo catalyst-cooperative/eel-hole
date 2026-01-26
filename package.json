@@ -1,21 +1,23 @@
 {
-    "name": "parquet-fe",
-    "private": true,
-    "version": "0.1.0",
-    "description": "prototype looking at parquet files only from browser",
-    "scripts": {
-        "build": "node build.js",
-        "start": "npm run build && http-server dist"
-    },
-    "keywords": [],
-    "dependencies": {
-        "@duckdb/duckdb-wasm": "^1.29.0",
-        "ag-grid-community": "^33.1.0",
-        "alpinejs": "^3.14.8"
-    },
-    "devDependencies": {
-        "@types/alpinejs": "^3.13.11",
-        "esbuild": "^0.27.0",
-        "http-server": "^14.1.1"
-    }
+  "name": "parquet-fe",
+  "private": true,
+  "version": "0.1.0",
+  "description": "prototype looking at parquet files only from browser",
+  "scripts": {
+    "build": "node build.js",
+    "start": "npm run build && http-server dist"
+  },
+  "keywords": [],
+  "dependencies": {
+    "@duckdb/duckdb-wasm": "^1.29.0",
+    "ag-grid-community": "^33.1.0",
+    "alpinejs": "^3.14.8"
+  },
+  "devDependencies": {
+    "@types/alpinejs": "^3.13.11",
+    "esbuild": "^0.27.0",
+    "http-server": "^14.1.1",
+    "prettier": "^3.8.1",
+    "prettier-plugin-jinja-template": "^2.1.0"
+  }
 }

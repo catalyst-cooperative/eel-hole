@@ -98,14 +98,6 @@ def __build_search_index():
     """
 
     def get_datapackage(datapackage_path: str) -> Package:
-        # NOTE (2026-01-21): Temporarily loading from local file for EQR integration testing
-        potential_local_path = datapackage_path.rsplit("/")[-1]
-        if os.path.exists(potential_local_path):
-            log.info(f"Getting datapackage from local file {potential_local_path}")
-            with open(potential_local_path) as f:
-                descriptor = json.load(f)
-            log.info(f"{potential_local_path} loaded")
-            return Package.from_descriptor(descriptor)
         log.info(f"Getting datapackage from {datapackage_path}")
         descriptor = requests.get(datapackage_path).json()
         log.info(f"{datapackage_path} downloaded")
@@ -116,11 +108,8 @@ def __build_search_index():
         f"{s3_base_url}/eel-hole/pudl_parquet_datapackage.json"
     )
     log.info("Cleaning up descriptors for pudl")
-    # NOTE (2026-01-23): only need to filter out the EQR resources until they stop showing up in the PUDL datapackage.
     pudl_resources = [
-        clean_pudl_resource(resource)
-        for resource in pudl_package.resources
-        if not resource.name.startswith("core_ferceqr__")
+        clean_pudl_resource(resource) for resource in pudl_package.resources
     ]
     log.info("Cleaned up descriptors for pudl")
 

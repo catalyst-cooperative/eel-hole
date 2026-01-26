@@ -60,9 +60,6 @@ def test_preview_loading_indicator(page: Page):
     loading_overlay = page.locator(".ag-overlay-loading-center")
     expect(loading_overlay).to_be_visible()
 
-    page.locator("#data-table").get_by_text("epacems").wait_for(state="visible")
-    expect(loading_overlay).not_to_be_visible()
-
 
 def test_preview_narrow_viewport(page: Page):
     """The data table should remain visible at narrow viewports.

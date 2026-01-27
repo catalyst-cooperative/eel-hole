@@ -62,8 +62,9 @@ interface PreviewTableState extends AlpineComponent<{}> {
    *
    * Properties that remain nullable are set after first data load.
    */
-  // Set on construction - table name is fixed for preview pages
+  // Set on construction - table name and URL are fixed for preview pages
   tableName: string;
+  url: string;
 
   // Set after first data load
   numRowsMatched: number | null;
@@ -87,8 +88,9 @@ interface PreviewTableState extends AlpineComponent<{}> {
   csvText: () => string;
 }
 
-Alpine.data("previewTableState", (tableName: string) => ({
+Alpine.data("previewTableState", (tableName: string, url: string) => ({
   tableName,
+  url,
   numRowsMatched: null,
   numRowsDisplayed: 0,
   addedTables: new Set(),
@@ -109,7 +111,12 @@ Alpine.data("previewTableState", (tableName: string) => ({
      * - initializes duckDB (slow, loading overlay shows during this)
      * - loads the table data immediately
      */
-    console.log("Initializing preview for table:", this.tableName);
+    console.log(
+      "Initializing preview for table:",
+      this.tableName,
+      "URL:",
+      this.url,
+    );
 
     const gridOptions: GridOptions = {
       onFilterChanged: async () => refreshTable(this),
@@ -188,7 +195,18 @@ Alpine.data("previewTableState", (tableName: string) => ({
   },
 }));
 
-Alpine.start();
+// Make Alpine available globally for dynamically loaded content (e.g., HTMX swaps)
+(window as any).Alpine = Alpine;
+
+// Initialize Alpine on HTMX-loaded content
+document.addEventListener("htmx:afterSwap", (evt: any) => {
+  Alpine.initTree(evt.detail.target);
+});
+// Start Alpine after DOM is loaded
+document.addEventListener("DOMContentLoaded", () => {
+  Alpine.start();
+  console.log("alpine started");
+});
 
 async function refreshTable(state: PreviewTableState) {
   /**
@@ -213,7 +231,7 @@ async function refreshTable(state: PreviewTableState) {
   }
 
   if (!addedTables.has(tableName)) {
-    await _addTableToDuckDB(db, tableName);
+    await _addTableToDuckDB(db, tableName, state.url);
     addedTables.add(tableName);
   }
   const filters = getFilters(gridApi);
@@ -449,14 +467,19 @@ async function _initializeDuckDB(): Promise<duckdb.AsyncDuckDB> {
   return db;
 }
 
-async function _addTableToDuckDB(db: duckdb.AsyncDuckDB, tableName: string) {
+async function _addTableToDuckDB(
+  db: duckdb.AsyncDuckDB,
+  tableName: string,
+  url: string,
+) {
   /**
    * Register the table in DuckDB so that it can cache useful metadata etc.
+   *
+   * NOTE (2026-01-21): The .parquet suffix is required - DuckDB doesn't successfully
+   * register the file without it.
    */
-  const baseUrl =
-    "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/eel-hole/";
   const filename = `${tableName}.parquet`;
-  const url = `${baseUrl}${filename}`;
+  console.log("Registering table", filename, "with URL:", url);
   await db.registerFileURL(
     filename,
     url,

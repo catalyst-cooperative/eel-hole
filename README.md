@@ -32,7 +32,6 @@ docker compose up -d
 docker compose exec eel_hole uv run flask db upgrade
 ```
 
-
 ## Running this thing locally
 
 We have a docker compose file, but *make sure to build the JS/CSS first*:
@@ -50,6 +49,13 @@ $ PUDL_VIEWER_INTEGRATION_TEST=true docker compose up
 ```
 
 This creates a test user that can log in and access preview functionality.
+
+You'll still need to set up the users table in the database, though:
+
+```
+docker compose exec eel_hole uv run flask db upgrade
+```
+
 
 ## auth0 setup
 
@@ -173,7 +179,6 @@ For **search**:
 3. The server sends a list of matches back to the client
 
 Via the magic of [`htmx`](https://www.htmx.org), if the search wasn't triggered by a whole page load, we only send back an HTML fragment.
-
 
 For **preview**:
 

@@ -1,7 +1,3 @@
-{% extends "base.html" %}
-
-{% block title %}{{ table_name }} - PUDL Data Viewer{% endblock %}
-
-{% block content %}
-{% include 'partials/preview_content.html' %}
-{% endblock %}
+{% extends "base.html" %} {% block title %} {{ resource.name }}{{ " -
+{}".format(partition) if partition }} - PUDL Data Viewer {% endblock %} {% block
+content %} {% include 'partials/preview_content.html' %} {% endblock %}

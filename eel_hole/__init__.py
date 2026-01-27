@@ -1,6 +1,5 @@
 """Main app definition."""
 
-import itertools
 import json
 import os
 from dataclasses import asdict
@@ -33,7 +32,12 @@ from eel_hole.feature_flags import is_flag_enabled
 from eel_hole.logs import log
 from eel_hole.models import User, db
 from eel_hole.search import initialize_index, run_search
-from eel_hole.utils import clean_ferc_xbrl_resource, clean_pudl_resource
+from eel_hole.utils import (
+    PartitionedResourceDisplay,
+    clean_ferc_xbrl_resource,
+    clean_ferceqr_resource,
+    clean_pudl_resource,
+)
 
 AUTH0_DOMAIN = os.getenv("PUDL_VIEWER_AUTH0_DOMAIN")
 CLIENT_ID = os.getenv("PUDL_VIEWER_AUTH0_CLIENT_ID")
@@ -94,19 +98,29 @@ def __build_search_index():
     """
 
     def get_datapackage(datapackage_path: str) -> Package:
-        s3_base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/eel-hole"
-        url = f"{s3_base_url}/{datapackage_path}"
-        log.info(f"Getting datapackage from {url}")
-        descriptor = requests.get(url).json()
-        log.info(f"{url} downloaded")
+        log.info(f"Getting datapackage from {datapackage_path}")
+        descriptor = requests.get(datapackage_path).json()
+        log.info(f"{datapackage_path} downloaded")
         return Package.from_descriptor(descriptor)
 
-    pudl_package = get_datapackage("pudl_parquet_datapackage.json")
+    s3_base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop"
+    pudl_package = get_datapackage(
+        f"{s3_base_url}/eel-hole/pudl_parquet_datapackage.json"
+    )
     log.info("Cleaning up descriptors for pudl")
     pudl_resources = [
         clean_pudl_resource(resource) for resource in pudl_package.resources
     ]
     log.info("Cleaned up descriptors for pudl")
+
+    ferceqr_package = get_datapackage(
+        f"{s3_base_url}/ferceqr/ferceqr_parquet_datapackage.json"
+    )
+    log.info("Cleaning up descriptors for ferceqr")
+    ferceqr_resources = [
+        clean_ferceqr_resource(resource) for resource in ferceqr_package.resources
+    ]
+    log.info("Cleaned up descriptors for ferceqr")
 
     ferc_xbrls = [
         "ferc1_xbrl",
@@ -118,7 +132,9 @@ def __build_search_index():
 
     ferc_xbrl_resources = []
     for ferc_xbrl in ferc_xbrls:
-        ferc_xbrl_package = get_datapackage(f"{ferc_xbrl}_datapackage.json")
+        ferc_xbrl_package = get_datapackage(
+            f"{s3_base_url}/eel-hole/{ferc_xbrl}_datapackage.json"
+        )
         log.info(f"Cleaning up descriptors for {ferc_xbrl}")
         ferc_xbrl_resources.extend(
             clean_ferc_xbrl_resource(resource, ferc_xbrl)
@@ -126,7 +142,7 @@ def __build_search_index():
         )
         log.info(f"Cleaned up descriptors for {ferc_xbrl}")
 
-    all_resources = pudl_resources + ferc_xbrl_resources
+    all_resources = pudl_resources + ferceqr_resources + ferc_xbrl_resources
     index = initialize_index(all_resources)
     log.info("index done")
 
@@ -460,30 +476,37 @@ def create_app():
         return redirect(url_for("search"))
 
     @app.get("/preview/<package>/<table_name>")
-    def preview(package: str, table_name: str):
-        """Preview data for a specific table.
+    @app.get("/preview/<package>/<table_name>/<partition>")
+    def preview(package: str, table_name: str, partition: str | None = None):
+        """Preview data for a specific table, optionally for a specific partition.
 
         Displays table metadata and a tabular view from which you can filter and
         export the data as CSV. Returns full page for direct navigation or content
         fragment for HTMX requests.
 
         Params:
-            database_name: the database containing the table (e.g., "pudl")
+            package: the package containing the table (e.g., "pudl")
             table_name: the name of the table to preview
+            partition: optional partition identifier (e.g., "2024q1" for EQR tables)
         """
         template = "partials/preview_content.html" if htmx else "preview.html"
-        log.info("preview", package=package, table_name=table_name)
+        log.info("preview", package=package, table_name=table_name, partition=partition)
 
-        # We need a *resource* so we can grab the metadata (description, columns, etc.)
         resource = next((r for r in all_resources if r.name == table_name), None)
 
         if not resource:
             return render_template("404.html"), 404
 
+        is_partitioned = isinstance(resource, PartitionedResourceDisplay)
+        if is_partitioned:
+            if partition not in resource.preview_paths:
+                return render_template("404.html"), 404
+            resource = resource.to_singleton(partition)
+
         return render_template(
             template,
             resource=resource,
-            table_name=table_name,
+            partition=partition,
         )
 
     @app.post("/dismiss-notification")

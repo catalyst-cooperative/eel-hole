@@ -3,15 +3,6 @@
     <a
       class="button is-primary preview-button"
       href="/preview/{{ r.package }}/{{ r.name }}"
-      hx-get="/preview/{{ r.package }}/{{ r.name }}"
-      hx-target="#main-content"
-      hx-push-url="true"
-      onclick="
-      if (event.ctrlKey || event.metaKey || event.shiftKey) {
-        event.stopImmediatePropagation();
-        return;
-      }
-    "
       >Preview / export as CSV</a
     >
   {% else %}

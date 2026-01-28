@@ -2,7 +2,6 @@
   class="block"
   x-data='{ selectedPartition: "", downloadPaths: {{ r.download_paths | tojson | safe }} }'
 >
-  <!-- TODO add a proper dropdown here, which populates the paths -->
   <div class="level">
     <div class="level-left">
       <label for="partition">Select a partition to preview or download:</label>
@@ -34,15 +33,6 @@
       class="button is-primary preview-button"
       :disabled="!selectedPartition"
       :href="selectedPartition ? '/preview/{{ r.package }}/{{ r.name }}/' + selectedPartition : '#'"
-      :hx-get="selectedPartition ? '/preview/{{ r.package }}/{{ r.name }}/' + selectedPartition : '#'"
-      hx-target="#main-content"
-      hx-push-url="true"
-      onclick="
-      if (event.ctrlKey || event.metaKey || event.shiftKey) {
-        event.stopImmediatePropagation();
-        return;
-      }
-    "
       >Preview / export as CSV</a
     >
   {% else %}

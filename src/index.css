@@ -33,7 +33,7 @@
 
 .data-dictionary p {
   margin: 0.5em 0;
-  padding: 0
+  padding: 0;
 }
 
 .data-dictionary main h3 {
@@ -42,7 +42,8 @@
   margin-top: 0.5em;
 }
 
-.data-dictionary cite, .data-dictionary .literal {
+.data-dictionary cite,
+.data-dictionary .literal {
   font-family: monospace;
   font-style: normal;
 }
@@ -63,8 +64,10 @@
   grid-column-start: 2;
 }
 
-.data-dictionary dd p, .data-dictionary li p {
-  margin: 0; padding: 0;
+.data-dictionary dd p,
+.data-dictionary li p {
+  margin: 0;
+  padding: 0;
 }
 
 .data-dictionary ul {

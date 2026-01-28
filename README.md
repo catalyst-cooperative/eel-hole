@@ -18,6 +18,12 @@ Build the JS/CSS:
 npm run build
 ```
 
+Set up pre-commit hooks:
+
+```
+uv run pre-commit install
+```
+
 In most cases, you don't need to actually log in locally.
 For integration testing, you can set the `PUDL_VIEWER_INTEGRATION_TEST` environment variable to `true`.
 This will automatically create a test user that bypasses Auth0 and has already accepted the privacy policy.
@@ -34,7 +40,7 @@ docker compose exec eel_hole uv run flask db upgrade
 
 ## Running this thing locally
 
-We have a docker compose file, but *make sure to build the JS/CSS first*:
+We have a docker compose file, but _make sure to build the JS/CSS first_:
 
 ```bash
 $ npm run build
@@ -55,7 +61,6 @@ You'll still need to set up the users table in the database, though:
 ```
 docker compose exec eel_hole uv run flask db upgrade
 ```
-
 
 ## auth0 setup
 
@@ -86,17 +91,17 @@ Go to https://manage.auth0.com/dashboard and register as a tenant.
 Register your local development environment as an application
 with the following settings:
 
-* Name: whatever you like, but f"eelhole@{your_dev_machine}" is easy to remember
-* Application Type: Regular Web App
-* Configure options for user authentication: Social (& select whatever you prefer for dev)
+- Name: whatever you like, but f"eelhole@{your_dev_machine}" is easy to remember
+- Application Type: Regular Web App
+- Configure options for user authentication: Social (& select whatever you prefer for dev)
 
 Once at the application dashboard, go to Settings
 to find the env variables you need from envrc-template.
 
 While you're there, set the Application URIs to localhost addresses as follows:
 
-* Allowed Callback URLs: http://127.0.0.1:8080/callback
-* Allowed Logout URLs: http://127.0.0.1:8080
+- Allowed Callback URLs: http://127.0.0.1:8080/callback
+- Allowed Logout URLs: http://127.0.0.1:8080
 
 If you are using `localhost` instead of `127.0.0.1` to access your app,
 set those callback and logout URLs with `localhost`.
@@ -122,19 +127,25 @@ This uses `playwright` to run through some user flows.
 Make sure you have a stable Internet connection, otherwise you'll hit a bunch of timeouts.
 
 ## Feature Flags
+
 In order to make testing out features more convenient, you can toggle feature flags in a query parameter in the url or via a config file.
 
 To enable a feature flag temporarily during development, append it as a query string in the URL:
+
 ```
 http://localhost:8080/somepage?my_feature=true
 ```
+
 You can also define persistent feature flags via the Flask config:
+
 ```
 app.config["FEATURE_FLAGS"] = {
     "my_feature": True,
 }
 ```
+
 This allows you to add conditional logic in your code:
+
 ```
 def some_function():
     if is_flag_enabled('my_feature'):
@@ -146,6 +157,7 @@ def some_function():
 To conditionally guard routes with feature flags, use the `@require_feature_flag("my_feature")` decorator. If the flag is not enabled, the route will return a `404`.
 
 For example:
+
 ```
 @app.route("/new-feature")
 @require_feature_flag("my_feature")
@@ -160,13 +172,14 @@ Note that a feature flag added in the URL is only accessible after the app has b
 See the [Terraform file](https://github.com/catalyst-cooperative/pudl/blob/main/terraform/pudl-viewer.tf) for infrastructure setup details.
 
 ### Deployment
+
 1. run `make gcp-latest` to push the image up to GCP.
 2. re-deploy the service on Cloud Run.
 
 ### DB migration
+
 1. run `make gcp-latest` to push the image up to GCP.
 2. Run the Cloud Run job that runs a db migration.
-
 
 ## Architecture
 
@@ -186,4 +199,4 @@ For **preview**:
 2. Client queries DuckDB (using [duckdb-wasm](https://duckdb.org/docs/api/wasm/overview.html)), which can read data from remote Parquet files.
 3. The data comes back as Apache Arrow tables, which we convert into JS arrays to feed into [AG Grid](https://www.ag-grid.com/) viewer.
 
-The database is *only* used for storing users right now.
+The database is _only_ used for storing users right now.

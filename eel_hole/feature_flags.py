@@ -1,6 +1,6 @@
 """Helper functions for using feature flags."""
 
-from flask import has_request_context, request, session, current_app, abort
+from flask import has_request_context, request, current_app, abort
 from functools import wraps
 from collections.abc import Callable
 

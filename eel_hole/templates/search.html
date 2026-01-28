@@ -1,13 +1,14 @@
-{% extends "base.html" %} {% block extra_head %}
-<script>
+{% extends "base.html" %}
+{% block extra_head %}
+  <script>
     // Populate search input from URL query parameter
     function restoreSearchQuery() {
-        const params = new URLSearchParams(window.location.search);
-        const query = params.get("q");
-        const searchInput = document.querySelector('input[name="q"]');
-        if (searchInput && query) {
-            searchInput.value = query;
-        }
+      const params = new URLSearchParams(window.location.search);
+      const query = params.get("q");
+      const searchInput = document.querySelector('input[name="q"]');
+      if (searchInput && query) {
+        searchInput.value = query;
+      }
     }
 
     // Restore on initial page load
@@ -15,41 +16,36 @@
 
     // Restore on HTMX history navigation
     document.addEventListener("htmx:historyRestore", restoreSearchQuery);
-</script>
-{% endblock %} {% block content %}
-
-<div class="columns container is-fluid is-flex-grow-1">
+  </script>
+{% endblock %}
+{% block content %}
+  <div class="columns container is-fluid is-flex-grow-1">
     <div class="data-dictionary column my-3 is-flex is-flex-direction-column">
-        <input
-            class="input is-medium block"
-            type="text"
-            name="q"
-            hx-get="/search"
-            {%
-            if
-            ferc_enabled
-            %}
-            hx-vals='{"ferc_enabled": "true"}'
-            {%
-            endif
-            %}
-            hx-trigger="input changed delay:300ms"
-            hx-target="#search-results"
-            hx-replace-url="true"
-            placeholder="Search..."
-            {%
-            if
-            query
-            %}
-            value="{{ query }}"
-            {%
-            endif
-            %}
-        />
-        <div class="data-dictionary is-flex-grow-1" id="search-results">
-            {% include 'partials/search_results.html' %}
-        </div>
+      <input
+        class="input is-medium block"
+        type="text"
+        name="q"
+        hx-get="/search"
+        {%
+          if
+          ferc_enabled
+        %}
+          hx-vals='{"ferc_enabled": "true"}'
+        {% endif %}
+        hx-trigger="input changed delay:300ms"
+        hx-target="#search-results"
+        hx-replace-url="true"
+        placeholder="Search..."
+        {%
+          if
+          query
+        %}
+          value="{{ query }}"
+        {% endif %}
+      />
+      <div class="data-dictionary is-flex-grow-1" id="search-results">
+        {% include 'partials/search_results.html' %}
+      </div>
     </div>
-</div>
-
+  </div>
 {% endblock %}

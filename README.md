@@ -62,7 +62,6 @@ You'll still need to set up the users table in the database, though:
 docker compose exec eel_hole uv run flask db upgrade
 ```
 
-
 ## auth0 setup
 
 You will have to set some auth0 environment variables -

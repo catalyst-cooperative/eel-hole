@@ -1,14 +1,12 @@
 """Useful helper functions."""
 
 import html
-import itertools
 import re
 from dataclasses import dataclass
 
 import structlog
 from docutils.core import publish_parts
-from docutils.utils import SystemMessage
-from frictionless import Field, Resource, Schema
+from frictionless import Resource
 
 log = structlog.get_logger(__name__)
 

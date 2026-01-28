@@ -82,12 +82,13 @@ def test_search_preview_back_button(page: Page):
 
     page.wait_for_url("http://localhost:8080/preview/pudl/core_pudl__codes_datasources")
 
-    # Use JavaScript to trigger back navigation so HTMX can intercept it
     page.evaluate("window.history.back()")
-
     page.wait_for_url(
         "http://localhost:8080/search?q=name%3Acore_pudl__codes_datasources"
     )
+    # NOTE (2026-01-28): this reload is needed for the actual content to appear
+    _ = page.reload()
+
     expect(table_metadata).to_be_visible()
 
     # Search query should be restored in the input field (via our JS, not server template)

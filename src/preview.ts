@@ -195,17 +195,8 @@ Alpine.data("previewTableState", (tableName: string, url: string) => ({
   },
 }));
 
-// Make Alpine available globally for dynamically loaded content (e.g., HTMX swaps)
-(window as any).Alpine = Alpine;
-
-// Initialize Alpine on HTMX-loaded content
-document.addEventListener("htmx:afterSwap", (evt: any) => {
-  Alpine.initTree(evt.detail.target);
-});
-// Start Alpine after DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {
   Alpine.start();
-  console.log("alpine started");
 });
 
 async function refreshTable(state: PreviewTableState) {

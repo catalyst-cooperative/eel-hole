@@ -93,11 +93,18 @@ def test_partition_dropdown_has_label(page: Page):
 
 
 def test_buttons_disabled_until_partition_selected(page: Page):
-    """For partitioned tables, preview/download buttons should be disabled until partition selected."""
+    """For partitioned tables, preview/download buttons should be disabled until partition selected.
+
+    We start from /search and then type in the query, because the button
+    behavior was once funky in a way that only manifested when HTMX was doing a
+    bunch of page updates.
+    """
     _ = page.goto("http://localhost:8080/login")
-    _ = page.goto(
-        "http://localhost:8080/search?q=name:core_ferceqr__quarterly_identity"
+    _ = page.goto("http://localhost:8080/search")
+    search_input = page.get_by_role("textbox").and_(
+        page.get_by_placeholder("Search...")
     )
+    search_input.fill("name:core_ferceqr__quarterly_identity")
 
     table_card = page.get_by_test_id("core_ferceqr__quarterly_identity")
     expect(table_card).to_be_visible(timeout=5000)
@@ -127,3 +134,6 @@ def test_buttons_disabled_until_partition_selected(page: Page):
         == f"/preview/pudl/core_ferceqr__quarterly_identity/{selected_partition[0]}"
     )
     assert download_href.endswith(f"{selected_partition[0]}.parquet")
+
+    preview_button.click()
+    page.wait_for_url(f"http://localhost:8080{preview_href}")

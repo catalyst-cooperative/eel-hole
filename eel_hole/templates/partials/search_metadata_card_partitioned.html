@@ -39,7 +39,7 @@
     <a
       class="button is-primary preview-button"
       :disabled="!selectedPartition"
-      href="/login?next_url={{ url_for(request.endpoint, **request.args) }}"
+      href="/login?next_url={{ request.full_path }}"
       >Log in or sign up to preview / export as CSV</a
     >
   {% endif %}

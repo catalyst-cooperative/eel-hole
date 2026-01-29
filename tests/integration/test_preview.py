@@ -77,3 +77,19 @@ def test_preview_narrow_viewport(page: Page):
     ag_box = ag_root.bounding_box()
     assert ag_box is not None
     assert ag_box["height"] > iphone_height * 0.5
+
+
+def test_return_to_search(page: Page):
+    """Test that the return to search button works appropriately."""
+    # Test return to search with no query
+    _ = page.goto("http://localhost:8080/login")
+    _ = page.goto("http://localhost:8080/preview/pudl/core_pudl__codes_datasources")
+    page.get_by_text("Return to Search").click()
+    page.wait_for_url("http://localhost:8080/search?q=")
+
+    # Test return to search with query
+    _ = page.goto(
+        "http://localhost:8080/preview/pudl/core_pudl__codes_datasources?return_q=query"
+    )
+    page.get_by_text("Return to Search").click()
+    page.wait_for_url("http://localhost:8080/search?q=query")

@@ -9,7 +9,7 @@
     <div class="level-left">
       <a
         class="button is-link is-light level-item"
-        href="/search?q={{ request.args.get('return_q') }}"
+        href="/search?q={{ request.args.get('return_q', '') }}"
         >Return to Search</a
       >
     </div>

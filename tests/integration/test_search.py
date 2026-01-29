@@ -52,7 +52,9 @@ def test_search_preview(page: Page):
     )
     preview_link.click()
 
-    page.wait_for_url("http://localhost:8080/preview/pudl/core_pudl__codes_datasources")
+    page.wait_for_url(
+        "http://localhost:8080/preview/pudl/core_pudl__codes_datasources?return_q=name:core_pudl__codes_datasources"
+    )
 
 
 def test_search_preview_back_button(page: Page):
@@ -80,7 +82,9 @@ def test_search_preview_back_button(page: Page):
     )
     preview_link.click()
 
-    page.wait_for_url("http://localhost:8080/preview/pudl/core_pudl__codes_datasources")
+    page.wait_for_url(
+        "http://localhost:8080/preview/pudl/core_pudl__codes_datasources?return_q=name:core_pudl__codes_datasources"
+    )
 
     page.evaluate("window.history.back()")
     page.wait_for_url(
@@ -110,7 +114,7 @@ def test_search_preview_ctrl_click_new_tab(page: Page):
 
     new_page = new_page_info.value
     new_page.wait_for_url(
-        "http://localhost:8080/preview/pudl/core_pudl__codes_datasources"
+        "http://localhost:8080/preview/pudl/core_pudl__codes_datasources?return_q=name:core_pudl__codes_datasources"
     )
     new_page.close()
 

@@ -2,7 +2,7 @@
   {% if current_user.is_authenticated %}
     <a
       class="button is-primary preview-button"
-      href="/preview/{{ r.package }}/{{ r.name }}"
+      href="/preview/{{ r.package }}/{{ r.name }}{{ '?return_q=' + request.args.get('q') if request.args.get('q') }}"
       >Preview / export as CSV</a
     >
   {% else %}

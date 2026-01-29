@@ -73,7 +73,7 @@ def test_changing_partition_does_not_navigate(page: Page):
     preview_link = table_card.get_by_role("link", name="Preview")
     expect(preview_link).to_have_attribute(
         "href",
-        f"/preview/pudl/core_ferceqr__quarterly_identity/{selected_partition[0]}",
+        f"/preview/pudl/core_ferceqr__quarterly_identity/{selected_partition[0]}?return_q=name:core_ferceqr__quarterly_identity",
     )
 
 

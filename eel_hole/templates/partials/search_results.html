@@ -14,11 +14,11 @@
     </div>
     {% if r.package == "pudl" %}{% if r.preview_path %}{%
       include
-      'partials/search_metadata_card_singleton.html'
+      'partials/search_metadata_card_header_singleton.html'
     %}{% else %}{%
       include
-      'partials/search_metadata_card_partitioned.html'
-    %}{% endif %}{% else %}{% include 'partials/search_metadata_card_stub_xbrl.html' %}{% endif %}
+      'partials/search_metadata_card_header_partitioned.html'
+    %}{% endif %}{% else %}{% include 'partials/search_metadata_card_header_stub_xbrl.html' %}{% endif %}
     <div class="level">{{ r.description | safe }}</div>
     <div class="block">
       <details>

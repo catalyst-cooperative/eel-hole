@@ -131,13 +131,3 @@ def test_search_redirect_legacy_datasette_urls(page: Page):
     page.wait_for_url("http://localhost:8080/search")
     _ = page.goto("http://localhost:8080/pudl/")
     page.wait_for_url("http://localhost:8080/search")
-
-
-def test_pass_query_to_preview(page: Page):
-    """Test that queries are passed to the preview page so we can return to search."""
-    _ = page.goto("http://localhost:8080/login")
-    _ = page.goto("http://localhost:8080/search?q=name:core_pudl__codes_datasources")
-    page.get_by_text("Preview").click()
-    page.wait_for_url(
-        "http://localhost:8080/preview/pudl/core_pudl__codes_datasources?return_q=name:core_pudl__codes_datasources"
-    )

@@ -131,7 +131,7 @@ def test_buttons_disabled_until_partition_selected(page: Page):
 
     assert (
         preview_href
-        == f"/preview/pudl/core_ferceqr__quarterly_identity/{selected_partition[0]}?return_q="
+        == f"/preview/pudl/core_ferceqr__quarterly_identity/{selected_partition[0]}"
     )
     assert download_href.endswith(f"{selected_partition[0]}.parquet")
 

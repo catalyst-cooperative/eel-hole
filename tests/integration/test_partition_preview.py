@@ -47,7 +47,7 @@ def test_return_to_search(page: Page):
     # Test return to search with no query
     _ = page.goto("http://localhost:8080/preview/pudl/core_pudl__codes_datasources")
     page.get_by_text("Return to Search").click()
-    page.wait_for_url("http://localhost:8080/search?q=")
+    page.wait_for_url("http://localhost:8080/search")
 
     # Test return to search with query
     _ = page.goto(

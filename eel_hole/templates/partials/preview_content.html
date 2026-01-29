@@ -12,7 +12,7 @@
       </h2>
       <a
         class="is-link level-item"
-        href="/search?q={{ request.args.get('return_q', '') }}"
+        href="/search{{ '?q=' + request.args.get('return_q') if request.args.get('return_q') }}"
         >Return to Search</a
       >
     </div>

@@ -1,14 +1,26 @@
+<!--
+Three components:
+* partition selector
+* preview and download buttons (responsive to login state AND partition)
+* description (collapsed)
+
+Missing title/package because this metadata-with-selector component is used both
+in search results (where we don't need 'return to search') *and* in preview
+(when you land on /pudl/<partitioned_table> without a partition in the URL)
+-->
+
 <div
   class="block"
-  x-data='{ selectedPartition: "", downloadPaths: {{ r.download_paths | tojson | safe }} }'
+  x-data='{ selectedPartition: "", downloadPaths: {{ resource.download_paths | tojson | safe }} }'
 >
+  <!-- partition selector dropdown -->
   <div class="level">
     <div class="level-left">
       <label for="partition">Select a partition to preview or download:</label>
       <div class="select">
         <select id="partition" x-model="selectedPartition">
           <option value="" selected>Select a partition...</option>
-          {% for part in r.preview_paths %}
+          {% for part in resource.preview_paths %}
             {%
               set parsed_part =
               part.split('/')[-1].split('.')[0]
@@ -28,11 +40,12 @@
     </div>
   </div>
 
+  <!-- preview/download buttons contingent on partition selector -->
   {% if current_user.is_authenticated %}
     <a
       class="button is-primary preview-button"
       :disabled="!selectedPartition"
-      :href="selectedPartition ? '/preview/{{ r.package }}/{{ r.name }}/' + selectedPartition + '{{ "?return_q=" + request.args.get("q") if request.args.get("q") }}': '#'"
+      :href="selectedPartition ? '/preview/{{ resource.package }}/{{ resource.name }}/' + selectedPartition + '{{ "?return_q=" + request.args.get("q") if request.args.get("q") }}': '#'"
       >Preview / export as CSV</a
     >
   {% else %}
@@ -50,3 +63,5 @@
     >Download full table as Parquet</a
   >
 </div>
+
+{% include 'partials/metadata_card/_description_columns.html' %}

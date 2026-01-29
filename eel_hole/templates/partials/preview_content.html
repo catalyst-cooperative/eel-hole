@@ -7,18 +7,14 @@
 <div class="container is-fluid">
   <div class="level">
     <div class="level-left">
+      <h2 class="title is-4 level-item mb-1" data-testid="metadata-table-name">
+        {{ resource.name }}{{ " - {}".format(partition) if partition }}
+      </h2>
       <a
         class="is-link level-item"
         href="/search?q={{ request.args.get('return_q', '') }}"
-        >&#8701; Return to Search</a
+        >Return to Search</a
       >
-    </div>
-  </div>
-  <div class="level">
-    <div class="level-left">
-      <h2 class="title is-4 level-item" data-testid="metadata-table-name">
-        {{ resource.name }}{{ " - {}".format(partition) if partition }}
-      </h2>
     </div>
     <div class="level-right">
       <span class="tag level-item">package: {{ resource.package }}</span>

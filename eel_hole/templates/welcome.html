@@ -14,240 +14,24 @@
       US energy data and makes it publicly <em>accessible</em>. PUDL is a free and open
       source project managed and maintained by <a href="https://catalyst.coop/">Catalyst Cooperative</a>.
     </div>
-
     <section class="block">
-      <div class="content">
-        <h3 class="block title">Find the Energy Data you Need</h3>
-        <p>PUDL has over 300 tables from over a dozen different datasets. You can start by
-          <a href="https://data.catalyst.coop/search">searching the PUDL Data Viewer</a>
-          for terms or data points you care about directly. We
-          recommend working with tables with the <span class="code">out</span>
-          prefix, as these tables contain the most-complete data that is the easiest to work
-          with.</p>
-
-        <p>If you're not sure what to search for, or just browsing, here are some ways to
-          get started with different collections of PUDL tables:</p>
-      </div>
+        {% include 'partials/welcome_browseby.html' %}
     </section>
-    <div class="block" x-data="{tab:'datasource'}">
-      <nav class="tabs">
-        <ul>
-          <li :class="{'is-active': tab==='datasource'}"><a @click="tab='datasource'">By Data Source</a></li>
-          <li :class="{'is-active': tab==='topic'}"><a @click="tab='topic'">By Topic</a></li>
-          <li :class="{'is-active': tab==='entity'}"><a @click="tab='entity'">By Energy Systems Entity</a></li>
-          <li :class="{'is-active': tab==='popular'}"><a @click="tab='popular'">By Most Popular</a></li>
-        </ul>
-      </nav>
-      <section class="block" x-show="tab === 'datasource'">
-        <p class="content">Know the original source of the data you'd like to access? Find all the tables from each
-          data source using the menu below.</p>
-        <div class="columns">
-          <aside class="menu column is-one-fifth">
-            <ul class="menu-list">
-              <li><a class="is-active">EIA - Energy Information Administration</a>
-                <ul>
-                  <li><a class="is-active">EIA <abbr title="Annual Energy Outlook">AEO</abbr></a></li>
-                  <li><a>EIA Bulk API</a></li>
-                  <li><a>EIA 176</a></li>
-                  <li><a>EIA 860</a></li>
-                  <li><a>EIA 861</a></li>
-                  <li><a>EIA 923</a></li>
-                  <li><a>EIA 930</a></li>
-                </ul>
-              </li>
-              <li><a>FERC - Federal Energy Regulatory Commision</a></li>
-              <li><a>EPA - Environmental Protection Agency</a></li>
-              <li><a>GridPath</a></li>
-              <li><a>NREL</a></li>
-              <li><a>PHMSA - Pipelines and Hazardous Materials Safety Administration</a></li>
-              <li><a>SEC - U.S. Securities and Exchange Commission</a></li>
-              <li><a>VCE - Vibrant Clean Energy</a></li>
-              <li><a>U.S. Census</a></li>
-            </ul>
-          </aside>
-          <div class="column">
-            <div class="card">
-              <div class="card-content">
-                <div class="content">
-                  <h4 class="title">EIA Annual Energy Outlook</h4>
-                  <p>The EIA Annual Energy Outlook provides projections of future
-              fuel prices, energy supply and consumption, and carbon dioxide
-              emissions by sector and region.</p>
-                  <p>How much text should we put here? /to what extent should we
-                    avoid duplicating what's on the existing data source page?
-                  </p>
-                </div>
-              </div>
-              <div class="card-footer">
-                <a href="/search?q=source:eiaaeo" class="card-footer-item">Search</a>
-                <a href="https://catalystcoop-pudl.readthedocs.io/en/latest/data_sources/eiaaeo.html" class="card-footer-item">More Info</a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section class="content" x-show="tab === 'topic'">
-        <p>We have curated a few clusters of tables for topics we know PUDL users care about.</p>
-        <ul>
-          <li>Generation Plant operations<ul>
-            <li>Monthly & yearly out gens tables</li>
-            <li>All plants out ferc1 table</li>
-          </ul></li>
-          <li>Emissions<ul>
-            <li>CEMS + emissions equipment</li>
-          </ul></li>
-          <li>Rate base & utility finance<ul>
-            <li>Rate base table & many of the ferc1 tables</li>
-          </ul></li>
-          <li>Demand<ul>
-            <li>714 & 930 tables</li>
-          </ul></li>
-          <li>Renewables<ul>
-            <li>VCERARE + the 923 tables</li>
-          </ul></li>
-          <li>Forecasts<ul>
-            <li>ATB & AEO</li>
-            <li>714</li>
-          </ul></li>
-          <li>Utility Programs<ul>
-            <li>861 tables</li>
-          </ul></li>
-          <li>Utility Ownership<ul>
-            <li>Eia Plant ownership table</li>
-          </ul></li>
-          <li>Transmission<ul>
-            <li>Some ferc1 tables (but also maybe note that this topic is sparse)</li>
-          </ul></li>
-          <li>Gas Distribution<ul>
-            <li>PHMSA & 176</li>
-          </ul></li>
-        </ul>
-      </section>
-      <section class="content" x-show="tab === 'entity'">
-        <p>Do you know you care about a particular set of infrastructure?</p>
-        <ul>
-          <li>Plant</li>
-          <li>Generator</li>
-          <li>Boiler</li>
-          <li>Utility</li>
-          <li>Transmission line</li>
-          <li>Balancing Authority</li>
-          <li>Mine</li>
-          <li>Gas line</li>
-        </ul>
-      </section>
-      <section class="content" x-show="tab === 'popular'">
-        <p>Want to explore the most widely used PUDL tables?</p>
-        <ul>
-          <li>core_epacems__hourly_emissions</li>
-          <li>out_eia__yearly_utilities</li>
-          <li>core_eia860__scd_ownership</li>
-          <li>out_eia__yearly_plants</li>
-          <li>core_eia861__yearly_sales</li>
-          <li>out_eia__yearly_generators</li>
-          <li>core_nrelatb__yearly_projected_cost_performance</li>
-          <li>core_eia860__scd_generators_energy_storage</li>
-          <li>core_eiaaeo__yearly_projected_fuel_cost_in_electric_sector_by_type</li>
-          <li>out_eia__monthly_generators</li>
-          <li>core_eia860__scd_plants</li>
-        </ul>
-      </section>
-    </div><!-- end View By: tabs -->
     <section class="content">
       <h3 class="title">Can't find what you are looking for?</h3>
       <p>Contact us!</p>
     </section>
     <section class="content">
-      <h3 class="title">Decoding Table Names</h3>
-      <p>Intrepid PUDL spelunkers might notice we use a naming convention for our tables
-      and columns. Knowing a little about it might help you better find what you are
-      looking for.</p>
-
-      <p><span class="code">{layer}_{source}__{asset_type}_{asset_name}</span></p>
-
-      <dl>
-        <dt>layer</dt><dd>is the level of processing of the table.<dl>
-          <dt>core</dt><dd>indicates the table is tidy or well-normalized [cg: add a good link of an actual beginner intro to tidy
-      data]. Data in this layer should be cleaned, well-structured and minimally modified.</dd>
-          <dt>out</dt><dd>We recommend you start here. This indicates wide and complete tables suitable for users to perform analysis
-      on. This means we've added back in a lot of the helpful TODO</dd>
-          <dt>_core</dt><dd>This is an intermediate table - meaning this table has not been fully cleaned. We are probably publishing
-      it because we want it out in the world so you can use it but we don't love its level of cleanliness.</dd>
-        </dl>
-        </dd>
-        <dt>source</dt><dd>is an abbreviation of the original source of the data. For example, eia860, ferc1 and epacems. See list of
-      sources here [link to jump back to search by data source].</dd>
-        <dt>asset_type</dt><dd>describes how the asset is modeled. [include pared down details from <a href="https://docs.catalyst.coop/pudl/dev/naming_conventions.html#core-layer">this longer list of options</a>: assn, changelog, codes, entity, scd, timeseries]</dd>
-        <dt>asset_name</dt><dd>should describe the entity, categorical code type, or measurement of the asset. Sometimes this also
-      includes information about the original source like how FERC Form 1 tables include the table's schedule number.</dd>
-      </dl>
-
-      <p>For more information on how we name tables and columns, see
-        <a href="https://docs.catalyst.coop/pudl/dev/naming_conventions.html">PUDL Naming Conventions</a>.</p>
+        {% include 'partials/welcome_naming.html' %}
     </section>
     <section class="content">
-      <h3 class="title">PUDL Data Standards</h3>
-      <p>There is a vast amount of US energy data. It is reported in a variety of
-      formats. Data is often reported in annual files. Data sources reporting about
-      the same set of infrastructure - say power plants or generators - don't always
-      include ways to link to other data sources. Sometimes the data originally
-      reported is pretty clean while sometimes the data is pretty messy 🗑️🔥. We do
-      our best to raise the floor on data quality while making decisions that a wide
-      range of users will find acceptable.</p>
-
-      <p>Whenever possible, we aim to publish data that is [some distillation of this
-      slide] updated frequently, is reported in consistent and familiar data formats,
-      has long timeseries, has codes and names standardized and as connected and
-      granular as possible.</p>
+        {% include 'partials/welcome_standards.html' %}
     </section>
     <section class="content">
-      <h3 class="title">How frequently is the data updated?</h3>
-      <p>New data is published from the original sources on a variety of schedules. Check
-      out our release schedule [link to other page which is a version of this] for an
-      idea of when new data will be available.</p>
+        {% include 'partials/welcome_updateschedule.html' %}
     </section>
     <section class="content">
-      <h3 class="title">All the ways to access PUDL Data</h3>
-      <p>Found what you are looking for but want a different way to access PUDL data?</p>
-
-      <table class="table"><thead>
-        <tr>
-          <th><a href="https://docs.catalyst.coop/pudl/data_access.html#access-platform">Platform</a></th>
-          <th><a href="https://docs.catalyst.coop/pudl/data_access.html#access-format">Format</a></th>
-          <th><a href="https://docs.catalyst.coop/pudl/data_access.html#access-version">Version</a></th>
-          <th>User Types</th>
-          <th>Use Cases</th>
-        </tr></thead>
-      <tbody>
-        <tr>
-          <td><a href="https://docs.catalyst.coop/pudl/data_access.html#access-viewer">PUDL Data Viewer</a></td>
-          <td>Parquet, CSV</td>
-          <td>nightly</td>
-          <td>Data Explorer, Spreadsheet Analyst, Jupyter Notebook User</td>
-          <td>Explore PUDL data interactively in a web browser, including hourly timeseries data. Select data to download as CSVs for local analysis in spreadsheets. Download full tables as Parquet files to play with programmatically.</td>
-        </tr>
-        <tr>
-          <td><a href="https://docs.catalyst.coop/pudl/data_access.html#access-kaggle">Kaggle</a></td>
-          <td>SQLite, Parquet</td>
-          <td>nightly</td>
-          <td>Data Scientist, Data Analyst, Jupyter Notebook User</td>
-          <td>Work with PUDL data products in Jupyter Notebooks via the web with minimal setup. Explore curated and contributed analyses and visualizations using PUDL data. notebooks. Create and share your own interactive notebooks using PUDL data.</td>
-        </tr>
-        <tr>
-          <td><a href="https://docs.catalyst.coop/pudl/data_access.html#access-cloud">Cloud Storage</a></td>
-          <td>SQLite, Parquet</td>
-          <td>nightly, stable</td>
-          <td>Data Scientist, Analytics Engineer, Data Engineer, Cloud Developer</td>
-          <td>Performant remote queries of clearly versioned PUDL Parquet outputs from cloud computing platforms or GitHub Actions. Fast bulk download of SQLite or Parquet outputs for local use. Parquet based data warehouse for large-scale data analysis in the cloud. Integrates well with Pandas, DuckDB, and other dataframe libraries.</td>
-        </tr>
-        <tr>
-          <td><a href="https://docs.catalyst.coop/pudl/data_access.html#access-zenodo">Zenodo Archives</a></td>
-          <td>SQLite, Parquet</td>
-          <td>stable</td>
-          <td>Researcher, Publisher, Archivist</td>
-          <td>Access a specific, immutable version of the PUDL data by DOI for citation in academic publications or other applications where long-term reproducibility is needed. Web-based bulk download of data for local analysis.</td>
-        </tr>
-      </tbody></table>
+        {% include 'partials/welcome_access.html' %}
     </section>
   </div>
 </div>

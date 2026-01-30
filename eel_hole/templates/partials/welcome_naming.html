@@ -1,0 +1,26 @@
+<h3 class="title">Decoding Table Names</h3>
+<p>Intrepid PUDL spelunkers might notice we use a naming convention for our tables
+and columns. Knowing a little about it might help you better find what you are
+looking for.</p>
+
+<p><span class="code">{layer}_{source}__{asset_type}_{asset_name}</span></p>
+
+<dl>
+<dt>layer</dt><dd>is the level of processing of the table.<dl>
+    <dt>core</dt><dd>indicates the table is tidy or well-normalized [cg: add a good link of an actual beginner intro to tidy
+data]. Data in this layer should be cleaned, well-structured and minimally modified.</dd>
+    <dt>out</dt><dd>We recommend you start here. This indicates wide and complete tables suitable for users to perform analysis
+on. This means we've added back in a lot of the helpful TODO</dd>
+    <dt>_core</dt><dd>This is an intermediate table - meaning this table has not been fully cleaned. We are probably publishing
+it because we want it out in the world so you can use it but we don't love its level of cleanliness.</dd>
+</dl>
+</dd>
+<dt>source</dt><dd>is an abbreviation of the original source of the data. For example, eia860, ferc1 and epacems. See list of
+sources here [link to jump back to search by data source].</dd>
+<dt>asset_type</dt><dd>describes how the asset is modeled. [include pared down details from <a href="https://docs.catalyst.coop/pudl/dev/naming_conventions.html#core-layer">this longer list of options</a>: assn, changelog, codes, entity, scd, timeseries]</dd>
+<dt>asset_name</dt><dd>should describe the entity, categorical code type, or measurement of the asset. Sometimes this also
+includes information about the original source like how FERC Form 1 tables include the table's schedule number.</dd>
+</dl>
+
+<p>For more information on how we name tables and columns, see
+<a href="https://docs.catalyst.coop/pudl/dev/naming_conventions.html">PUDL Naming Conventions</a>.</p>

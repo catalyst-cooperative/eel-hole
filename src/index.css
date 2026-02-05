@@ -54,12 +54,26 @@
   grid-template-columns: max-content;
 }
 
-.data-dictionary dt {
+#naming-conventions dl {
+  display: grid;
+  grid-gap: 8px 8px;
+  grid-template-columns: max-content;
+}
+
+#naming-conventions dl dl {
+  grid-gap: 0px 8px;
+  padding: 0 8px;
+  border-left: 3pt solid var(--bulma-info-soft);
+}
+
+.data-dictionary dt,
+#naming-conventions dt {
   text-align: right;
   font-weight: bold;
 }
 
-.data-dictionary dd {
+.data-dictionary dd,
+#naming-conventions dd {
   margin: 0;
   grid-column-start: 2;
 }

@@ -3,30 +3,22 @@
     <p>PUDL has over 300 tables from over a dozen different datasets. You can start by
         <a href="https://data.catalyst.coop/search">searching the PUDL Data Viewer</a>
         for terms or data points you care about directly. We
-        recommend working with tables with the <span class="code">out</span>
+        recommend working with tables with the <span class="is-family-code">out</span>
         prefix, as these tables contain the most-complete data that is the easiest to work
         with.</p>
 
     <p>If you're not sure what to search for, or just browsing, here are some ways to
         get started with different collections of PUDL tables:</p>
 </div>
-<div class="block" x-data="{tab:'datasource'}">
+<div class="container column is-9" x-data="{tab:'datasource'}">
     <nav class="tabs">
         <ul>
         <li :class="{'is-active': tab==='datasource'}"><a @click="tab='datasource'">By Data Source</a></li>
-        <li :class="{'is-active': tab==='topic'}"><a @click="tab='topic'">By Topic</a></li>
-        <li :class="{'is-active': tab==='entity'}"><a @click="tab='entity'">By Energy Systems Entity</a></li>
         <li :class="{'is-active': tab==='popular'}"><a @click="tab='popular'">By Most Popular</a></li>
         </ul>
     </nav>
     <section class="block" x-show="tab === 'datasource'">
         {% include 'partials/welcome_browseby_datasource.html' %}
-    </section>
-    <section class="content" x-show="tab === 'topic'">
-        {% include 'partials/welcome_browseby_topic.html' %}
-    </section>
-    <section class="content" x-show="tab === 'entity'">
-        {% include 'partials/welcome_browseby_entity.html' %}
     </section>
     <section class="content" x-show="tab === 'popular'">
         {% include 'partials/welcome_browseby_popular.html' %}

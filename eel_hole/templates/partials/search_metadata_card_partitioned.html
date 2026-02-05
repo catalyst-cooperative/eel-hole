@@ -32,7 +32,7 @@
     <a
       class="button is-primary preview-button"
       :disabled="!selectedPartition"
-      :href="selectedPartition ? '/preview/{{ r.package }}/{{ r.name }}/' + selectedPartition : '#'"
+      :href="selectedPartition ? '/preview/{{ r.package }}/{{ r.name }}/' + selectedPartition + '{{ "?return_q=" + request.args.get("q") if request.args.get("q") }}': '#'"
       >Preview / export as CSV</a
     >
   {% else %}

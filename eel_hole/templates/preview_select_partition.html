@@ -8,6 +8,11 @@
     <div class="level">
       <div class="level-left">
         <h2 class="title is-4 level-item">{{ resource.name }}</h2>
+        <a
+          class="is-link level-item"
+          href="/search{{ '?q=' + request.args.get('return_q') if request.args.get('return_q') }}"
+          >Return to Search</a
+        >
       </div>
       <div class="level-right">
         <span class="tag level-item">package: {{ resource.package }}</span>

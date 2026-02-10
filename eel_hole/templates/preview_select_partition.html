@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}
+  {{ resource.name }}
+  - PUDL Data Viewer
+{% endblock %}
+{% block content %}
+  <div class="container is-fluid">
+    <div class="level">
+      <div class="level-left">
+        <h2 class="title is-4 level-item">{{ resource.name }}</h2>
+        <a
+          class="is-link level-item"
+          href="/search{{ '?q=' + request.args.get('return_q') if request.args.get('return_q') }}"
+          >Return to Search</a
+        >
+      </div>
+      <div class="level-right">
+        <span class="tag level-item">package: {{ resource.package }}</span>
+      </div>
+    </div>
+
+    {% set r = resource %}
+    {% include 'partials/search_metadata_card_header_partitioned.html' %}
+
+    <div class="columns">
+      <div class="column">
+        {% include 'partials/preview_metadata_card.html' %}
+      </div>
+    </div>
+  </div>
+{% endblock %}

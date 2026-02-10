@@ -475,21 +475,20 @@ def create_app():
             return redirect(url_for("preview", package="pudl", table_name=table_name))
         return redirect(url_for("search"))
 
-    @app.get("/preview/<package>/<table_name>")
-    @app.get("/preview/<package>/<table_name>/<partition>")
+    @app.get("/preview/<package>/<table_name>", strict_slashes=False)
+    @app.get("/preview/<package>/<table_name>/<partition>", strict_slashes=False)
     def preview(package: str, table_name: str, partition: str | None = None):
         """Preview data for a specific table, optionally for a specific partition.
 
-        Displays table metadata and a tabular view from which you can filter and
-        export the data as CSV. Returns full page for direct navigation or content
-        fragment for HTMX requests.
+        For partitioned resources without a partition specified, shows a partition
+        selector. For partitioned resources with a partition, shows table metadata
+        and a tabular view from which you can filter and export data as CSV.
 
         Params:
             package: the package containing the table (e.g., "pudl")
             table_name: the name of the table to preview
             partition: optional partition identifier (e.g., "2024q1" for EQR tables)
         """
-        template = "partials/preview_content.html" if htmx else "preview.html"
         log.info("preview", package=package, table_name=table_name, partition=partition)
 
         resource = next((r for r in all_resources if r.name == table_name), None)
@@ -499,12 +498,18 @@ def create_app():
 
         is_partitioned = isinstance(resource, PartitionedResourceDisplay)
         if is_partitioned:
-            if partition not in resource.preview_paths:
+            if partition is None:
+                return render_template(
+                    "preview_select_partition.html",
+                    resource=resource,
+                )
+            elif partition not in resource.preview_paths:
                 return render_template("404.html"), 404
-            resource = resource.to_singleton(partition)
+            else:
+                resource = resource.to_singleton(partition)
 
         return render_template(
-            template,
+            "preview.html",
             resource=resource,
             partition=partition,
         )

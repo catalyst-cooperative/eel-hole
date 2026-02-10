@@ -1,3 +1,10 @@
+<!--
+Three components:
+* title/package and download buttons in top section that spans both columns
+* description (expanded) on left
+* data table on right
+-->
+
 <!-- title tag here so HTMX request updates page title -->
 <title>
   {{ resource.name }}{{ " - {}".format(partition) if partition }} - PUDL Data
@@ -41,11 +48,16 @@
     class="columns is-flex-grow-1"
     x-data="previewTableState('{{ resource.name }}', '{{ resource.preview_path }}')"
   >
+    <!-- metadata in sidebar -->
     <div class="data-dictionary column my-3 is-flex is-flex-direction-column">
       <div class="data-dictionary is-flex-grow-1" id="sidebar">
-        {% include 'partials/preview_metadata_card.html' %}
+        <div class="block" data-testid="{{ resource.name }}">
+          {% set open = True %}
+          {% include 'partials/metadata_card/_description_columns.html' %}
+        </div>
       </div>
     </div>
+    <!-- actual data table -->
     {% if current_user.is_authenticated %}
       <div
         class="preview-panel mt-3 mb-5 box column is-two-thirds is-flex-direction-column"

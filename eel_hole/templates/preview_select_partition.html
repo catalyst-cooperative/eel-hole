@@ -1,3 +1,14 @@
+<!--
+Four components:
+* title/package, *with return-to-search*
+* selector
+* preview/download buttons (responsive to login state + partition selector)
+* description (expanded)
+
+But really the same as search_partitioned,
+just with an expanded column section in the description.
+-->
+
 {% extends "base.html" %}
 {% block title %}
   {{ resource.name }}
@@ -5,27 +16,26 @@
 {% endblock %}
 {% block content %}
   <div class="container is-fluid">
-    <div class="level">
-      <div class="level-left">
-        <h2 class="title is-4 level-item">{{ resource.name }}</h2>
-        <a
-          class="is-link level-item"
-          href="/search{{ '?q=' + request.args.get('return_q') if request.args.get('return_q') }}"
-          >Return to Search</a
-        >
+    <div data-testid="{{ resource.name }}">
+      <div class="level">
+        <div class="level-left">
+          <h2 class="title is-4 level-item" data-testid="metadata-table-name">
+            {{ resource.name }}
+          </h2>
+          <a
+            class="is-link level-item"
+            href="/search{{ '?q=' + request.args.get('return_q') if request.args.get('return_q') }}"
+            >Return to Search</a
+          >
+        </div>
       </div>
-      <div class="level-right">
-        <span class="tag level-item">package: {{ resource.package }}</span>
+      <div class="level">
+        <div class="level-left">
+          <span class="tag level-item">package: {{ resource.package }}</span>
+        </div>
       </div>
-    </div>
-
-    {% set r = resource %}
-    {% include 'partials/search_metadata_card_header_partitioned.html' %}
-
-    <div class="columns">
-      <div class="column">
-        {% include 'partials/preview_metadata_card.html' %}
-      </div>
+      {% set open = True %}
+      {% include 'partials/metadata_card/search_partitioned.html' %}
     </div>
   </div>
 {% endblock %}

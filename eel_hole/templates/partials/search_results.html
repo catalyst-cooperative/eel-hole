@@ -1,37 +1,14 @@
-{% for r in resources %}
-  <div class="block" data-testid="{{ r.name }}">
-    <div class="level">
-      <div class="level-left">
-        <h2 class="title is-4 level-item" data-testid="metadata-table-name">
-          {{ r.name }}
-        </h2>
-      </div>
-    </div>
-    <div class="level">
-      <div class="level-left">
-        <span class="tag level-item">package: {{ r.package }}</span>
-      </div>
-    </div>
-    {% if r.package == "pudl" %}{% if r.preview_path %}{%
-      include
-      'partials/search_metadata_card_header_singleton.html'
-    %}{% else %}{%
-      include
-      'partials/search_metadata_card_header_partitioned.html'
-    %}{% endif %}{% else %}{% include 'partials/search_metadata_card_header_stub_xbrl.html' %}{% endif %}
-    <div class="level">{{ r.description | safe }}</div>
-    <div class="block">
-      <details>
-        <summary class="title is-5">Columns</summary>
-        {% for col in r.columns %}
-          <div class="mb-2" data-testid="column">
-            <div>
-              <strong>{{ col.name }}</strong>
-            </div>
-            <div class="pl-4">{{ col.description | safe }}</div>
-          </div>
-        {% endfor %}
-      </details>
-    </div>
+{% for resource in resources %}
+  <div class="block" data-testid="{{ resource.name }}">
+    {% if resource.package == "pudl" %}
+      {% if resource.preview_path %}
+        {% include 'partials/metadata_card/search_singleton.html' %}
+      {% else %}
+        {% include 'partials/metadata_card/_title_package.html' %}
+        {% include 'partials/metadata_card/search_partitioned.html' %}
+      {% endif %}
+    {% else %}
+      {% include 'partials/metadata_card/search_stub.html' %}
+    {% endif %}
   </div>
 {% endfor %}

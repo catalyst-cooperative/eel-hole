@@ -52,9 +52,27 @@ def test_return_to_search(page: Page):
     page.get_by_text("Return to Search").click()
     page.wait_for_url("http://localhost:8080/search")
 
+    _ = page.goto(
+        "http://localhost:8080/preview/pudl/core_ferceqr__quarterly_identity/2013q3"
+    )
+    page.get_by_text("Return to Search").click()
+    page.wait_for_url("http://localhost:8080/search")
+
     # Test return to search with query
     _ = page.goto(
         "http://localhost:8080/preview/pudl/core_pudl__codes_datasources?return_q=query"
+    )
+    page.get_by_text("Return to Search").click()
+    page.wait_for_url("http://localhost:8080/search?q=query")
+
+    _ = page.goto(
+        "http://localhost:8080/preview/pudl/core_ferceqr__quarterly_identity?return_q=query"
+    )
+    page.get_by_text("Return to Search").click()
+    page.wait_for_url("http://localhost:8080/search?q=query")
+
+    _ = page.goto(
+        "http://localhost:8080/preview/pudl/core_ferceqr__quarterly_identity/2013q3?return_q=query"
     )
     page.get_by_text("Return to Search").click()
     page.wait_for_url("http://localhost:8080/search?q=query")

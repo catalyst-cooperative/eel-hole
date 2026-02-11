@@ -1,8 +1,6 @@
 """Helper functions for using feature flags."""
 
-from collections.abc import Callable
 from dataclasses import dataclass
-from functools import wraps
 
 from flask import abort, current_app, request, session
 
@@ -11,6 +9,9 @@ from flask import abort, current_app, request, session
 class FeatureVariants:
     default: str
     variants: set[str]
+
+    def __post_init__(self):
+        assert self.default in self.variants
 
     def is_valid(self, variant: str) -> bool:
         return (variant != "") and (variant in self.variants)
@@ -67,18 +68,3 @@ def get_variant(feature_name: str) -> str:
         return session_variant
 
     return feature_config.default
-
-
-def require_feature_flag(flag_name: str, value: str = "true") -> Callable:
-    """Route-level decorator for flag-based gating."""
-
-    def decorator(f):
-        @wraps(f)
-        def wrapped(*args, **kwargs):
-            if request.args.get(flag_name) != value:
-                return abort(404)
-            return f(*args, **kwargs)
-
-        return wrapped
-
-    return decorator

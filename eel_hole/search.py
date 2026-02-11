@@ -102,10 +102,10 @@ def run_search(
         query_with_boosts = AndMaybe(user_query, Or([out_boost, preliminary_penalty]))
         if not is_flag_enabled("ferc_enabled"):
             results = searcher.search(
-                query_with_boosts, filter=Term("package", "pudl"), limit=None
+                query_with_boosts, filter=Term("package", "pudl"), limit=50
             )
         else:
-            results = searcher.search(query_with_boosts, limit=None)
+            results = searcher.search(query_with_boosts, limit=50)
         for hit in results:
             log.debug(
                 "hit",

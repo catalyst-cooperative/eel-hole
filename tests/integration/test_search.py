@@ -32,10 +32,8 @@ def test_search_metadata(page: Page):
 def test_search_for_ferc_table(page: Page):
     _ = page.goto("http://localhost:8080/search?ferc_enabled=true&q=package:ferc6_xbrl")
     num_results = page.locator("#search-results > *").count()
-    # there are about 200 tables in ferc6 and we want *all* of them, but we
-    # don't want to blow up if the number fluctuates a bit as we integrate more.
-    assert num_results <= 220
-    assert num_results >= 206
+    # there are more than 50 tables in ferc6, only 50 will show up
+    assert num_results == 50
     expect(page.get_by_test_id("identification_001_duration")).to_contain_text(
         "001 - Schedule - Identification - duration"
     )

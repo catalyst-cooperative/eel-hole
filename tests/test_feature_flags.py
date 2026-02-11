@@ -1,95 +1,83 @@
 import pytest
 from flask import Flask
-from eel_hole.feature_flags import (
-    is_flag_enabled,
-    require_feature_flag,
-    _coerce_flag_value,
-)
+from flask.testing import FlaskClient
+
+from eel_hole.feature_flags import FeatureVariants, get_variant
 
 
 @pytest.fixture
-def app():
+def app() -> Flask:
     app = Flask(__name__)
+    app.config["SECRET_KEY"] = "test"
     app.config["TESTING"] = True
-    app.config["FEATURE_FLAGS"] = {"foo": True, "bar": False}
+    app.config["FEATURE_VARIANTS"] = {
+        "foo": FeatureVariants(default="default", variants={"a", "b", "default"}),
+        "bar": FeatureVariants(default="default", variants={"A", "B", "default"}),
+    }
 
-    @app.route("/test_flag")
-    def test_flag():
-        return "enabled" if is_flag_enabled("foo") else "disabled"
-
-    @app.route("/gated")
-    @require_feature_flag("foo")
-    def gated_route():
-        return "allowed"
+    @app.route("/test_variant/<feature_name>")
+    def test_variant(feature_name):
+        return get_variant(feature_name)
 
     return app
 
 
 @pytest.fixture
-def client(app):
+def client(app: Flask) -> FlaskClient:
     return app.test_client()
 
 
-@pytest.mark.parametrize(
-    "input_value,expected",
-    [
-        (True, True),
-        (False, False),
-        (1, True),
-        (0, False),
-        ("true", True),
-        ("TRUE", True),
-        ("false", False),
-        ("FALSE", False),
-    ],
-)
-def test_coerce_flag_value_valid(input_value, expected):
-    assert _coerce_flag_value(input_value) is expected
+def test_get_variant_from_query_string(client: FlaskClient):
+    response = client.get("/test_variant/foo?variants=foo:a")
+    assert response.text == "a"
 
 
-@pytest.mark.parametrize(
-    "input_value",
-    [
-        "yes",
-        "no",
-        "enabled",
-        "0",
-        "1",
-        2,
-        -1,
-        [],
-        {},
-        None,
-    ],
-)
-def test_coerce_flag_value_invalid(input_value):
-    with pytest.raises(ValueError):
-        _coerce_flag_value(input_value)
+def test_get_variants_from_query_string(client: FlaskClient):
+    response = client.get("/test_variant/foo?variants=foo:a,bar:B")
+    assert response.text == "a"
+    response = client.get("/test_variant/bar?variants=foo:a,bar:B")
+    assert response.text == "B"
 
 
-def test_is_flag_enabled_with_query_string(client):
-    response = client.get("/test_flag?foo=true")
-    assert response.data == b"enabled"
+def test_get_variant_from_config(client: FlaskClient):
+    response = client.get("/test_variant/foo")
+    assert response.text == "default"
 
 
-def test_is_flag_enabled_from_config(client):
-    response = client.get("/test_flag")
-    assert response.data == b"enabled"  # from config
+def test_get_variant_no_feature_found(client: FlaskClient):
+    response = client.get("/test_variant/baz")
+    assert response.status_code == 404
 
-
-def test_is_flag_disabled_when_false(client, app):
-    # Patch config to make 'foo' false
-    app.config["FEATURE_FLAGS"]["foo"] = False
-    response = client.get("/test_flag")
-    assert response.data == b"disabled"
-
-
-def test_require_feature_flag_blocks_without_query(client):
-    response = client.get("/gated")
+    response = client.get("/test_variant/baz?variants=baz:default")
     assert response.status_code == 404
 
 
-def test_require_feature_flag_allows_with_query(client):
-    response = client.get("/gated?foo=true")
-    assert response.status_code == 200
-    assert b"allowed" in response.data
+def test_get_variant_no_variant_found(client: FlaskClient):
+    response = client.get("/test_variant/foo?variants=foo:invalid")
+    assert response.status_code == 404
+
+
+def test_get_variant_from_query_string_persists_in_session(app: Flask):
+    first_client = app.test_client()
+    response = first_client.get("/test_variant/foo?variants=foo:a")
+    assert response.text == "a"
+
+    response = first_client.get("/test_variant/foo")
+    assert response.text == "a"
+
+    # second client doesn't know about first client's variant
+    second_client = app.test_client()
+    response = second_client.get("/test_variant/foo")
+    assert response.text == "default"
+
+    response = second_client.get("/test_variant/foo?variants=foo:b")
+    assert response.text == "b"
+
+    response = second_client.get("/test_variant/foo")
+    assert response.text == "b"
+
+    response = second_client.get("/test_variant/foo?variants=foo:a")
+    assert response.text == "a"
+
+    response = second_client.get("/test_variant/foo")
+    assert response.text == "a"

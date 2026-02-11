@@ -9,6 +9,7 @@ import requests
 from authlib.integrations.flask_client import OAuth
 from flask import (
     Flask,
+    abort,
     redirect,
     render_template,
     request,
@@ -28,7 +29,7 @@ from flask_sqlalchemy import SQLAlchemy
 from frictionless import Package, Resource
 
 from eel_hole.duckdb_query import Filter, ag_grid_to_duckdb
-from eel_hole.feature_flags import is_flag_enabled
+from eel_hole.feature_flags import FeatureVariants, get_variant
 from eel_hole.logs import log
 from eel_hole.models import User, db
 from eel_hole.search import initialize_index, run_search
@@ -196,6 +197,11 @@ def create_app():
         SECRET_KEY=os.getenv("PUDL_VIEWER_SECRET_KEY"),
         TEMPLATES_AUTO_RELOAD=True,
         INTEGRATION_TEST=os.getenv("PUDL_VIEWER_INTEGRATION_TEST", False),
+        FEATURE_VARIANTS={
+            "search_packages": FeatureVariants(
+                default="pudl_only", variants={"raw_ferc", "pudl_only"}
+            )
+        },
     )
 
     auth0 = __init_auth0(app)
@@ -404,20 +410,15 @@ def create_app():
         query = request.args.get("q")
         log.info("search", url=request.full_path, query=query)
 
+        raw_ferc_enabled = get_variant("search_packages") == "raw_ferc"
+
         if query:
             resources = run_search(ix=search_index, raw_query=query)
         else:
-            resources = (
-                sorted_all_resources
-                if is_flag_enabled("ferc_enabled")
-                else sorted_pudl_only
-            )
+            resources = sorted_all_resources if raw_ferc_enabled else sorted_pudl_only
 
         return render_template(
-            template,
-            resources=resources,
-            query=query,
-            ferc_enabled=is_flag_enabled("ferc_enabled"),
+            template, resources=resources, query=query, ferc_enabled=raw_ferc_enabled
         )
 
     @app.get("/api/duckdb")
@@ -494,7 +495,7 @@ def create_app():
         resource = next((r for r in all_resources if r.name == table_name), None)
 
         if not resource:
-            return render_template("404.html"), 404
+            abort(404)
 
         is_partitioned = isinstance(resource, PartitionedResourceDisplay)
         if is_partitioned:
@@ -504,7 +505,7 @@ def create_app():
                     resource=resource,
                 )
             elif partition not in resource.preview_paths:
-                return render_template("404.html"), 404
+                abort(404)
             else:
                 resource = resource.to_singleton(partition)
 

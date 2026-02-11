@@ -1,57 +1,72 @@
 """Helper functions for using feature flags."""
 
-from flask import has_request_context, request, current_app, abort
-from functools import wraps
 from collections.abc import Callable
+from dataclasses import dataclass
+from functools import wraps
+
+from flask import abort, current_app, request, session
 
 
-def _coerce_flag_value(value: bool | int | str) -> bool:
-    """Convert feature flag values to a boolean.
+@dataclass
+class FeatureVariants:
+    default: str
+    variants: set[str]
 
-    Acceptable inputs:
-      - Booleans: True, False
-      - Integers: 1 (True), 0 (False)
-      - Strings: "true", "false" (case-insensitive)
-
-    Raises:
-        ValueError: If the input is not a valid flag representation.
-    """
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, int):
-        if value in (0, 1):
-            return bool(value)
-        raise ValueError(
-            f"Invalid int for feature flag: {value!r}. Only 0 or 1 are allowed."
-        )
-    if isinstance(value, str):
-        lower = value.lower()
-        if lower == "true":
-            return True
-        if lower == "false":
-            return False
-    raise ValueError(
-        f"Invalid feature flag value: {value!r}. Must be a boolean, 0/1, or 'true'/'false' string."
-    )
+    def is_valid(self, variant: str) -> bool:
+        return (variant != "") and (variant in self.variants)
 
 
-def is_flag_enabled(flag_name: str) -> bool:
-    """Determine if a feature flag is enabled.
+def get_variant(feature_name: str) -> str:
+    """Determine what variant a feature has been set to.
 
-    Checks for `flag_name` in the query string (e.g., ?my_flag=true),
-    falling back to the Flask config under `FEATURE_FLAGS`.
+    Draws from the following sources, higher in the list overrides lower.
+
+    * URL param in current request
+    * URL param in previous request in this session
+    * Flask config under `FEATURE_FLAGS`
+
+    The URL param should be of the format
+    `?variants=<flag_name>:<variant>,<other_flag>:<other_variant>`.
+
+    All feature variants must be defined in the config as FeatureVariants.
 
     Returns:
-        bool: True if the flag is enabled, False otherwise.
+        str: the variant under question.
 
     Raises:
-        ValueError: If the config value is not a valid boolean-like type.
+        404: If the feature flag is not defined in the config.
     """
-    flag_from_config = current_app.config.get("FEATURE_FLAGS", {}).get(flag_name, False)
-    coerced_flag_from_config = _coerce_flag_value(flag_from_config)
-    if has_request_context():
-        return request.args.get(flag_name) == "true" or coerced_flag_from_config
-    return coerced_flag_from_config
+    config = current_app.config.get("FEATURE_VARIANTS", {})
+    if feature_name not in config:
+        abort(404)
+    feature_config = config[feature_name]
+
+    current_request_variants_raw = request.args.get("variants")
+    if current_request_variants_raw is None:
+        pass
+    else:
+        kv_pairs = current_request_variants_raw.split(",")
+        try:
+            current_request_variants = {
+                key: value for key, value in [pair.split(":") for pair in kv_pairs]
+            }
+        except ValueError:
+            abort(404)
+        current_request_variant = current_request_variants.get(feature_name, "")
+
+        if not feature_config.is_valid(current_request_variant):
+            abort(404)
+        if session.get("variants"):
+            session["variants"] |= {feature_name: current_request_variant}
+        else:
+            session["variants"] = {feature_name: current_request_variant}
+        return current_request_variant
+
+    session_variant = session.get("variants", {}).get(feature_name)
+    if feature_config.is_valid(session_variant):
+        return session_variant
+
+    return feature_config.default
 
 
 def require_feature_flag(flag_name: str, value: str = "true") -> Callable:

@@ -2,7 +2,7 @@ import pytest
 from flask import Flask
 from flask.testing import FlaskClient
 
-from eel_hole.feature_flags import FeatureVariants, get_variant
+from eel_hole.feature_variants import FeatureVariants, get_variant
 
 
 @pytest.fixture

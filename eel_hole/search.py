@@ -20,7 +20,7 @@ from whoosh.lang.porter import stem
 from whoosh.qparser import MultifieldParser
 from whoosh.query import AndMaybe, Or, Term
 
-from eel_hole.feature_flags import get_variant
+from eel_hole.feature_variants import get_variant
 from eel_hole.logs import log
 from eel_hole.utils import ResourceDisplay
 

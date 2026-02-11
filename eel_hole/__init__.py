@@ -29,7 +29,7 @@ from flask_sqlalchemy import SQLAlchemy
 from frictionless import Package, Resource
 
 from eel_hole.duckdb_query import Filter, ag_grid_to_duckdb
-from eel_hole.feature_flags import FeatureVariants, get_variant
+from eel_hole.feature_variants import FeatureVariants, get_variant
 from eel_hole.logs import log
 from eel_hole.models import User, db
 from eel_hole.search import initialize_index, run_search

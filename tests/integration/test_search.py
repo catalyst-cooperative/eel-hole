@@ -30,14 +30,15 @@ def test_search_metadata(page: Page):
 
 
 def test_search_for_ferc_table(page: Page):
-    _ = page.goto("http://localhost:8080/search?ferc_enabled=true&q=package:ferc1_xbrl")
+    _ = page.goto("http://localhost:8080/search?ferc_enabled=true&q=package:ferc6_xbrl")
     num_results = page.locator("#search-results > *").count()
-    assert num_results <= 20
+    # there are more than 50 tables in ferc6, only 50 will show up
+    assert num_results == 50
     expect(page.get_by_test_id("identification_001_duration")).to_contain_text(
         "001 - Schedule - Identification - duration"
     )
     expect(page.get_by_test_id("identification_001_duration")).to_contain_text(
-        "ferc1_xbrl"
+        "ferc6_xbrl"
     )
 
 

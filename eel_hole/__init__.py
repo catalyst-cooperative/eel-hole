@@ -514,10 +514,10 @@ def create_app():
             partition=partition,
         )
 
-    @app.post("/dismiss-notification")
-    def dismiss_notification():
-        """Mark the beta notification as dismissed in the session."""
-        session["beta_notification_dismissed"] = True
+    @app.post("/dismiss-notification/<name>")
+    def dismiss_notification(name: str):
+        """Mark a notification as dismissed in the session."""
+        session[f"{name}_notification_dismissed"] = True
         return ""
 
     return app

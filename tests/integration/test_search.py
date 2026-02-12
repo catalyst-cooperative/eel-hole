@@ -30,7 +30,9 @@ def test_search_metadata(page: Page):
 
 
 def test_search_for_ferc_table(page: Page):
-    _ = page.goto("http://localhost:8080/search?ferc_enabled=true&q=package:ferc6_xbrl")
+    _ = page.goto(
+        "http://localhost:8080/search?variants=search_packages:raw_ferc&q=package:ferc6_xbrl"
+    )
     num_results = page.locator("#search-results > *").count()
     # there are more than 50 tables in ferc6, only 50 will show up
     assert num_results == 50

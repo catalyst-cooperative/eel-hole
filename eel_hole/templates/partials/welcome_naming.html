@@ -1,0 +1,52 @@
+<h3 class="title">Decoding table names</h3>
+<p>Intrepid PUDL spelunkers might notice we use a naming convention for our
+tables. Knowing a little about it might help you better find what you are
+looking for.</p>
+
+<p><span class="is-family-code">{layer}_{source}__{asset_type}_{asset_name}</span></p>
+
+<dl>
+<dt>layer</dt><dd>is the level of processing of the table. The options are:<dl>
+    <dt>core</dt><dd>indicates the table is <a
+    href="https://www.jeannicholashould.com/tidy-data-in-python.html">tidy</a>
+    or well-normalized. Data in this layer is cleaned, well-structured
+    and minimally modified.</dd>
+    <dt>out</dt><dd>tables are in a wide and
+    complete format suitable for direct analysis. This means we've
+    added back in a lot of the helpful human-readable labels for numeric
+    identifiers and abbreviated codes. <em>We recommend you start here!</em></dd>
+    <dt>_core</dt><dd>means the table is intermediate and has not been fully
+    cleaned. We are probably publishing it because we want it out in the world
+    so you can use it, but we don't love its level of cleanliness.</dd>
+</dl>
+</dd>
+<dt>source</dt><dd>is an abbreviation of the original source of the data. For
+example, <span class="is-family-code">eia860</span>, <span
+class="is-family-code">ferc1</span> and <span
+class="is-family-code">epacems</span>. You can <a href="#find-data">browse our
+complete list of sources above</a>.</dd>
+<dt>asset_type</dt><dd>describes how the asset is modeled and how it is designed
+to be used. The options are:<dl>
+    <dt>assn</dt><dd>provides connections between entities; for example, <a
+    href="/preview/pudl/core_epa__assn_eia_epacamd"><span
+    class="is-family-code">core_epa__assn_eia_epacamd</span></a> connects EPA
+    units with their associated EIA plants, boilers, and generators.</dd>
+    <dt>changelog</dt><dd>tracks changes in an entity's values over time,
+    preserving the first reported instance when any of the tracked variables
+    changed, and ignoring rows where data stays the same.</dd>
+    <dt>codes</dt><dd>expands the descriptions of categorical codes.</dd>
+    <dt>entity</dt><dd>contains static information about entities that don't
+    change over time.</dd>
+    <dt>scd</dt><dd>describes attributes of entities that change only rarely,
+    like the ownership or the capacity of a plant.</dd>
+    <dt>yearly|monthly|hourly</dt><dd>indicates a timeseries, containing attributes
+    that are expected to change for each reported timestamp.</dd>
+</dl></dd>
+<dt>asset_name</dt><dd>describes the entity, categorical code type, or
+measurement of the asset. Sometimes this also includes information about the
+original source, like how FERC Form 1 tables include the table's schedule
+number.</dd>
+</dl>
+
+<p>For more information on how we name tables and columns, see
+<a href="https://docs.catalyst.coop/pudl/dev/naming_conventions.html">PUDL Naming Conventions</a>.</p>

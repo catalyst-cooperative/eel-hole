@@ -521,4 +521,8 @@ def create_app():
         session[f"{name}_notification_dismissed"] = True
         return ""
 
+    @app.route("/xyzzy/")
+    def landing():
+        return render_template("welcome.html")
+
     return app

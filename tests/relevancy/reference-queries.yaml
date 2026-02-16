@@ -100,6 +100,11 @@
   profile: elm
   notes: Source name for something we have
   reference: ''
+- query: eia-63b
+  relevant: []
+  profile: elm
+  notes: Source we don't have
+  reference: ''
 - query: eia 923 reported fuel type
   relevant:
   - out_eia923__yearly_generation_fuel_combined
@@ -111,6 +116,11 @@
   profile: elm
   notes: Source column we've rewritten (as "energy_source_code")
   reference: ''
+- query: core_ferc1 schedule 426
+  relevant: []
+  profile: elm
+  notes: Source we have, schedule we don't have
+  reference: 'Eel-hole metrics: gmail.com'
 - query: eqr 920
   relevant:
   - core_ferceqr__quarterly_identity
@@ -176,6 +186,11 @@
   relevant:
   - out_eia860__yearly_ownership
   - out_eia860__yearly_emissions_control_equipment
+  profile: elm
+  notes: ''
+  reference: 'Eel-hole metrics: berkeley.edu'
+- query: egrid
+  relevant: []
   profile: elm
   notes: ''
   reference: 'Eel-hole metrics: berkeley.edu'

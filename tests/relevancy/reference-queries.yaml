@@ -1,0 +1,188 @@
+- query: balancing_authority_code_eia
+  relevant:
+  - out_eia__yearly_plants
+  profile: pine
+  notes: Column
+  reference: https://github.com/catalyst-cooperative/eel-hole/issues/68
+- query: core_eia861__yearly_net_metering_customer_fuel_cla
+  relevant:
+  - core_eia861__yearly_net_metering_customer_fuel_class
+  profile: pine
+  notes: Partial name; seems sensitive to exact substring
+  reference: https://github.com/catalyst-cooperative/eel-hole/issues/68
+- query: core_eia861__yearly_net_metering_customer_fuel_c
+  relevant:
+  - core_eia861__yearly_net_metering_customer_fuel_class
+  profile: pine
+  notes: Partial name; seems sensitive to exact substring
+  reference: https://github.com/catalyst-cooperative/eel-hole/issues/68
+- query: eia yearly utilities
+  relevant:
+  - out_eia__yearly_utilities
+  profile: pine
+  notes: Keywords from name
+  reference: https://github.com/catalyst-cooperative/eel-hole/issues/68
+- query: name:"eia yearly utilities"
+  relevant:
+  - out_eia__yearly_utilities
+  profile: pine
+  notes: Name field keywords
+  reference: https://github.com/catalyst-cooperative/eel-hole/issues/68
+- query: core_pudl__codes_imputation_reasons
+  relevant:
+  - core_pudl__codes_imputation_reasons
+  profile: pine
+  notes: Exact name
+  reference: https://github.com/catalyst-cooperative/eel-hole/issues/53
+- query: generation plant operations
+  relevant:
+  - out_eia923__monthly_generation
+  - out_eia923__yearly_generation
+  - out_ferc1__yearly_all_plants
+  - out_eia923__yearly_generation_fuel_by_generator_energy_source
+  - out_eia923__monthly_generation_fuel_by_generator_energy_source
+  - out_eia923__yearly_generation_fuel_by_generator
+  - out_eia923__monthly_generation_fuel_by_generator
+  - out_eia923__yearly_generation_fuel_by_generator_energy_source_owner
+  - out_eia923__yearly_generation_fuel_combined
+  - out_eia923__monthly_generation_fuel_combined
+  profile: newt
+  notes: Keywords from topic
+  reference: Christina's "browse by topic" guide
+- query: emissions
+  relevant:
+  - core_epacems__hourly_emissions
+  - out_eia860__yearly_emissions_control_equipment
+  - out_eia923__yearly_boiler_fuel
+  - out_eia923__monthly_boiler_fuel
+  profile: newt
+  notes: Keywords from topic
+  reference: Christina's "browse by topic" guide
+- query: rate base
+  relevant:
+  - out_ferc1__yearly_rate_base
+  - out_ferc1__yearly_sales_by_rate_schedules_sched304
+  - out_ferc1__yearly_detailed_balance_sheet_assets
+  - out_ferc1__yearly_detailed_balance_sheet_liabilities
+  profile: newt
+  notes: Keywords from topic
+  reference: Christina's "browse by topic" guide
+- query: utility finance
+  relevant:
+  - out_ferc1__yearly_detailed_balance_sheet_assets
+  - out_ferc1__yearly_detailed_balance_sheet_liabilities
+  profile: newt
+  notes: Keywords from topic
+  reference: Christina's "browse by topic" guide
+- query: demand
+  relevant:
+  - out_eia930__hourly_subregion_demand
+  - out_ferc714__hourly_estimated_state_demand
+  - out_ferc714__hourly_planning_area_demand
+  profile: newt
+  notes: Keywords from topic
+  reference: Christina's "browse by topic" guide
+- query: renewables
+  relevant:
+  - out_gridpathratoolkit__hourly_available_capacity_factor
+  - out_vcerare__hourly_available_capacity_factor
+  profile: newt
+  notes: Keywords from topic
+  reference: Christina's "browse by topic" guide
+- query: eia 923
+  relevant:
+  - out_eia923__monthly_generation
+  - out_eia923__yearly_generation
+  - out_eia923__yearly_boiler_fuel
+  - out_eia923__monthly_boiler_fuel
+  - out_eia923__yearly_fuel_receipts_costs
+  - out_eia923__monthly_fuel_receipts_costs
+  profile: elm
+  notes: Source name for something we have
+  reference: ''
+- query: eia 923 reported fuel type
+  relevant:
+  - out_eia923__yearly_generation_fuel_combined
+  - out_eia923__monthly_generation_fuel_combined
+  - out_eia923__yearly_generation_fuel_by_generator_energy_source
+  - out_eia923__monthly_generation_fuel_by_generator_energy_source
+  - out_eia923__yearly_boiler_fuel
+  - out_eia923__monthly_boiler_fuel
+  profile: elm
+  notes: Source column we've rewritten (as "energy_source_code")
+  reference: ''
+- query: eqr 920
+  relevant:
+  - core_ferceqr__quarterly_identity
+  - core_ferceqr__contracts
+  - core_ferceqr__transactions
+  - core_ferceqr__quarterly_index_pub
+  profile: elm
+  notes: ''
+  reference: 'Eel-hole metrics: gmail.com'
+- query: form 1
+  relevant:
+  - out_ferc1__yearly_all_plants
+  - out_ferc1__yearly_detailed_income_statements
+  - out_ferc1__yearly_detailed_balance_sheet_assets
+  - out_ferc1__yearly_detailed_balance_sheet_liabilities
+  profile: elm
+  notes: ''
+  reference: 'Eel-hole metrics: gmail.com'
+- query: eia 860 voltage
+  relevant:
+  - out_eia__yearly_plants
+  - core_eia860__scd_plants
+  - core_eia860__scd_generators_energy_storage
+  profile: elm
+  notes: ''
+  reference: 'Eel-hole metrics: nrel.gov'
+- query: eia 860 technology
+  relevant:
+  - out_eia__yearly_plant_parts
+  - out_eia__yearly_generators
+  - out_eia__monthly_generators
+  - out_eia__yearly_generators_by_ownership
+  profile: elm
+  notes: ''
+  reference: 'Eel-hole metrics: nrel.gov'
+- query: mile
+  relevant:
+  - out_ferc1__yearly_transmission_lines_sched422
+  - _core_phmsagas__yearly_distribution_by_material
+  - _core_phmsagas__yearly_distribution_by_install_decade
+  - _core_phmsagas__yearly_distribution_by_material_and_size
+  profile: newt
+  notes: ''
+  reference: 'Eel-hole metrics: nrel.gov'
+- query: underground
+  relevant:
+  - out_ferc1__yearly_transmission_lines_sched422
+  - core_eia176__yearly_gas_disposition
+  profile: newt
+  notes: ''
+  reference: 'Eel-hole metrics: nrel.gov'
+- query: distributed_generation_after_2015_non_net
+  relevant:
+  - core_eia861__yearly_non_net_metering_misc
+  - core_eia861__yearly_non_net_metering_customer_fuel_class
+  - core_eia861__yearly_distributed_generation_fuel
+  - core_eia861__yearly_distributed_generation_misc
+  - core_eia861__yearly_distributed_generation_tech
+  profile: elm
+  notes: ''
+  reference: 'Eel-hole metrics: nrel.gov'
+- query: eia form 860
+  relevant:
+  - out_eia860__yearly_ownership
+  - out_eia860__yearly_emissions_control_equipment
+  profile: elm
+  notes: ''
+  reference: 'Eel-hole metrics: berkeley.edu'
+- query: ferc_account
+  relevant:
+  - out_ferc1__yearly_income_statements_sched114
+  - out_ferc1__yearly_operating_expenses_sched320
+  profile: '?'
+  notes: Exact column name (used session info to guess this user's intended destination)
+  reference: 'Eel-hole metrics: berkeley.edu'

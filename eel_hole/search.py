@@ -2,6 +2,7 @@
 
 import dataclasses
 import re
+from difflib import SequenceMatcher
 
 from frictionless import Resource
 
@@ -27,6 +28,7 @@ SEARCH_VARIANT_FIELD_BOOSTS = {
     "title_boost": {"name": 3.0, "description": 1.0, "columns": 0.5},
     "column_boost": {"name": 0.5, "description": 1.0, "columns": 3.0},
 }
+TOKEN_RE = re.compile(r"[a-z0-9]+")
 
 
 def custom_stemmer(word: str) -> str:
@@ -85,6 +87,64 @@ def initialize_index(
     writer.commit()
 
     return ix
+
+
+def autocomplete_resource_names(
+    resources: list[ResourceDisplay],
+    raw_query: str,
+    limit: int = 8,
+    min_score: float = 0.45,
+) -> list[str]:
+    """Return table-name suggestions that are reasonably close to a query."""
+    query = raw_query.strip().lower()
+    if not query:
+        return []
+    if query.startswith("name:"):
+        query = query.removeprefix("name:").strip()
+    if not query:
+        return []
+
+    query_tokens = TOKEN_RE.findall(query)
+    normalized_query = "".join(query_tokens)
+
+    scored: list[tuple[float, str]] = []
+    for resource in resources:
+        name = resource.name
+        name_lc = name.lower()
+        name_tokens = TOKEN_RE.findall(name_lc)
+        normalized_name = "".join(name_tokens)
+        score = 0.0
+
+        # Substring match is strong, then fall back to edit-distance-ish ratio.
+        if query in name_lc:
+            score = 1.0 + (len(query) / max(len(name_lc), 1))
+        elif normalized_query and normalized_query in normalized_name:
+            score = 0.95 + (len(normalized_query) / max(len(normalized_name), 1))
+
+        score = max(score, SequenceMatcher(a=query, b=name_lc).ratio())
+
+        # Token overlap helps for out-of-order partial table names.
+        if query_tokens:
+            overlap = sum(1 for token in query_tokens if token in name_lc)
+            score += overlap / len(query_tokens)
+
+            # Reward token order, which helps short 2-token lookups like "eia scd".
+            last_index = -1
+            in_order = True
+            for token in query_tokens:
+                token_index = name_lc.find(token, last_index + 1)
+                if token_index == -1:
+                    in_order = False
+                    break
+                last_index = token_index
+            if in_order:
+                score += 0.4
+
+        if score >= min_score:
+            scored.append((score, name))
+
+    scored.sort(key=lambda item: (-item[0], item[1]))
+    return [name for _, name in scored[:limit]]
 
 
 def run_search(

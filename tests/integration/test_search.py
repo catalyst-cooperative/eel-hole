@@ -4,12 +4,40 @@ from urllib.parse import parse_qs, urlparse
 from playwright.sync_api import Page, expect
 
 
+def test_search_autocomplete_keyboard_select(page: Page):
+    _ = page.goto("http://localhost:8080/search")
+    search_input = page.get_by_role("textbox").and_(
+        page.get_by_placeholder("Search...")
+    )
+    search_input.fill("codes_datasource")
+
+    autocomplete_menu = page.locator("#search-autocomplete")
+    expect(autocomplete_menu).to_be_visible()
+    first_option = autocomplete_menu.locator("button").first
+    expect(first_option).to_have_text(
+        'Search for "codes_datasource"',
+    )
+    expect(first_option).to_have_class(re.compile(r"is-selected"))
+    second_option = autocomplete_menu.locator("button").nth(1)
+    expect(second_option).to_contain_text("name: core_pudl__codes_datasources")
+    expect(second_option.locator("strong")).to_have_count(1)
+
+    search_input.press("ArrowDown")
+    search_input.press("Enter")
+
+    expect(page).to_have_url(
+        "http://localhost:8080/search?q=name%3Acore_pudl__codes_datasources"
+    )
+    expect(page.get_by_test_id("core_pudl__codes_datasources")).to_be_visible()
+
+
 def test_search_metadata(page: Page):
     _ = page.goto("http://localhost:8080/search")
     search_input = page.get_by_role("textbox").and_(
         page.get_by_placeholder("Search...")
     )
     search_input.fill("out eia860 yearly ownership")
+    search_input.press("Enter")
 
     # figure out if the search has actually happened by looking to see if
     # something that *shouldn't* be in the results has disappeared
@@ -73,6 +101,7 @@ def test_search_preview_back_button(page: Page):
         page.get_by_placeholder("Search...")
     )
     search_input.fill("name:core_pudl__codes_datasources")
+    search_input.press("Enter")
 
     # Wait for HTMX to update URL and results (: gets URL encoded to %3A)
     page.wait_for_url(

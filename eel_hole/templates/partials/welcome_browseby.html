@@ -1,5 +1,5 @@
 <div class="content">
-    <h3 class="block title">Find the Energy Data you Need</h3>
+    <h3 class="block title">Find the energy data you need:</h3>
     <p>PUDL has over 300 tables from over a dozen different datasets. You can start by
         <a href="https://data.catalyst.coop/search">searching the PUDL Data Viewer</a>
         for terms or data points you care about directly. We
@@ -9,18 +9,21 @@
 
     <p>If you're not sure what to search for, or just browsing, here are some ways to
         get started with different collections of PUDL tables:</p>
-</div>
-<div class="container column is-9" x-data="{tab:'datasource'}">
-    <nav class="tabs">
-        <ul>
-        <li :class="{'is-active': tab==='datasource'}"><a @click="tab='datasource'">By Data Source</a></li>
-        <li :class="{'is-active': tab==='popular'}"><a @click="tab='popular'">By Most Popular</a></li>
-        </ul>
-    </nav>
-    <section class="block" x-show="tab === 'datasource'">
-        {% include 'partials/welcome_browseby_datasource.html' %}
-    </section>
-    <section class="content" x-show="tab === 'popular'">
-        {% include 'partials/welcome_browseby_popular.html' %}
-    </section>
+    <div class="container column is-9" x-data="{tab:'datasource'}">
+        <nav class="tabs">
+            <ul>
+            <li :class="{'is-active': tab==='datasource'}"><a @click="tab='datasource'">By Data Source</a></li>
+            <li :class="{'is-active': tab==='popular'}"><a @click="tab='popular'">By Most Popular</a></li>
+            </ul>
+        </nav>
+        <section class="block" x-show="tab === 'datasource'">
+            {% include 'partials/welcome_browseby_datasource.html' %}
+        </section>
+        <section class="content" x-show="tab === 'popular'">
+            {% include 'partials/welcome_browseby_popular.html' %}
+        </section>
+    </div>
+
+    <h4 class="title">Can't find what you are looking for?</h4>
+    <p><a href="mailto:hello@catalyst.coop">Contact us!</a></p>
 </div>

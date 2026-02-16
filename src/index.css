@@ -97,3 +97,7 @@
     height: calc(100vh - 8rem);
   }
 }
+
+.card:last-child {
+  margin-bottom: 1.5rem;
+}

@@ -121,19 +121,22 @@ def test_buttons_disabled_until_partition_selected(page: Page):
     expect(download_button).to_have_attribute("disabled", "disabled")
 
     dropdown = table_card.locator("select#partition")
+    # NOTE (2026-02-10): sometimes select_option doesn't work unless you throw a
+    # timeout in front of it.
+    page.wait_for_timeout(300)
     selected_partition = dropdown.select_option(index=1)
 
-    expect(preview_button).to_be_visible()
-    expect(download_button).to_be_visible()
+    expect(preview_button).not_to_have_attribute("disabled", "disabled", timeout=1000)
+    expect(download_button).not_to_have_attribute("disabled", "disabled", timeout=1000)
 
     preview_href = preview_button.get_attribute("href")
     download_href = download_button.get_attribute("href")
 
-    assert (
-        preview_href
-        == f"/preview/pudl/core_ferceqr__quarterly_identity/{selected_partition[0]}"
+    assert preview_href == (
+        "/preview/pudl/core_ferceqr__quarterly_identity/"
+        f"{selected_partition[0]}?return_q=name:core_ferceqr__quarterly_identity"
     )
     assert download_href.endswith(f"{selected_partition[0]}.parquet")
 
     preview_button.click()
-    page.wait_for_url(f"http://localhost:8080{preview_href}")
+    page.wait_for_url(f"http://localhost:8080{preview_href}", timeout=5000)

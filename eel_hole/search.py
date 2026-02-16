@@ -20,7 +20,7 @@ from whoosh.lang.porter import stem
 from whoosh.qparser import MultifieldParser
 from whoosh.query import AndMaybe, Or, Term
 
-from eel_hole.feature_flags import is_flag_enabled
+from eel_hole.feature_variants import get_variant
 from eel_hole.logs import log
 from eel_hole.utils import ResourceDisplay
 
@@ -100,10 +100,12 @@ def run_search(
         out_boost = Term("tags", "out", boost=10.0)
         preliminary_penalty = Term("tags", "preliminary", boost=-10.0)
         query_with_boosts = AndMaybe(user_query, Or([out_boost, preliminary_penalty]))
-        if not is_flag_enabled("ferc_enabled"):
-            results = searcher.search(query_with_boosts, filter=Term("package", "pudl"))
+        if get_variant("search_packages") == "pudl_only":
+            results = searcher.search(
+                query_with_boosts, filter=Term("package", "pudl"), limit=50
+            )
         else:
-            results = searcher.search(query_with_boosts)
+            results = searcher.search(query_with_boosts, limit=50)
         for hit in results:
             log.debug(
                 "hit",

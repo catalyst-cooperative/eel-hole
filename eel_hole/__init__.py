@@ -9,6 +9,7 @@ import requests
 from authlib.integrations.flask_client import OAuth
 from flask import (
     Flask,
+    abort,
     redirect,
     render_template,
     request,
@@ -28,7 +29,7 @@ from flask_sqlalchemy import SQLAlchemy
 from frictionless import Package, Resource
 
 from eel_hole.duckdb_query import Filter, ag_grid_to_duckdb
-from eel_hole.feature_flags import is_flag_enabled
+from eel_hole.feature_variants import FeatureVariants, get_variant
 from eel_hole.logs import log
 from eel_hole.models import User, db
 from eel_hole.search import initialize_index, run_search
@@ -196,6 +197,11 @@ def create_app():
         SECRET_KEY=os.getenv("PUDL_VIEWER_SECRET_KEY"),
         TEMPLATES_AUTO_RELOAD=True,
         INTEGRATION_TEST=os.getenv("PUDL_VIEWER_INTEGRATION_TEST", False),
+        FEATURE_VARIANTS={
+            "search_packages": FeatureVariants(
+                default="pudl_only", variants={"raw_ferc", "pudl_only"}
+            )
+        },
     )
 
     auth0 = __init_auth0(app)
@@ -404,20 +410,15 @@ def create_app():
         query = request.args.get("q")
         log.info("search", url=request.full_path, query=query)
 
+        raw_ferc_enabled = get_variant("search_packages") == "raw_ferc"
+
         if query:
             resources = run_search(ix=search_index, raw_query=query)
         else:
-            resources = (
-                sorted_all_resources
-                if is_flag_enabled("ferc_enabled")
-                else sorted_pudl_only
-            )
+            resources = sorted_all_resources if raw_ferc_enabled else sorted_pudl_only
 
         return render_template(
-            template,
-            resources=resources,
-            query=query,
-            ferc_enabled=is_flag_enabled("ferc_enabled"),
+            template, resources=resources, query=query, ferc_enabled=raw_ferc_enabled
         )
 
     @app.get("/api/duckdb")
@@ -475,44 +476,49 @@ def create_app():
             return redirect(url_for("preview", package="pudl", table_name=table_name))
         return redirect(url_for("search"))
 
-    @app.get("/preview/<package>/<table_name>")
-    @app.get("/preview/<package>/<table_name>/<partition>")
+    @app.get("/preview/<package>/<table_name>", strict_slashes=False)
+    @app.get("/preview/<package>/<table_name>/<partition>", strict_slashes=False)
     def preview(package: str, table_name: str, partition: str | None = None):
         """Preview data for a specific table, optionally for a specific partition.
 
-        Displays table metadata and a tabular view from which you can filter and
-        export the data as CSV. Returns full page for direct navigation or content
-        fragment for HTMX requests.
+        For partitioned resources without a partition specified, shows a partition
+        selector. For partitioned resources with a partition, shows table metadata
+        and a tabular view from which you can filter and export data as CSV.
 
         Params:
             package: the package containing the table (e.g., "pudl")
             table_name: the name of the table to preview
             partition: optional partition identifier (e.g., "2024q1" for EQR tables)
         """
-        template = "partials/preview_content.html" if htmx else "preview.html"
         log.info("preview", package=package, table_name=table_name, partition=partition)
 
         resource = next((r for r in all_resources if r.name == table_name), None)
 
         if not resource:
-            return render_template("404.html"), 404
+            abort(404)
 
         is_partitioned = isinstance(resource, PartitionedResourceDisplay)
         if is_partitioned:
-            if partition not in resource.preview_paths:
-                return render_template("404.html"), 404
-            resource = resource.to_singleton(partition)
+            if partition is None:
+                return render_template(
+                    "preview_select_partition.html",
+                    resource=resource,
+                )
+            elif partition not in resource.preview_paths:
+                abort(404)
+            else:
+                resource = resource.to_singleton(partition)
 
         return render_template(
-            template,
+            "preview.html",
             resource=resource,
             partition=partition,
         )
 
-    @app.post("/dismiss-notification")
-    def dismiss_notification():
-        """Mark the beta notification as dismissed in the session."""
-        session["beta_notification_dismissed"] = True
+    @app.post("/dismiss-notification/<name>")
+    def dismiss_notification(name: str):
+        """Mark a notification as dismissed in the session."""
+        session[f"{name}_notification_dismissed"] = True
         return ""
 
     @app.route("/xyzzy/")

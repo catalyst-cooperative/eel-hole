@@ -26,12 +26,6 @@
         type="text"
         name="q"
         hx-get="/search"
-        {%
-          if
-          ferc_enabled
-        %}
-          hx-vals='{"ferc_enabled": "true"}'
-        {% endif %}
         hx-trigger="input changed delay:300ms"
         hx-target="#search-results"
         hx-replace-url="true"

@@ -27,9 +27,10 @@
       {% if not session.get('beta_notification_dismissed') %}
         <div
           class="container is-fluid"
-          hx-post="/dismiss-notification"
+          hx-post="/dismiss-notification/beta"
           hx-swap="outerHTML"
-          hx-trigger="click from:.delete"
+          hx-trigger="click from:#beta-dismiss"
+          id="beta-notification"
         >
           <div class="notification has-background-info has-text-dark my-3">
             Welcome! The PUDL data viewer is in beta right now. We filmed a
@@ -41,10 +42,12 @@
               >feedback</a
             >
             you have for the site!
-            <button class="delete"></button>
+            <button class="delete" id="beta-dismiss"></button>
           </div>
         </div>
       {% endif %}
+
+      {% include 'partials/campaign.html' %}
 
       <main id="main-content">
         {% block content %}

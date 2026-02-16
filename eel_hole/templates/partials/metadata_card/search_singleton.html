@@ -1,8 +1,9 @@
+{% include 'partials/metadata_card/_title_package.html' %}
 <div class="block">
   {% if current_user.is_authenticated %}
     <a
       class="button is-primary preview-button"
-      href="/preview/{{ r.package }}/{{ r.name }}{{ '?return_q=' + request.args.get('q') if request.args.get('q') }}"
+      href="/preview/{{ resource.package }}/{{ resource.name }}{{ '?return_q=' + request.args.get('q') if request.args.get('q') }}"
       >Preview / export as CSV</a
     >
   {% else %}
@@ -14,7 +15,8 @@
   {% endif %}
   <a
     class="button is-link is-light"
-    href="https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/nightly/{{ r.name }}.parquet"
+    href="https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/nightly/{{ resource.name }}.parquet"
     >Download full table as Parquet</a
   >
 </div>
+{% include 'partials/metadata_card/_description_columns.html' %}

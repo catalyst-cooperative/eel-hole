@@ -1,8 +1,34 @@
 - query: balancing_authority_code_eia
   relevant:
+  - core_eia860__scd_plants
+  - core_eia860m__changelog_generators
+  - core_eia861__yearly_advanced_metering_infrastructure
+  - core_eia861__yearly_balancing_authority
+  - core_eia861__yearly_demand_response
+  - core_eia861__yearly_demand_response_water_heater
+  - core_eia861__yearly_dynamic_pricing
+  - core_eia861__yearly_energy_efficiency
+  - core_eia861__yearly_net_metering_customer_fuel_class
+  - core_eia861__yearly_net_metering_misc
+  - core_eia861__yearly_non_net_metering_customer_fuel_class
+  - core_eia861__yearly_non_net_metering_misc
+  - core_eia861__yearly_sales
+  - core_eia861__yearly_short_form
+  - core_eia930__hourly_interchange
+  - core_eia930__hourly_net_generation_by_energy_source
+  - core_eia930__hourly_operations
+  - core_eia930__hourly_subregion_demand
+  - core_eia__codes_balancing_authority_subregions
+  - out_eia930__hourly_operations
+  - out_eia930__hourly_subregion_demand
+  - out_eia__monthly_generators
+  - out_eia__yearly_generators
   - out_eia__yearly_plants
+  - out_ferc714__georeferenced_respondents
+  - out_ferc714__respondents_with_fips
+  - out_ferc714__summarized_demand
   profile: pine
-  notes: Column
+  notes: Column; user looking specifically for out_eia__yearly_plants
   reference: https://github.com/catalyst-cooperative/eel-hole/issues/68
 - query: core_eia861__yearly_net_metering_customer_fuel_cla
   relevant:
@@ -79,6 +105,10 @@
   - out_eia930__hourly_subregion_demand
   - out_ferc714__hourly_estimated_state_demand
   - out_ferc714__hourly_planning_area_demand
+  - out_ferc714__summarized_demand
+  - out_eia930__hourly_aggregated_demand
+  - out_eia930__hourly_operations
+  - out_ferc714__georeferenced_respondents
   profile: newt
   notes: Keywords from topic
   reference: Christina's "browse by topic" guide

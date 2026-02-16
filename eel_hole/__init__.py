@@ -1,8 +1,8 @@
 """Main app definition."""
 
-from collections import namedtuple
 import json
 import os
+from collections import namedtuple
 from dataclasses import asdict
 from urllib.parse import quote
 
@@ -11,6 +11,7 @@ from authlib.integrations.flask_client import OAuth
 from flask import (
     Flask,
     abort,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -36,6 +37,7 @@ from eel_hole.logs import log
 from eel_hole.models import User, db
 from eel_hole.search import (
     SEARCH_VARIANT_FIELD_BOOSTS,
+    autocomplete_resource_names,
     initialize_index,
     run_search,
     search_settings,
@@ -468,6 +470,15 @@ def create_app():
                 "results": [{"name": r["name"]} for r in rr.resources],
             }
         )
+
+    @app.get("/search/autocomplete")
+    def search_autocomplete():
+        """Return table-name suggestions for the current search query."""
+        query = request.args.get("q", "")
+        raw_ferc_enabled = get_variant("search_packages") == "raw_ferc"
+        resources = sorted_all_resources if raw_ferc_enabled else sorted_pudl_only
+        suggestions = autocomplete_resource_names(resources=resources, raw_query=query)
+        return jsonify({"suggestions": suggestions})
 
     @app.get("/api/duckdb")
     def duckdb():

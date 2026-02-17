@@ -16,6 +16,7 @@ from flask import (
     session,
     url_for,
 )
+from flask.json import jsonify
 from flask_htmx import HTMX
 from flask_login import (
     LoginManager,
@@ -32,7 +33,7 @@ from eel_hole.duckdb_query import Filter, ag_grid_to_duckdb
 from eel_hole.feature_variants import FeatureVariants, get_variant
 from eel_hole.logs import log
 from eel_hole.models import User, db
-from eel_hole.search import SEARCH_VARIANT_FIELD_BOOSTS, initialize_index, run_search
+from eel_hole.search import SEARCH_VARIANT_FIELD_BOOSTS, initialize_index, run_search, search_settings
 from eel_hole.utils import (
     PartitionedResourceDisplay,
     clean_ferc_xbrl_resource,
@@ -404,7 +405,12 @@ def create_app():
         """Run a search query and return results.
 
         If hit as part of an HTMX request, only render the search results HTML
-        fragment. Otherwise render the whole page.
+        fragment.
+
+        If hit with an Accept-MIMEtype of application/json, render the search
+        results as a list of JSON dicts.
+
+        Otherwise render the whole page.
 
         Params:
             q: the query string
@@ -430,6 +436,21 @@ def create_app():
                 else sorted_pudl_only
             )
 
+        # We need to check quality here because by default most browsers
+        # send queries with an eventual fallback accept-mimetype of */*,
+        # which of course matches everything. we only want to return
+        # json results if someone specifically asked for json.
+        if request.accept_mimetypes.quality("application/json") == 1:
+            return jsonify(
+                {
+                    "query": query,
+                    "settings": {
+                        "method": search_method,
+                        "boosts": search_settings(search_method),
+                    },
+                    "results": [{"name": r["name"]} for r in resources],
+                }
+            )
         return render_template(template, resources=resources, query=query)
 
     @app.get("/api/duckdb")

@@ -126,6 +126,12 @@ $ uv run pytest tests/integration
 This uses `playwright` to run through some user flows.
 Make sure you have a stable Internet connection, otherwise you'll hit a bunch of timeouts.
 
+To run the search relevancy tests:
+
+```
+$ uv run pytest -s tests/relevancy/test_*
+```
+
 ## Feature Flags
 
 In order to make testing out features more convenient, you can toggle feature flags in a query parameter in the url or via a config file.

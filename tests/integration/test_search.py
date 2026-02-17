@@ -31,6 +31,53 @@ def test_search_autocomplete_keyboard_select(page: Page):
     expect(page.get_by_test_id("core_pudl__codes_datasources")).to_be_visible()
 
 
+def test_search_autocomplete_click_select(page: Page):
+    _ = page.goto("http://localhost:8080/search")
+    search_input = page.get_by_role("textbox").and_(
+        page.get_by_placeholder("Search...")
+    )
+    search_input.fill("codes_datasource")
+
+    autocomplete_menu = page.locator("#search-autocomplete")
+    expect(autocomplete_menu).to_be_visible()
+    second_option = autocomplete_menu.locator("button").nth(1)
+    second_option.click()
+
+    expect(page).to_have_url(
+        "http://localhost:8080/search?q=name%3Acore_pudl__codes_datasources"
+    )
+    expect(page.get_by_test_id("core_pudl__codes_datasources")).to_be_visible()
+
+
+def test_search_autocomplete_keyboard_navigation_wraps_and_selects(page: Page):
+    _ = page.goto("http://localhost:8080/search")
+    search_input = page.get_by_role("textbox").and_(
+        page.get_by_placeholder("Search...")
+    )
+    search_input.fill("codes_datasource")
+
+    autocomplete_menu = page.locator("#search-autocomplete")
+    expect(autocomplete_menu).to_be_visible()
+
+    first_option = autocomplete_menu.locator("button").first
+    last_option = autocomplete_menu.locator("button").last
+    expect(first_option).to_have_class(re.compile(r"is-selected"))
+
+    # ArrowUp from first item should wrap to the last item.
+    search_input.press("ArrowUp")
+    expect(last_option).to_have_class(re.compile(r"is-selected"))
+
+    # ArrowDown from last item should wrap to the first item.
+    search_input.press("ArrowDown")
+    expect(first_option).to_have_class(re.compile(r"is-selected"))
+
+    # Move to the table suggestion and select it with Enter.
+    search_input.press("ArrowDown")
+    search_input.press("Enter")
+    expect(search_input).to_have_value("name:core_pudl__codes_datasources")
+    expect(autocomplete_menu).to_be_hidden()
+
+
 def test_search_metadata(page: Page):
     _ = page.goto("http://localhost:8080/search")
     search_input = page.get_by_role("textbox").and_(

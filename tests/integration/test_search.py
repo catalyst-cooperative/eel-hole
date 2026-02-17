@@ -120,6 +120,21 @@ def test_search_for_ferc_table(page: Page):
     )
 
 
+def test_search_preserves_variants_in_url(page: Page):
+    _ = page.goto("http://localhost:8080/search?variants=search_packages:raw_ferc")
+    search_input = page.get_by_role("textbox").and_(
+        page.get_by_placeholder("Search...")
+    )
+    search_input.fill("package:ferc6_xbrl")
+    search_input.press("Enter")
+
+    expect(page).to_have_url(
+        "http://localhost:8080/search?variants=search_packages%3Araw_ferc&q=package%3Aferc6_xbrl"
+    )
+    num_results = page.locator("#search-results > *").count()
+    assert num_results == 50
+
+
 def test_search_preview(page: Page):
     """Preview button now navigates to dedicated preview page via HTMX instead of showing overlay."""
     _ = page.goto("http://localhost:8080/login")

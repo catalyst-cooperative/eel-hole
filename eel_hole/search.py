@@ -2,9 +2,9 @@
 
 import dataclasses
 import re
-from difflib import SequenceMatcher
 
 from frictionless import Resource
+from rapidfuzz import fuzz
 
 # TODO 2025-01-15: think about switching this over to py-tantivy since that's better maintained
 from whoosh import index
@@ -93,52 +93,38 @@ def autocomplete_resource_names(
     resources: list[ResourceDisplay],
     raw_query: str,
     limit: int = 8,
-    min_score: float = 0.45,
+    min_score: float = 45.0,
 ) -> list[str]:
-    """Return table-name suggestions that are reasonably close to a query."""
+    """Return table-name suggestions that are reasonably close to a query.
+
+    1. Clean up query
+    2. Compute similarity score with *exact* match (inc. case, punctuation) and
+       normalized query/resource name.
+    3. Sort the results by score and return the top `limit` results
+
+    We join tokens with `""` so that things like `eia860` and `eia 860` are
+    treated as the same.
+
+    NOTE (2026-02-17): our score threshold is 45 by default - but it's just a
+    guess. If we find the results are too noisy/strict we should change it.
+    """
     query = raw_query.strip().lower()
-    if not query:
-        return []
     if query.startswith("name:"):
         query = query.removeprefix("name:").strip()
     if not query:
         return []
 
-    query_tokens = TOKEN_RE.findall(query)
-    normalized_query = "".join(query_tokens)
+    normalized_query = "".join(TOKEN_RE.findall(query))
 
     scored: list[tuple[float, str]] = []
-    for resource in resources:
-        name = resource.name
+    resource_names = {resource.name for resource in resources}
+    for name in resource_names:
         name_lc = name.lower()
-        name_tokens = TOKEN_RE.findall(name_lc)
-        normalized_name = "".join(name_tokens)
-        score = 0.0
+        normalized_name = "".join(TOKEN_RE.findall(name_lc))
 
-        # Substring match is strong, then fall back to edit-distance-ish ratio.
-        if query in name_lc:
-            score = 1.0 + (len(query) / max(len(name_lc), 1))
-        elif normalized_query and normalized_query in normalized_name:
-            score = 0.95 + (len(normalized_query) / max(len(normalized_name), 1))
-
-        score = max(score, SequenceMatcher(a=query, b=name_lc).ratio())
-
-        # Token overlap helps for out-of-order partial table names.
-        if query_tokens:
-            overlap = sum(1 for token in query_tokens if token in name_lc)
-            score += overlap / len(query_tokens)
-
-            # Reward token order, which helps short 2-token lookups like "eia scd".
-            last_index = -1
-            in_order = True
-            for token in query_tokens:
-                token_index = name_lc.find(token, last_index + 1)
-                if token_index == -1:
-                    in_order = False
-                    break
-                last_index = token_index
-            if in_order:
-                score += 0.4
+        direct_score = fuzz.WRatio(query, name_lc)
+        normalized_score = fuzz.WRatio(normalized_query, normalized_name)
+        score = max(direct_score, normalized_score)
 
         if score >= min_score:
             scored.append((score, name))

@@ -22,7 +22,7 @@ from whoosh.query import AndMaybe, Or, Term
 from eel_hole.logs import log
 from eel_hole.utils import ResourceDisplay
 
-FIELD_BOOSTS_BY_VARIANT = {
+SEARCH_VARIANT_FIELD_BOOSTS = {
     "default": {"name": 1.5, "description": 1.0, "columns": 0.5},
     "title_boost": {"name": 3.0, "description": 1.0, "columns": 0.5},
     "column_boost": {"name": 0.5, "description": 1.0, "columns": 3.0},
@@ -94,7 +94,7 @@ def run_search(
 
     This doctors the raw query with some field boosts + tag boosts.
     """
-    field_boosts = FIELD_BOOSTS_BY_VARIANT[search_method]
+    field_boosts = SEARCH_VARIANT_FIELD_BOOSTS[search_method]
 
     with ix.searcher() as searcher:
         parser = MultifieldParser(

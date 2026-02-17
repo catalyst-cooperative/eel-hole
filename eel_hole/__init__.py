@@ -32,7 +32,7 @@ from eel_hole.duckdb_query import Filter, ag_grid_to_duckdb
 from eel_hole.feature_variants import FeatureVariants, get_variant
 from eel_hole.logs import log
 from eel_hole.models import User, db
-from eel_hole.search import initialize_index, run_search
+from eel_hole.search import SEARCH_VARIANT_FIELD_BOOSTS, initialize_index, run_search
 from eel_hole.utils import (
     PartitionedResourceDisplay,
     clean_ferc_xbrl_resource,
@@ -202,8 +202,7 @@ def create_app():
                 default="pudl_only", variants={"raw_ferc", "pudl_only"}
             ),
             "search_method": FeatureVariants(
-                default="default",
-                variants={"default", "title_boost", "column_boost"},
+                default="default", variants=set(SEARCH_VARIANT_FIELD_BOOSTS.keys())
             ),
         },
     )

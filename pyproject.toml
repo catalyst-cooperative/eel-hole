@@ -19,6 +19,7 @@ dependencies = [
     "docutils>=0.21.2",
     "structlog>=25.1.0",
     "requests>=2.32.3",
+    "rapidfuzz>=3.14.1",
     "whoosh-reloaded>=2.7.5",
 ]
 

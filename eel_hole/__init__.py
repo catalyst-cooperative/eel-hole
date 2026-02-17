@@ -400,22 +400,8 @@ def create_app():
         next_url = request.form.get("next_url", url_for("privacy_policy"))
         return redirect(next_url)
 
-    @app.get("/search")
-    def search():
-        """Run a search query and return results.
-
-        If hit as part of an HTMX request, only render the search results HTML
-        fragment.
-
-        If hit with an Accept-MIMEtype of application/json, render the search
-        results as a list of JSON dicts.
-
-        Otherwise render the whole page.
-
-        Params:
-            q: the query string
-        """
-        template = "partials/search_results.html" if htmx else "search.html"
+    def manage_search():
+        """Shared search functionality between web and API search."""
         query = request.args.get("q")
         log.info("search", url=request.full_path, query=query)
 
@@ -435,23 +421,41 @@ def create_app():
                 if search_packages == "raw_ferc"
                 else sorted_pudl_only
             )
+        return query, search_method, resources
 
-        # We need to check quality here because by default most browsers
-        # send queries with an eventual fallback accept-mimetype of */*,
-        # which of course matches everything. we only want to return
-        # json results if someone specifically asked for json.
-        if request.accept_mimetypes.quality("application/json") == 1:
-            return jsonify(
-                {
-                    "query": query,
-                    "settings": {
-                        "method": search_method,
-                        "boosts": search_settings(search_method),
-                    },
-                    "results": [{"name": r["name"]} for r in resources],
-                }
-            )
+    @app.get("/search")
+    def search():
+        """Run a search query and return results.
+
+        If hit as part of an HTMX request, only render the search results HTML
+        fragment. Otherwise render the whole page.
+
+        Params:
+            q: the query string
+        """
+        template = "partials/search_results.html" if htmx else "search.html"
+        query, _, resources = manage_search()
+
         return render_template(template, resources=resources, query=query)
+
+    @app.get("/api/search")
+    def api_search():
+        """Run a search query and return results as JSON.
+
+        Params:
+            q: the query string
+        """
+        query, search_method, resources = manage_search()
+        return jsonify(
+            {
+                "query": query,
+                "settings": {
+                    "method": search_method,
+                    "boosts": search_settings(search_method),
+                },
+                "results": [{"name": r["name"]} for r in resources],
+            }
+        )
 
     @app.get("/api/duckdb")
     def duckdb():

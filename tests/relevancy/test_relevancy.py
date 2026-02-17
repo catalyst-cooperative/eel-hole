@@ -52,7 +52,7 @@ def test_relevancy_map(reference_queries, variant):
     n_queries = len(reference_queries)
     for ex in reference_queries:
         result = requests.get(
-            "http://localhost:8080/search",
+            "http://localhost:8080/api/search",
             params={
                 "q": ex["query"],
                 "variants": f"search_method:{variant}",

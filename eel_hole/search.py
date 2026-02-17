@@ -93,19 +93,19 @@ def autocomplete_resource_names(
     resources: list[ResourceDisplay],
     raw_query: str,
     limit: int = 8,
-    min_score: float = 45.0,
+    min_score: float = 60.0,
 ) -> list[str]:
     """Return table-name suggestions that are reasonably close to a query.
 
     1. Clean up query
-    2. Compute similarity score with *exact* match (inc. case, punctuation) and
+    2. Compute similarity score with *exact* match (inc. punctuation) and
        normalized query/resource name.
     3. Sort the results by score and return the top `limit` results
 
     We join tokens with `""` so that things like `eia860` and `eia 860` are
     treated as the same.
 
-    NOTE (2026-02-17): our score threshold is 45 by default - but it's just a
+    NOTE (2026-02-17): our score threshold is 60 by default - but it's just a
     guess. If we find the results are too noisy/strict we should change it.
     """
     query = raw_query.strip().lower()
@@ -119,12 +119,12 @@ def autocomplete_resource_names(
     scored: list[tuple[float, str]] = []
     resource_names = {resource.name for resource in resources}
     for name in resource_names:
-        name_lc = name.lower()
-        normalized_name = "".join(TOKEN_RE.findall(name_lc))
+        name_lower = name.lower()
+        normalized_name = "".join(TOKEN_RE.findall(name_lower))
 
-        direct_score = fuzz.WRatio(query, name_lc)
+        exact_score = fuzz.WRatio(query, name_lower)
         normalized_score = fuzz.WRatio(normalized_query, normalized_name)
-        score = max(direct_score, normalized_score)
+        score = max(exact_score, normalized_score)
 
         if score >= min_score:
             scored.append((score, name))

@@ -1,11 +1,27 @@
 import "./search.css";
 import Alpine from "alpinejs";
 
+/**
+ * Search autosuggest high-level flow:
+ * - There's an 'input' which is where the user types and there's a 'menu' which
+ *   shows the suggestion options.
+ * - Alpine tracks `query`, `suggestions`, menu open/close state, and highlighted index.
+ * - Typing updates `state.query`; a 120ms debounce then calls `/search/autocomplete?q=...`.
+ * - In-flight requests are canceled with `AbortController` so stale responses are ignored.
+ * - Suggestions are rendered as:
+ *   1) a top "Search for <query>" option
+ *   2) `name:<suggestion>` options returned by the backend
+ * - Keyboard and mouse interaction keep `selectedIndex` in sync and submit on Enter/click.
+ * - Escape or outside clicks close the menu; submitting a selection posts through the form.
+ *
+ * Separately, on page load/history restore, the query is synchronized from URL param `q`.
+ *
+ * Tests in tests/integration/test_search.py with the other search page tests.
+ */
 type AutocompleteOption =
   | { kind: "search"; label: string; query: string }
   | { kind: "name"; name: string; query: string };
 
-/** JSON shape returned by the `/search/autocomplete` endpoint. */
 interface AutocompletePayload {
   suggestions?: string[];
 }
@@ -84,7 +100,7 @@ Alpine.data("searchAutocomplete", () => ({
     this.restoreSearchQuery();
   },
 
-  /** couple helpers to grab DOM elements */
+  /** A couple of helpers to grab DOM elements */
   searchInput() {
     return this.$refs.searchInput as HTMLInputElement;
   },
@@ -97,7 +113,7 @@ Alpine.data("searchAutocomplete", () => ({
     return this.$refs.menu as HTMLElement;
   },
 
-  /** input handlers */
+  /** Keyboard/mouse input handlers */
   onInput() {
     this.state.query = this.searchInput().value;
     this.state.selectedIndex = 0;
@@ -172,12 +188,16 @@ Alpine.data("searchAutocomplete", () => ({
     this.state.isOpen = false;
   },
 
-  /* When you click outside or hit escape, clear in-flight stuff and close the menu */
+  /* Not just cancelling in-flight requests, not just hiding the menu, doing BOTH */
   hide() {
     this.cancelPendingAutocomplete();
     this.state.isOpen = false;
   },
 
+  /*
+   * This deals with both a potential debounced autocomplete as well as any
+   * in-flight HTTP requests
+   */
   cancelPendingAutocomplete() {
     if (this.debounceTimer !== null) {
       window.clearTimeout(this.debounceTimer);
@@ -263,6 +283,7 @@ Alpine.data("searchAutocomplete", () => ({
     });
   },
 
+  /** Make sure the selected option is actually visibly selected */
   highlightSelectedOption(index: number) {
     const old = this.menu().querySelector(
       ".search-autocomplete-item.is-selected",
@@ -277,12 +298,14 @@ Alpine.data("searchAutocomplete", () => ({
     }
   },
 
+  /** Helper to get the query of the selected option */
   getOptionQuery(index: number) {
     const selected = this.menu().children[index];
     if (!(selected instanceof HTMLElement)) return null;
     return selected.dataset.query || null;
   },
 
+  /** Actually trigger the dang search. */
   executeSearch(query: string) {
     this.cancelPendingAutocomplete();
     this.searchInput().value = query;
@@ -290,6 +313,7 @@ Alpine.data("searchAutocomplete", () => ({
     this.searchForm().requestSubmit();
   },
 
+  /** Hit the API and handle response */
   async requestAutocomplete(query: string) {
     if (this.abortController) {
       this.abortController.abort();
@@ -318,21 +342,22 @@ Alpine.data("searchAutocomplete", () => ({
     }
   },
 
+  /** Bold the matching substring so people know why suggestions are suggested */
   buildHighlightedContent(text: string, query: string) {
     const fragment = document.createDocumentFragment();
-    const needle = query.trim();
-    if (!needle) {
+    const toHighlight = query.trim();
+    if (!toHighlight) {
       fragment.append(text);
       return fragment;
     }
 
-    const start = text.toLowerCase().indexOf(needle.toLowerCase());
+    const start = text.toLowerCase().indexOf(toHighlight.toLowerCase());
     if (start < 0) {
       fragment.append(text);
       return fragment;
     }
 
-    const end = start + needle.length;
+    const end = start + toHighlight.length;
     const strong = document.createElement("strong");
     strong.textContent = text.slice(start, end);
     fragment.append(text.slice(0, start), strong, text.slice(end));

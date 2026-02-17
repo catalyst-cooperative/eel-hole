@@ -1,3 +1,5 @@
+import pytest
+
 from eel_hole.search import autocomplete_resource_names, initialize_index, run_search
 from eel_hole.utils import ColumnDisplay, ResourceDisplay
 
@@ -57,53 +59,42 @@ def _resource(name: str) -> ResourceDisplay:
     )
 
 
-def test_autocomplete_resource_names_prefers_exact_table_name():
-    resources = [
-        _resource("out_eia__monthly_generators"),
-        _resource("core_pudl__codes_datasources"),
-        _resource("core_eia923__monthly_boiler_fuel"),
-    ]
-
-    suggestions = autocomplete_resource_names(
-        resources=resources,
-        raw_query="core_pudl__codes_datasources",
-    )
-
-    assert suggestions[0] == "core_pudl__codes_datasources"
+RESOURCES = [
+    _resource("out_eia860__yearly_ownership"),
+    _resource("core_eia861__scd_territories"),
+    _resource("core_eia923__monthly_boiler_fuel"),
+    _resource("core_pudl__codes_datasources"),
+    _resource("out_pudl__utilities"),
+]
 
 
-def test_autocomplete_resource_names_handles_name_prefix():
-    resources = [
-        _resource("core_pudl__codes_datasources"),
-        _resource("core_pudl__codes_data_maturities"),
-    ]
+@pytest.mark.parametrize(
+    "raw_query",
+    [
+        "eia923",
+        "eia 923",
+        "boiler fuel",
+        "monthly boiler",
+        "name:eia923 boiler",
+    ],
+)
+def test_autocomplete_resource_names_queries_match_eia923_table(raw_query: str):
+    suggestions = autocomplete_resource_names(resources=RESOURCES, raw_query=raw_query)
 
-    suggestions = autocomplete_resource_names(
-        resources=resources,
-        raw_query="name:codes_datasource",
-    )
-
-    assert "core_pudl__codes_datasources" in suggestions
-
-
-def test_autocomplete_resource_names_handles_space_separated_numeric_tokens():
-    resources = [
-        _resource("out_eia860__yearly_ownership"),
-        _resource("core_eia923__monthly_boiler_fuel"),
-    ]
-
-    suggestions = autocomplete_resource_names(resources=resources, raw_query="eia 860")
-
-    assert suggestions[0] == "out_eia860__yearly_ownership"
+    assert "core_eia923__monthly_boiler_fuel" in suggestions
 
 
-def test_autocomplete_resource_names_matches_across_delimiters():
-    resources = [
-        _resource("core_eia861__scd_territories"),
-        _resource("core_eia923__monthly_boiler_fuel"),
-        _resource("out_pudl__utilities"),
-    ]
+@pytest.mark.parametrize(
+    "raw_query",
+    [
+        "eia860 ownership",
+        "860 scd",
+        "codes datasource",
+        "out pudl utilities",
+        "name:core_pudl__codes_datasources",
+    ],
+)
+def test_autocomplete_resource_names_queries_do_not_match_eia923_table(raw_query: str):
+    suggestions = autocomplete_resource_names(resources=RESOURCES, raw_query=raw_query)
 
-    suggestions = autocomplete_resource_names(resources=resources, raw_query="eia scd")
-
-    assert suggestions[0] == "core_eia861__scd_territories"
+    assert "core_eia923__monthly_boiler_fuel" not in suggestions

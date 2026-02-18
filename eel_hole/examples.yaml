@@ -1,0 +1,10 @@
+source:
+  # Pinned source for reproducible builds.
+  repo_url: https://github.com/catalyst-cooperative/pudl-examples.git
+  repo_ref: main
+
+examples:
+  - slug: plant-explorer
+    title: Plant Explorer
+    source_path: marimo/plant-explorer.py
+    description: Explore plant-level net generation trends over time.

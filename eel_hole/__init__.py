@@ -3,9 +3,11 @@
 import json
 import os
 from dataclasses import asdict
+from pathlib import Path
 from urllib.parse import quote
 
 import requests
+import yaml
 from authlib.integrations.flask_client import OAuth
 from flask import (
     Flask,
@@ -13,6 +15,7 @@ from flask import (
     redirect,
     render_template,
     request,
+    send_from_directory,
     session,
     url_for,
 )
@@ -176,6 +179,20 @@ def __sort_resources_by_name(resource: Resource):
     if name.startswith("_core"):
         return 3
     return 4
+
+
+def _load_examples_config(config_path: Path) -> list[dict]:
+    """Load notebook examples from eel_hole/examples.yaml."""
+    if not config_path.exists():
+        return []
+
+    payload = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        return []
+    examples = payload.get("examples", [])
+    if not isinstance(examples, list):
+        return []
+    return [ex for ex in examples if isinstance(ex, dict)]
 
 
 def create_app():
@@ -431,6 +448,54 @@ def create_app():
             )
 
         return render_template(template, resources=resources, query=query)
+
+    @app.get("/examples")
+    @app.get("/examples/")
+    def examples():
+        """Render gallery of configured notebook examples."""
+        config_path = Path(app.root_path) / "examples.yaml"
+        configured_examples = _load_examples_config(config_path)
+        return render_template("examples.html", examples=configured_examples)
+
+    @app.get("/examples/<slug>")
+    def example_redirect(slug: str):
+        """Redirect example URLs to trailing-slash form for relative assets."""
+        return redirect(url_for("example", slug=slug), code=308)
+
+    @app.get("/examples/<slug>/")
+    def example(slug: str):
+        """Serve a generated marimo example for configured slugs."""
+        config_path = Path(app.root_path) / "examples.yaml"
+        known_examples = _load_examples_config(config_path)
+        if slug not in {item.get("slug") for item in known_examples}:
+            abort(404)
+
+        if not app.static_folder:
+            abort(404)
+
+        examples_root = Path(app.static_folder) / "examples" / slug
+        index_path = examples_root / "index.html"
+        if not index_path.exists():
+            abort(404)
+
+        return send_from_directory(examples_root, "index.html")
+
+    @app.get("/examples/<slug>/<path:asset_path>")
+    def example_asset(slug: str, asset_path: str):
+        """Serve static assets for a generated marimo example."""
+        config_path = Path(app.root_path) / "examples.yaml"
+        known_examples = _load_examples_config(config_path)
+        if slug not in {item.get("slug") for item in known_examples}:
+            abort(404)
+
+        if not app.static_folder:
+            abort(404)
+
+        examples_root = Path(app.static_folder) / "examples" / slug
+        if not (examples_root / asset_path).exists():
+            abort(404)
+
+        return send_from_directory(examples_root, asset_path)
 
     @app.get("/api/duckdb")
     def duckdb():

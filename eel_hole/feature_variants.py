@@ -53,15 +53,15 @@ def get_variant(feature_name: str) -> str:
             }
         except ValueError:
             abort(404)
-        current_request_variant = current_request_variants.get(feature_name, "")
-
-        if not feature_config.is_valid(current_request_variant):
-            abort(404)
-        if session.get("variants"):
-            session["variants"] |= {feature_name: current_request_variant}
-        else:
-            session["variants"] = {feature_name: current_request_variant}
-        return current_request_variant
+        current_request_variant = current_request_variants.get(feature_name)
+        if current_request_variant is not None:
+            if not feature_config.is_valid(current_request_variant):
+                abort(404)
+            if session.get("variants"):
+                session["variants"] |= {feature_name: current_request_variant}
+            else:
+                session["variants"] = {feature_name: current_request_variant}
+            return current_request_variant
 
     session_variant = session.get("variants", {}).get(feature_name)
     if feature_config.is_valid(session_variant):

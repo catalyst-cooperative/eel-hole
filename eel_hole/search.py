@@ -2,7 +2,6 @@
 
 import dataclasses
 import re
-from typing import Any
 
 from frictionless import Resource
 
@@ -20,9 +19,14 @@ from whoosh.lang.porter import stem
 from whoosh.qparser import MultifieldParser
 from whoosh.query import AndMaybe, Or, Term
 
-from eel_hole.feature_variants import get_variant
 from eel_hole.logs import log
 from eel_hole.utils import ResourceDisplay
+
+SEARCH_VARIANT_FIELD_BOOSTS = {
+    "default": {"name": 1.5, "description": 1.0, "columns": 0.5},
+    "title_boost": {"name": 3.0, "description": 1.0, "columns": 0.5},
+    "column_boost": {"name": 0.5, "description": 1.0, "columns": 3.0},
+}
 
 
 def custom_stemmer(word: str) -> str:
@@ -84,23 +88,25 @@ def initialize_index(
 
 
 def run_search(
-    ix: index.Index, raw_query: str, search_params=dict[str, Any]
+    ix: index.Index, raw_query: str, search_method: str, search_packages: str
 ) -> list[Resource]:
     """Actually run a user query.
 
     This doctors the raw query with some field boosts + tag boosts.
     """
+    field_boosts = SEARCH_VARIANT_FIELD_BOOSTS[search_method]
+
     with ix.searcher() as searcher:
         parser = MultifieldParser(
             ["name", "description", "columns"],
             ix.schema,
-            fieldboosts={"name": 1.5, "description": 1.0, "columns": 0.5},
+            fieldboosts=field_boosts,
         )
         user_query = parser.parse(raw_query)
         out_boost = Term("tags", "out", boost=10.0)
         preliminary_penalty = Term("tags", "preliminary", boost=-10.0)
         query_with_boosts = AndMaybe(user_query, Or([out_boost, preliminary_penalty]))
-        if get_variant("search_packages") == "pudl_only":
+        if search_packages == "pudl_only":
             results = searcher.search(
                 query_with_boosts, filter=Term("package", "pudl"), limit=50
             )
@@ -112,5 +118,6 @@ def run_search(
                 name=hit["name"],
                 tags=hit["tags"],
                 score=hit.score,
+                search_method=search_method,
             )
         return [hit["original_object"] for hit in results]

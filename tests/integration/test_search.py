@@ -1,4 +1,5 @@
 import re
+from urllib.parse import parse_qs, urlparse
 
 from playwright.sync_api import Page, expect
 
@@ -134,3 +135,16 @@ def test_search_redirect_legacy_datasette_urls(page: Page):
     page.wait_for_url("http://localhost:8080/search")
     _ = page.goto("http://localhost:8080/pudl/")
     page.wait_for_url("http://localhost:8080/search")
+
+
+def test_search_preserves_variant_in_hx_requests(page: Page):
+    _ = page.goto("http://localhost:8080/search?variants=search_method:title_boost")
+    search_input = page.get_by_role("textbox").and_(
+        page.get_by_placeholder("Search...")
+    )
+    search_input.fill("name:core_pudl__codes_datasources")
+
+    page.wait_for_url(re.compile(r".*/search\?.*q="))
+    params = parse_qs(urlparse(page.url).query)
+    assert params.get("q") == ["name:core_pudl__codes_datasources"]
+    assert params.get("variants") == ["search_method:title_boost"]

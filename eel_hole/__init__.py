@@ -32,7 +32,7 @@ from eel_hole.duckdb_query import Filter, ag_grid_to_duckdb
 from eel_hole.feature_variants import FeatureVariants, get_variant
 from eel_hole.logs import log
 from eel_hole.models import User, db
-from eel_hole.search import initialize_index, run_search
+from eel_hole.search import SEARCH_VARIANT_FIELD_BOOSTS, initialize_index, run_search
 from eel_hole.utils import (
     PartitionedResourceDisplay,
     clean_ferc_xbrl_resource,
@@ -200,7 +200,10 @@ def create_app():
         FEATURE_VARIANTS={
             "search_packages": FeatureVariants(
                 default="pudl_only", variants={"raw_ferc", "pudl_only"}
-            )
+            ),
+            "search_method": FeatureVariants(
+                default="default", variants=set(SEARCH_VARIANT_FIELD_BOOSTS.keys())
+            ),
         },
     )
 
@@ -410,16 +413,24 @@ def create_app():
         query = request.args.get("q")
         log.info("search", url=request.full_path, query=query)
 
-        raw_ferc_enabled = get_variant("search_packages") == "raw_ferc"
+        search_packages = get_variant("search_packages")
+        search_method = get_variant("search_method")
 
         if query:
-            resources = run_search(ix=search_index, raw_query=query)
+            resources = run_search(
+                ix=search_index,
+                raw_query=query,
+                search_method=search_method,
+                search_packages=search_packages,
+            )
         else:
-            resources = sorted_all_resources if raw_ferc_enabled else sorted_pudl_only
+            resources = (
+                sorted_all_resources
+                if search_packages == "raw_ferc"
+                else sorted_pudl_only
+            )
 
-        return render_template(
-            template, resources=resources, query=query, ferc_enabled=raw_ferc_enabled
-        )
+        return render_template(template, resources=resources, query=query)
 
     @app.get("/api/duckdb")
     def duckdb():

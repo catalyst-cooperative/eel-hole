@@ -32,6 +32,11 @@ def test_get_variant_from_query_string(client: FlaskClient):
     assert response.text == "a"
 
 
+def test_get_variant_not_in_query_string_uses_default(client: FlaskClient):
+    response = client.get("/test_variant/foo?variants=bar:B")
+    assert response.text == "default"
+
+
 def test_get_variants_from_query_string(client: FlaskClient):
     response = client.get("/test_variant/foo?variants=foo:a,bar:B")
     assert response.text == "a"

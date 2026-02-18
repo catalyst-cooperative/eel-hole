@@ -27,6 +27,7 @@
         name="q"
         hx-get="/search"
         hx-trigger="input changed delay:300ms"
+        hx-include="[name='variants']"
         hx-target="#search-results"
         hx-replace-url="true"
         placeholder="Search..."
@@ -37,6 +38,13 @@
           value="{{ query }}"
         {% endif %}
       />
+      {% if request.args.get("variants") %}
+        <input
+          type="hidden"
+          name="variants"
+          value="{{ request.args.get('variants') }}"
+        />
+      {% endif %}
       <div class="data-dictionary is-flex-grow-1" id="search-results">
         {% include 'partials/search_results.html' %}
       </div>

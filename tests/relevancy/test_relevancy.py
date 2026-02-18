@@ -5,7 +5,7 @@ import yaml
 
 @pytest.fixture
 def reference_queries():
-    """Placeholder reference queries; replace with read from YAML"""
+    """Reference queries defined in ./reference-queries.yaml."""
     with open("tests/relevancy/reference-queries.yaml") as f:
         from_file = yaml.safe_load(f)
     return from_file

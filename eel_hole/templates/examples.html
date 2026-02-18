@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Example Gallery - PUDL Data Viewer{% endblock %}
+
+{% block content %}
+  <section class="section">
+    <div class="container">
+      <h1 class="title">Example Gallery</h1>
+
+      {% if examples %}
+        <div class="columns is-multiline">
+          {% for example in examples %}
+            <div class="column is-half-tablet is-one-third-desktop">
+              <div class="card">
+                <div class="card-content">
+                  <p class="title is-5">{{ example.title }}</p>
+                  {% if example.description %}
+                    <p class="content">{{ example.description }}</p>
+                  {% endif %}
+                </div>
+                <footer class="card-footer">
+                  <a
+                    class="card-footer-item"
+                    href="{{ url_for('example', slug=example.slug) }}"
+                    >Open example</a
+                  >
+                </footer>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <article class="message is-warning">
+          <div class="message-body">
+            No notebook examples are available yet.
+          </div>
+        </article>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}

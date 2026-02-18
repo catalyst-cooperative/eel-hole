@@ -29,6 +29,7 @@ python-downloads = "automatic"
 
 [dependency-groups]
 dev = [
+    "marimo>=0.16.0",
     "playwright>=1.55.0",
     "pre-commit>=4.5.1",
     "pytest>=8.4.2",

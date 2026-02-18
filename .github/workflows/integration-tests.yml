@@ -28,8 +28,10 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          uv sync
+          uv sync --group dev
           uv pip install -e .
+      - name: Build notebook examples
+        run: uv run python -m eel_hole.build_examples --config eel_hole/examples.yaml
 
       - name: Install Playwright
         run: uv run playwright install chromium

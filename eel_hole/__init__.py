@@ -3,6 +3,7 @@
 import json
 import os
 from dataclasses import asdict
+from pathlib import Path
 from urllib.parse import quote
 
 import requests
@@ -13,6 +14,7 @@ from flask import (
     redirect,
     render_template,
     request,
+    send_from_directory,
     session,
     url_for,
 )
@@ -39,6 +41,7 @@ from eel_hole.utils import (
     clean_ferceqr_resource,
     clean_pudl_resource,
 )
+from eel_hole.examples_config import load_examples_config
 
 AUTH0_DOMAIN = os.getenv("PUDL_VIEWER_AUTH0_DOMAIN")
 CLIENT_ID = os.getenv("PUDL_VIEWER_AUTH0_CLIENT_ID")
@@ -223,6 +226,9 @@ def create_app():
         key=__sort_resources_by_name,
     )
     sorted_all_resources = sorted(all_resources, key=__sort_resources_by_name)
+    examples_config = load_examples_config(Path(app.root_path) / "examples.yaml")
+    configured_examples = examples_config.examples
+    configured_example_slugs = {example.slug for example in configured_examples}
 
     @app.before_request
     def check_for_privacy_policy():
@@ -431,6 +437,42 @@ def create_app():
             )
 
         return render_template(template, resources=resources, query=query)
+
+    @app.get("/examples")
+    @app.get("/examples/")
+    def examples():
+        """Render gallery of configured notebook examples."""
+        return render_template("examples.html", examples=configured_examples)
+
+    @app.get("/examples/<slug>")
+    def example_redirect(slug: str):
+        """Redirect example URLs to trailing-slash form for relative assets."""
+        return redirect(url_for("example", slug=slug), code=308)
+
+    @app.get("/examples/<slug>/")
+    def example(slug: str):
+        """Serve a generated marimo example for configured slugs."""
+        if slug not in configured_example_slugs:
+            abort(404)
+
+        examples_root = Path(app.static_folder) / "examples" / slug
+        index_path = examples_root / "index.html"
+        if not index_path.exists():
+            abort(404)
+
+        return send_from_directory(examples_root, "index.html")
+
+    @app.get("/examples/<slug>/<path:asset_path>")
+    def example_asset(slug: str, asset_path: str):
+        """Serve static assets for a generated marimo example."""
+        if slug not in configured_example_slugs:
+            abort(404)
+
+        examples_root = Path(app.static_folder) / "examples" / slug
+        if not (examples_root / asset_path).exists():
+            abort(404)
+
+        return send_from_directory(examples_root, asset_path)
 
     @app.get("/api/duckdb")
     def duckdb():

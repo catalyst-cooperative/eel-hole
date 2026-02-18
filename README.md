@@ -18,6 +18,12 @@ Build the JS/CSS:
 npm run build
 ```
 
+Build static notebook examples from `eel_hole/examples.yaml`:
+
+```bash
+uv run python -m eel_hole.build_examples --config eel_hole/examples.yaml --local-repo-path <your local pudl-examples repo>
+```
+
 Set up pre-commit hooks:
 
 ```
@@ -44,6 +50,8 @@ We have a docker compose file, but _make sure to build the JS/CSS first_:
 
 ```bash
 $ npm run build
+...
+uv run python -m eel_hole.build_examples --config eel_hole/examples.yaml --local-repo-path <your local pudl-examples repo>
 ...
 $ docker compose build && docker compose up
 ```
@@ -199,11 +207,11 @@ For **preview**:
 2. Client queries DuckDB (using [duckdb-wasm](https://duckdb.org/docs/api/wasm/overview.html)), which can read data from remote Parquet files.
 3. The data comes back as Apache Arrow tables, which we convert into JS arrays to feed into [AG Grid](https://www.ag-grid.com/) viewer.
 
-The database is *only* used for storing users right now.
+The database is _only_ used for storing users right now.
 
 ## Frameworks
 
-* [Bulma](https://bulma.io/) for static CSS and component layout
-* [Alpine](https://alpinejs.dev/) for client-side interactivity
-* [HTMX](https://htmx.org/) for server-side interactivity and partial DOM updates
-* [AG Grid](https://www.ag-grid.com/) for display of interactive tabular data
+- [Bulma](https://bulma.io/) for static CSS and component layout
+- [Alpine](https://alpinejs.dev/) for client-side interactivity
+- [HTMX](https://htmx.org/) for server-side interactivity and partial DOM updates
+- [AG Grid](https://www.ag-grid.com/) for display of interactive tabular data

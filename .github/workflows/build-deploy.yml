@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
       - name: Authenticate to Google Cloud
         id: "auth"
         uses: "google-github-actions/auth@v2"
@@ -38,6 +40,10 @@ jobs:
         run: |
           npm ci
           npm run build
+      - name: Install Python dependencies for examples export
+        run: uv sync --group dev
+      - name: Build notebook examples
+        run: uv run python -m eel_hole.build_examples --config eel_hole/examples.yaml
       - name: Build image and push to Google Artifact Registry
         id: docker-build
         uses: docker/build-push-action@v6

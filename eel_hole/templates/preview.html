@@ -1,4 +1,10 @@
 {% extends "base.html" %}
+{% block extra_head %}
+  <script
+    type="module"
+    src="{{ url_for('static', filename='preview.js') }}"
+  ></script>
+{% endblock %}
 {% block title %}
   {{ resource.name }}{{
     " -

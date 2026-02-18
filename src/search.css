@@ -1,0 +1,59 @@
+.search-autocomplete-container {
+  position: relative;
+}
+
+.search-autocomplete-menu {
+  display: none; /* hide the empty menu at page load */
+  position: absolute;
+  z-index: 1;
+  width: 100%;
+  top: 100%;
+  border: 1px solid var(--bulma-border);
+  border-radius: 0.5rem;
+  background-color: var(--bulma-scheme-main);
+  overflow: hidden;
+}
+
+/*
+ * When the menu is open, we want the menu and the input to look like a single
+ * element - so we un-round the corners
+ */
+.search-autocomplete-container.is-autocomplete-open .input {
+  position: relative;
+  z-index: 2;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.search-autocomplete-container.is-autocomplete-open .search-autocomplete-menu {
+  display: block;
+  border-top: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+/*
+ * Make the autocomplete <button>s not actually look like buttons
+ */
+.search-autocomplete-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  cursor: default;
+}
+
+.search-autocomplete-item.is-selected {
+  background-color: var(--bulma-scheme-main-ter);
+}
+
+/*
+ * Get rid of all shadows when we have search input - this mimics common search
+ * bar behavior and makes the input/menu look cohesive
+ */
+.search-autocomplete-container .input:not(:placeholder-shown),
+.search-autocomplete-container .input:not(:placeholder-shown):focus {
+  border-color: var(--bulma-border);
+  box-shadow: none;
+}

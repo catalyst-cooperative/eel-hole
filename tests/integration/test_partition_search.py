@@ -105,6 +105,7 @@ def test_buttons_disabled_until_partition_selected(page: Page):
         page.get_by_placeholder("Search...")
     )
     search_input.fill("name:core_ferceqr__quarterly_identity")
+    search_input.press("Enter")
 
     table_card = page.get_by_test_id("core_ferceqr__quarterly_identity")
     expect(table_card).to_be_visible(timeout=5000)

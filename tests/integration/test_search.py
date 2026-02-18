@@ -234,6 +234,7 @@ def test_search_preserves_variant_in_hx_requests(page: Page):
         page.get_by_placeholder("Search...")
     )
     search_input.fill("name:core_pudl__codes_datasources")
+    search_input.press("Enter")
 
     page.wait_for_url(re.compile(r".*/search\?.*q="))
     params = parse_qs(urlparse(page.url).query)

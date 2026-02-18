@@ -1,36 +1,14 @@
 import requests
 import pytest
+import yaml
 
 
 @pytest.fixture
 def reference_queries():
     """Placeholder reference queries; replace with read from YAML"""
-    return [
-        {
-            "query": "name:epacamd",
-            "relevant": {
-                "core_epa__assn_eia_epacamd",
-                "core_epa__assn_eia_epacamd_subplant_ids",
-            },
-        },
-        {
-            "query": "core_eia861__yearly_net_metering_customer_fuel_cla",
-            "relevant": {"core_eia861__yearly_net_metering_customer_fuel_class"},
-        },
-        {
-            "query": "data_out_eia__yearly_utilities",
-            "relevant": {"out_eia__yearly_utilities"},
-        },
-        {
-            "query": "form 1",
-            "relevant": {
-                "out_ferc1__yearly_all_plants",
-                "out_ferc1__yearly_detailed_income_statements",
-                "out_ferc1__yearly_detailed_balance_sheet_assets",
-                "out_ferc1__yearly_detailed_balance_sheet_liabilities",
-            },
-        },
-    ]
+    with open("tests/relevancy/reference-queries.yaml") as f:
+        from_file = yaml.safe_load(f)
+    return from_file
 
 
 @pytest.mark.parametrize(

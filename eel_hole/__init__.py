@@ -7,7 +7,6 @@ from pathlib import Path
 from urllib.parse import quote
 
 import requests
-import yaml
 from authlib.integrations.flask_client import OAuth
 from flask import (
     Flask,
@@ -42,6 +41,7 @@ from eel_hole.utils import (
     clean_ferceqr_resource,
     clean_pudl_resource,
 )
+from eel_hole.examples_config import load_examples_config
 
 AUTH0_DOMAIN = os.getenv("PUDL_VIEWER_AUTH0_DOMAIN")
 CLIENT_ID = os.getenv("PUDL_VIEWER_AUTH0_CLIENT_ID")
@@ -181,20 +181,6 @@ def __sort_resources_by_name(resource: Resource):
     return 4
 
 
-def _load_examples_config(config_path: Path) -> list[dict]:
-    """Load notebook examples from eel_hole/examples.yaml."""
-    if not config_path.exists():
-        return []
-
-    payload = yaml.safe_load(config_path.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict):
-        return []
-    examples = payload.get("examples", [])
-    if not isinstance(examples, list):
-        return []
-    return [ex for ex in examples if isinstance(ex, dict)]
-
-
 def create_app():
     """Main app definition.
 
@@ -240,6 +226,9 @@ def create_app():
         key=__sort_resources_by_name,
     )
     sorted_all_resources = sorted(all_resources, key=__sort_resources_by_name)
+    examples_config = load_examples_config(Path(app.root_path) / "examples.yaml")
+    configured_examples = examples_config.examples
+    configured_example_slugs = {example.slug for example in configured_examples}
 
     @app.before_request
     def check_for_privacy_policy():
@@ -453,8 +442,6 @@ def create_app():
     @app.get("/examples/")
     def examples():
         """Render gallery of configured notebook examples."""
-        config_path = Path(app.root_path) / "examples.yaml"
-        configured_examples = _load_examples_config(config_path)
         return render_template("examples.html", examples=configured_examples)
 
     @app.get("/examples/<slug>")
@@ -465,12 +452,7 @@ def create_app():
     @app.get("/examples/<slug>/")
     def example(slug: str):
         """Serve a generated marimo example for configured slugs."""
-        config_path = Path(app.root_path) / "examples.yaml"
-        known_examples = _load_examples_config(config_path)
-        if slug not in {item.get("slug") for item in known_examples}:
-            abort(404)
-
-        if not app.static_folder:
+        if slug not in configured_example_slugs:
             abort(404)
 
         examples_root = Path(app.static_folder) / "examples" / slug
@@ -483,12 +465,7 @@ def create_app():
     @app.get("/examples/<slug>/<path:asset_path>")
     def example_asset(slug: str, asset_path: str):
         """Serve static assets for a generated marimo example."""
-        config_path = Path(app.root_path) / "examples.yaml"
-        known_examples = _load_examples_config(config_path)
-        if slug not in {item.get("slug") for item in known_examples}:
-            abort(404)
-
-        if not app.static_folder:
+        if slug not in configured_example_slugs:
             abort(404)
 
         examples_root = Path(app.static_folder) / "examples" / slug

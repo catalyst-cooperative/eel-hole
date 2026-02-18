@@ -21,7 +21,7 @@ npm run build
 Build static notebook examples from `eel_hole/examples.yaml`:
 
 ```bash
-uv run python scripts/build_examples.py --config eel_hole/examples.yaml
+uv run python -m eel_hole.build_examples --config eel_hole/examples.yaml --local-repo-path <your local pudl-examples repo>
 ```
 
 Set up pre-commit hooks:
@@ -51,7 +51,7 @@ We have a docker compose file, but _make sure to build the JS/CSS first_:
 ```bash
 $ npm run build
 ...
-$ uv run python scripts/build_examples.py --config eel_hole/examples.yaml
+uv run python -m eel_hole.build_examples --config eel_hole/examples.yaml --local-repo-path <your local pudl-examples repo>
 ...
 $ docker compose build && docker compose up
 ```

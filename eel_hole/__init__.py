@@ -33,7 +33,12 @@ from eel_hole.duckdb_query import Filter, ag_grid_to_duckdb
 from eel_hole.feature_variants import FeatureVariants, get_variant
 from eel_hole.logs import log
 from eel_hole.models import User, db
-from eel_hole.search import SEARCH_VARIANT_FIELD_BOOSTS, initialize_index, run_search, search_settings
+from eel_hole.search import (
+    SEARCH_VARIANT_FIELD_BOOSTS,
+    initialize_index,
+    run_search,
+    search_settings,
+)
 from eel_hole.utils import (
     PartitionedResourceDisplay,
     clean_ferc_xbrl_resource,

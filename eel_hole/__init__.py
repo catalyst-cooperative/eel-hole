@@ -1,5 +1,6 @@
 """Main app definition."""
 
+from collections import namedtuple
 import json
 import os
 from dataclasses import asdict
@@ -230,6 +231,10 @@ def create_app():
     )
     sorted_all_resources = sorted(all_resources, key=__sort_resources_by_name)
 
+    RequestedResources = namedtuple(
+        "RequestedResources", "query search_method resources"
+    )
+
     @app.before_request
     def check_for_privacy_policy():
         """Bounce people to privacy policy if necessary.
@@ -405,8 +410,8 @@ def create_app():
         next_url = request.form.get("next_url", url_for("privacy_policy"))
         return redirect(next_url)
 
-    def manage_search():
-        """Shared search functionality between web and API search."""
+    def resources_from_request():
+        """Use request information to either run a search or return a resource collection."""
         query = request.args.get("q")
         log.info("search", url=request.full_path, query=query)
 
@@ -426,7 +431,9 @@ def create_app():
                 if search_packages == "raw_ferc"
                 else sorted_pudl_only
             )
-        return query, search_method, resources
+        return RequestedResources(
+            query=query, search_method=search_method, resources=resources
+        )
 
     @app.get("/search")
     def search():
@@ -439,9 +446,9 @@ def create_app():
             q: the query string
         """
         template = "partials/search_results.html" if htmx else "search.html"
-        query, _, resources = manage_search()
+        rr = resources_from_request()
 
-        return render_template(template, resources=resources, query=query)
+        return render_template(template, resources=rr.resources, query=rr.query)
 
     @app.get("/api/search")
     def api_search():
@@ -450,15 +457,15 @@ def create_app():
         Params:
             q: the query string
         """
-        query, search_method, resources = manage_search()
+        rr = resources_from_request()
         return jsonify(
             {
-                "query": query,
+                "query": rr.query,
                 "settings": {
-                    "method": search_method,
-                    "boosts": search_settings(search_method),
+                    "method": rr.search_method,
+                    "boosts": search_settings(rr.search_method),
                 },
-                "results": [{"name": r["name"]} for r in resources],
+                "results": [{"name": r["name"]} for r in rr.resources],
             }
         )
 

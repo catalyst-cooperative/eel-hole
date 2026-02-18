@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}{{ example.title }} - PUDL Data Viewer{% endblock %}
+
+{% block extra_head %}
+  <style>
+    .full-app {
+      height: 100dvh;
+      max-height: none;
+    }
+
+    #main-content {
+      margin: 0;
+      padding: 0;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+    }
+
+    .example-iframe {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      margin: 0;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <iframe
+    src="{{ hosted_url }}"
+    title="{{ example.title }}"
+    class="example-iframe"
+  ></iframe>
+{% endblock %}

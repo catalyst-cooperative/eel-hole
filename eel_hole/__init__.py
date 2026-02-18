@@ -5,9 +5,11 @@ import json
 import os
 from collections import namedtuple
 from dataclasses import asdict
+from pathlib import Path
 from urllib.parse import quote
 
 import requests
+import yaml
 from authlib.integrations.flask_client import OAuth
 from flask import (
     Flask,
@@ -30,9 +32,9 @@ from flask_login import (
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from frictionless import Package, Resource
-import yaml
 
 from eel_hole.duckdb_query import Filter, ag_grid_to_duckdb
+from eel_hole.examples_config import load_examples_config
 from eel_hole.feature_variants import FeatureVariants, get_variant
 from eel_hole.logs import log
 from eel_hole.models import User, db
@@ -239,6 +241,10 @@ def create_app():
     autocomplete_name_index_pudl_only = build_autocomplete_name_index(sorted_pudl_only)
     autocomplete_name_index_all = build_autocomplete_name_index(sorted_all_resources)
     quick_pudl_resources = {r.name: r for r in sorted_pudl_only}
+    configured_examples = load_examples_config(Path(app.root_path) / "examples.yaml")
+    configured_examples_by_slug = {
+        example.slug: example for example in configured_examples
+    }
 
     RequestedResources = namedtuple(
         "RequestedResources", "query search_method resources"
@@ -508,9 +514,33 @@ def create_app():
             variants=variants,
         )
 
+    @app.get("/secret-examples")
+    @app.get("/secret-examples/")
+    def examples():
+        """Render gallery of configured notebook examples."""
+        return render_template("examples.html", examples=configured_examples)
+
+    @app.get("/secret-examples/<slug>")
+    @app.get("/secret-examples/<slug>/")
+    def example(slug: str):
+        """Render a configured notebook example in an iframe.
+
+        404 if the requested slug doesn't correspond to a real example."""
+        example_cfg = configured_examples_by_slug.get(slug)
+        if example_cfg is None:
+            abort(404)
+
+        hosted_url = example_cfg.url
+
+        return render_template(
+            "example_iframe.html",
+            example=example_cfg,
+            hosted_url=hosted_url,
+        )
+
     @app.get("/api/duckdb")
     def duckdb():
-        """Take filters from Perspective and return a DuckDB query.
+        """Take filters from AG-Grid and return a DuckDB query.
 
         Params:
             perspective_filters: a table name and its associated filters.

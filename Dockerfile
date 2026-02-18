@@ -5,7 +5,8 @@ RUN pip install uv
 WORKDIR /app
 
 COPY pyproject.toml uv.lock ./
-RUN uv sync --no-dev
+RUN uv sync --no-dev --no-install-project
 COPY . .
+RUN uv sync --no-dev
 
 CMD uv run --no-dev flask --app eel_hole run --host 0.0.0.0 --port $PORT --reload

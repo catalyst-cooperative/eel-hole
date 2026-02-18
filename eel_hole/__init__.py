@@ -1,5 +1,6 @@
 """Main app definition."""
 
+from collections import namedtuple
 import json
 import os
 from dataclasses import asdict
@@ -16,6 +17,7 @@ from flask import (
     session,
     url_for,
 )
+from flask.json import jsonify
 from flask_htmx import HTMX
 from flask_login import (
     LoginManager,
@@ -32,7 +34,12 @@ from eel_hole.duckdb_query import Filter, ag_grid_to_duckdb
 from eel_hole.feature_variants import FeatureVariants, get_variant
 from eel_hole.logs import log
 from eel_hole.models import User, db
-from eel_hole.search import SEARCH_VARIANT_FIELD_BOOSTS, initialize_index, run_search
+from eel_hole.search import (
+    SEARCH_VARIANT_FIELD_BOOSTS,
+    initialize_index,
+    run_search,
+    search_settings,
+)
 from eel_hole.utils import (
     PartitionedResourceDisplay,
     clean_ferc_xbrl_resource,
@@ -224,6 +231,10 @@ def create_app():
     )
     sorted_all_resources = sorted(all_resources, key=__sort_resources_by_name)
 
+    RequestedResources = namedtuple(
+        "RequestedResources", "query search_method resources"
+    )
+
     @app.before_request
     def check_for_privacy_policy():
         """Bounce people to privacy policy if necessary.
@@ -399,17 +410,8 @@ def create_app():
         next_url = request.form.get("next_url", url_for("privacy_policy"))
         return redirect(next_url)
 
-    @app.get("/search")
-    def search():
-        """Run a search query and return results.
-
-        If hit as part of an HTMX request, only render the search results HTML
-        fragment. Otherwise render the whole page.
-
-        Params:
-            q: the query string
-        """
-        template = "partials/search_results.html" if htmx else "search.html"
+    def resources_from_request():
+        """Use request information to either run a search or return a resource collection."""
         query = request.args.get("q")
         log.info("search", url=request.full_path, query=query)
 
@@ -429,8 +431,43 @@ def create_app():
                 if search_packages == "raw_ferc"
                 else sorted_pudl_only
             )
+        return RequestedResources(
+            query=query, search_method=search_method, resources=resources
+        )
 
-        return render_template(template, resources=resources, query=query)
+    @app.get("/search")
+    def search():
+        """Run a search query and return results.
+
+        If hit as part of an HTMX request, only render the search results HTML
+        fragment. Otherwise render the whole page.
+
+        Params:
+            q: the query string
+        """
+        template = "partials/search_results.html" if htmx else "search.html"
+        rr = resources_from_request()
+
+        return render_template(template, resources=rr.resources, query=rr.query)
+
+    @app.get("/api/search")
+    def api_search():
+        """Run a search query and return results as JSON.
+
+        Params:
+            q: the query string
+        """
+        rr = resources_from_request()
+        return jsonify(
+            {
+                "query": rr.query,
+                "settings": {
+                    "method": rr.search_method,
+                    "boosts": search_settings(rr.search_method),
+                },
+                "results": [{"name": r["name"]} for r in rr.resources],
+            }
+        )
 
     @app.get("/api/duckdb")
     def duckdb():

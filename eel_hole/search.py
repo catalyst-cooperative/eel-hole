@@ -87,6 +87,11 @@ def initialize_index(
     return ix
 
 
+def search_settings(search_method: str) -> dict[str, float]:
+    """Identify settings for specified search method."""
+    return SEARCH_VARIANT_FIELD_BOOSTS[search_method]
+
+
 def run_search(
     ix: index.Index, raw_query: str, search_method: str, search_packages: str
 ) -> list[Resource]:
@@ -94,7 +99,7 @@ def run_search(
 
     This doctors the raw query with some field boosts + tag boosts.
     """
-    field_boosts = SEARCH_VARIANT_FIELD_BOOSTS[search_method]
+    field_boosts = search_settings(search_method)
 
     with ix.searcher() as searcher:
         parser = MultifieldParser(

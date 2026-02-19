@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import structlog
 from docutils.core import publish_parts
 from frictionless import Resource
+from markupsafe import Markup, escape
 
 log = structlog.get_logger(__name__)
 
@@ -165,6 +166,26 @@ def plaintext_to_html(text: str) -> str:
             html_parts.append(joined_para)
 
     return f"<main>\n{'\n'.join(html_parts)}\n</main>"
+
+
+def highlight_first(text: str, to_highlight: str) -> Markup:
+    """Wrap the first case-insensitive match in <strong> tags.
+
+    Returns escaped HTML-safe output so templates can render with `|safe`.
+    """
+    trimmed_to_highlight = to_highlight.strip()
+    if not trimmed_to_highlight:
+        return escape(text)
+
+    start = text.lower().find(trimmed_to_highlight.lower())
+    if start == -1:
+        return escape(text)
+
+    end = start + len(trimmed_to_highlight)
+    prefix = escape(text[:start])
+    matched = escape(text[start:end])
+    suffix = escape(text[end:])
+    return Markup("{}<strong>{}</strong>{}").format(prefix, matched, suffix)
 
 
 def clean_pudl_resource(resource: Resource) -> SingletonResourceDisplay:

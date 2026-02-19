@@ -11,58 +11,6 @@
 {% endblock %}
 {% block content %}
   <div class="columns container is-fluid is-flex-grow-1">
-    <div class="data-dictionary column my-3 is-flex is-flex-direction-column">
-      <div
-        class="search-autocomplete-container block"
-        id="search-autocomplete-container"
-        x-data="searchAutocomplete()"
-      >
-        <form
-          action="/search"
-          method="get"
-          hx-get="/search"
-          hx-target="#search-results"
-          hx-swap="innerHTML"
-          hx-replace-url="true"
-          x-ref="searchForm"
-        >
-          {% if request.args.get('variants') %}
-            <input
-              type="hidden"
-              name="variants"
-              value="{{ request.args.get('variants') }}"
-            />
-          {% endif %}
-          <input
-            class="input is-medium"
-            type="text"
-            name="q"
-            x-ref="searchInput"
-            x-on:input="onInput()"
-            x-on:focus="onInputFocus()"
-            x-on:keydown="onKeyDown($event)"
-            autocomplete="off"
-            placeholder="Search..."
-            {%
-              if
-              query
-            %}
-              value="{{ query }}"
-            {% endif %}
-          />
-          <div
-            class="search-autocomplete-menu"
-            id="search-autocomplete"
-            x-ref="menu"
-            x-show="state.isOpen"
-            x-on:click="onMenuClick($event)"
-            x-on:mouseover="onMenuMouseOver($event)"
-          ></div>
-        </form>
-      </div>
-      <div class="data-dictionary is-flex-grow-1" id="search-results">
-        {% include 'partials/search_results.html' %}
-      </div>
-    </div>
+    {% include 'partials/search_content.html' %}
   </div>
 {% endblock %}

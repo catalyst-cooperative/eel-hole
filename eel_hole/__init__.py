@@ -11,7 +11,6 @@ from authlib.integrations.flask_client import OAuth
 from flask import (
     Flask,
     abort,
-    jsonify,
     redirect,
     render_template,
     request,
@@ -47,6 +46,7 @@ from eel_hole.utils import (
     clean_ferc_xbrl_resource,
     clean_ferceqr_resource,
     clean_pudl_resource,
+    highlight_first,
 )
 
 AUTH0_DOMAIN = os.getenv("PUDL_VIEWER_AUTH0_DOMAIN")
@@ -215,6 +215,7 @@ def create_app():
             ),
         },
     )
+    app.add_template_filter(highlight_first, name="highlight_first")
 
     auth0 = __init_auth0(app)
 
@@ -447,7 +448,7 @@ def create_app():
         Params:
             q: the query string
         """
-        template = "partials/search_results.html" if htmx else "search.html"
+        template = "partials/search_content.html" if htmx else "search.html"
         rr = resources_from_request()
 
         return render_template(template, resources=rr.resources, query=rr.query)
@@ -473,12 +474,20 @@ def create_app():
 
     @app.get("/search/autocomplete")
     def search_autocomplete():
-        """Return table-name suggestions for the current search query."""
+        """Return autocomplete menu HTML for the current search query."""
         query = request.args.get("q", "")
+        if not query.strip():
+            return ""
+        variants = request.args.get("variants")
         raw_ferc_enabled = get_variant("search_packages") == "raw_ferc"
         resources = sorted_all_resources if raw_ferc_enabled else sorted_pudl_only
         suggestions = autocomplete_resource_names(resources=resources, raw_query=query)
-        return jsonify({"suggestions": suggestions})
+        return render_template(
+            "partials/search_autocomplete.html",
+            query=query,
+            suggestions=suggestions,
+            variants=variants,
+        )
 
     @app.get("/api/duckdb")
     def duckdb():

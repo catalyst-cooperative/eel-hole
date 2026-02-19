@@ -1,0 +1,28 @@
+{% set trimmed_query = query.strip() %}
+{% if trimmed_query %}
+  {% set search_label = 'Search for "' + trimmed_query + '"' %}
+  <a
+    class="search-autocomplete-item px-3 py-2"
+    data-index="0"
+    data-query="{{ trimmed_query }}"
+    :class="{ 'is-selected': selectedIndex === Number($el.dataset.index) }"
+    @mousemove="selectedIndex = Number($el.dataset.index)"
+    @mousedown.prevent="selectAndSubmit(Number($el.dataset.index))"
+  >
+    {{ search_label | highlight_first(trimmed_query) }}
+  </a>
+  {% for name in suggestions %}
+    {% set suggestion_query = "name:" + name %}
+    <a
+      class="search-autocomplete-item px-3 py-2"
+      data-index="{{ loop.index }}"
+      data-query="{{ suggestion_query }}"
+      :class="{ 'is-selected': selectedIndex === Number($el.dataset.index) }"
+      @mousemove="selectedIndex = Number($el.dataset.index)"
+      @mousedown.prevent="selectAndSubmit(Number($el.dataset.index))"
+    >
+      <span class="has-text-grey">name:</span>
+      {{ name | highlight_first(trimmed_query) }}
+    </a>
+  {% endfor %}
+{% endif %}

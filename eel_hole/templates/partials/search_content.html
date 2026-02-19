@@ -1,0 +1,64 @@
+<div
+  class="data-dictionary column my-3 is-flex is-flex-direction-column"
+  id="search-content"
+>
+  <div
+    class="search-autocomplete-container block"
+    id="search-autocomplete-container"
+    x-data="searchAutocompleteState"
+    :class="{ 'is-autocomplete-open': menuVisible() }"
+    @click.outside="closeMenu()"
+    @keydown.escape.window.prevent.stop="closeMenu()"
+    @htmx:after-swap.window.camel="onAfterSwap($event)"
+  >
+    <form
+      action="/search"
+      method="get"
+      hx-get="/search"
+      hx-target="#search-content"
+      hx-swap="outerHTML"
+      hx-replace-url="true"
+      x-ref="form"
+    >
+      {% if request.args.get('variants') %}
+        <input
+          type="hidden"
+          name="variants"
+          value="{{ request.args.get('variants') }}"
+        />
+      {% endif %}
+      <input
+        class="input is-medium"
+        id="search-query-input"
+        type="text"
+        name="q"
+        hx-get="/search/autocomplete"
+        hx-trigger="input changed delay:120ms"
+        hx-target="#search-autocomplete"
+        hx-swap="innerHTML"
+        autocomplete="off"
+        placeholder="Search..."
+        hx-replace-url="false"
+        x-ref="input"
+        @input="isExpanded = true"
+        @focus="isExpanded = true"
+        @keyup.down.prevent="moveSelection(1)"
+        @keyup.up.prevent="moveSelection(-1)"
+        @keydown.enter.prevent="submit(selectedIndex)"
+        {% if query %}
+          value="{{ query }}"
+        {% endif %}
+      />
+      <div
+        class="search-autocomplete-menu"
+        id="search-autocomplete"
+        x-ref="menu"
+        x-show="menuVisible()"
+        x-cloak
+      ></div>
+    </form>
+  </div>
+  <div class="data-dictionary is-flex-grow-1" id="search-results">
+    {% include 'partials/search_results.html' %}
+  </div>
+</div>

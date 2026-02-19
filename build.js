@@ -26,7 +26,7 @@ function findTsEntryPoints(dirPath) {
 }
 
 async function build() {
-  const entryPoints = findTsEntryPoints(path.join(__dirname, "src"));
+  const entryPoints = [...findTsEntryPoints(path.join(__dirname, "src"))];
 
   await esbuild.build({
     entryPoints,

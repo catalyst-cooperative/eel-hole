@@ -428,7 +428,8 @@ function convertDatetimes(
    * Convert the integer timestamps that Arrow uses into JS Date objects.
    */
   timestampColumns.forEach((col) => {
-    row[col] = new Date(row[col]);
+    // keep nulls
+    row[col] = row[col] == null ? null : new Date(row[col]);
   });
   return row;
 }

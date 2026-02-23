@@ -5,7 +5,7 @@
   display: none !important;
 }
 
-.search-autocomplete-container {
+#search-autocomplete-container {
   position: relative;
 }
 
@@ -40,22 +40,22 @@
 * square off the adjacent corners when the menu is open, and make sure there's only one border between them.
 * We also get rid of the focus ring around the input when the menu is open.
 */
-.search-autocomplete-container.is-autocomplete-open .input {
+#search-autocomplete-container.is-autocomplete-open .input {
   position: relative;
   z-index: 2;
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
 
-.search-autocomplete-container.is-autocomplete-open .search-autocomplete-menu {
+#search-autocomplete-container.is-autocomplete-open .search-autocomplete-menu {
   border-top: 0;
   border-top-left-radius: 0;
   border-top-right-radius: 0;
 }
 
-.search-autocomplete-container.is-autocomplete-open .input:focus,
-.search-autocomplete-container.is-autocomplete-open .input:focus-visible,
-.search-autocomplete-container.is-autocomplete-open .input:active {
+#search-autocomplete-container.is-autocomplete-open .input:focus,
+#search-autocomplete-container.is-autocomplete-open .input:focus-visible,
+#search-autocomplete-container.is-autocomplete-open .input:active {
   border-color: var(--bulma-border);
   box-shadow: none;
 }

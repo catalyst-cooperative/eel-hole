@@ -101,3 +101,7 @@
 .card:last-child {
   margin-bottom: 1.5rem;
 }
+
+#find-data .card-footer-item:first-child {
+  flex-grow: 1.5;
+}

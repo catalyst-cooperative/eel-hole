@@ -270,8 +270,8 @@ def create_app():
 
     @app.get("/")
     def home():
-        """Just a redirect for search until we come up with proper content."""
-        return redirect(url_for("search"))
+        """Render landing page."""
+        return render_template("welcome.html")
 
     @login_manager.user_loader
     def __load_user(user_id):
@@ -600,9 +600,5 @@ def create_app():
         """Mark a notification as dismissed in the session."""
         session[f"{name}_notification_dismissed"] = True
         return ""
-
-    @app.route("/xyzzy/")
-    def landing():
-        return render_template("welcome.html")
 
     return app

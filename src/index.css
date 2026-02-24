@@ -102,6 +102,15 @@
   margin-bottom: 1.5rem;
 }
 
+/* make shortcode footer item a little bigger */
 #find-data .card-footer-item:first-child {
   flex-grow: 1.5;
+}
+
+#welcome-nav {
+  display: inline-block;
+  position: sticky;
+  width: 12rem;
+  top: 0;
+  max-height: 100vh;
 }

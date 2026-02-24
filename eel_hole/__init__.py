@@ -37,6 +37,7 @@ from eel_hole.models import User, db
 from eel_hole.search import (
     SEARCH_VARIANT_FIELD_BOOSTS,
     autocomplete_resource_names,
+    build_autocomplete_name_index,
     initialize_index,
     run_search,
     search_settings,
@@ -233,6 +234,8 @@ def create_app():
         key=__sort_resources_by_name,
     )
     sorted_all_resources = sorted(all_resources, key=__sort_resources_by_name)
+    autocomplete_name_index_pudl_only = build_autocomplete_name_index(sorted_pudl_only)
+    autocomplete_name_index_all = build_autocomplete_name_index(sorted_all_resources)
 
     RequestedResources = namedtuple(
         "RequestedResources", "query search_method resources"
@@ -481,7 +484,16 @@ def create_app():
         variants = request.args.get("variants")
         raw_ferc_enabled = get_variant("search_packages") == "raw_ferc"
         resources = sorted_all_resources if raw_ferc_enabled else sorted_pudl_only
-        suggestions = autocomplete_resource_names(resources=resources, raw_query=query)
+        name_index = (
+            autocomplete_name_index_all
+            if raw_ferc_enabled
+            else autocomplete_name_index_pudl_only
+        )
+        suggestions = autocomplete_resource_names(
+            resources=resources,
+            raw_query=query,
+            name_index=name_index,
+        )
         return render_template(
             "partials/search_autocomplete.html",
             query=query,

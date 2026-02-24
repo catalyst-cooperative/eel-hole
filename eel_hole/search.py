@@ -94,11 +94,22 @@ def search_settings(search_method: str) -> dict[str, float]:
     return SEARCH_VARIANT_FIELD_BOOSTS[search_method]
 
 
+def build_autocomplete_name_index(
+    resources: list[ResourceDisplay],
+) -> list[tuple[str, str, str]]:
+    """Precompute lowercase + normalized forms used by autocomplete."""
+    return [
+        (name, name.lower(), "".join(TOKEN_RE.findall(name.lower())))
+        for name in {resource.name for resource in resources}
+    ]
+
+
 def autocomplete_resource_names(
     resources: list[ResourceDisplay],
     raw_query: str,
     limit: int = 8,
     min_score: float = 60.0,
+    name_index: list[tuple[str, str, str]] | None = None,
 ) -> list[str]:
     """Return table-name suggestions that are reasonably close to a query.
 
@@ -122,11 +133,12 @@ def autocomplete_resource_names(
     normalized_query = "".join(TOKEN_RE.findall(query))
 
     scored: list[tuple[float, str]] = []
-    resource_names = {resource.name for resource in resources}
-    for name in resource_names:
-        name_lower = name.lower()
-        normalized_name = "".join(TOKEN_RE.findall(name_lower))
-
+    names = (
+        name_index
+        if name_index is not None
+        else build_autocomplete_name_index(resources)
+    )
+    for name, name_lower, normalized_name in names:
         exact_score = fuzz.WRatio(query, name_lower)
         normalized_score = fuzz.WRatio(normalized_query, normalized_name)
         score = max(exact_score, normalized_score)

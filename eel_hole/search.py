@@ -4,6 +4,7 @@ import dataclasses
 import re
 
 from frictionless import Resource
+from rapidfuzz import fuzz
 
 # TODO 2025-01-15: think about switching this over to py-tantivy since that's better maintained
 from whoosh import index
@@ -27,6 +28,7 @@ SEARCH_VARIANT_FIELD_BOOSTS = {
     "title_boost": {"name": 3.0, "description": 1.0, "columns": 0.5},
     "column_boost": {"name": 0.5, "description": 1.0, "columns": 3.0},
 }
+TOKEN_RE = re.compile(r"[a-z0-9]+")
 
 
 def custom_stemmer(word: str) -> str:
@@ -90,6 +92,62 @@ def initialize_index(
 def search_settings(search_method: str) -> dict[str, float]:
     """Identify settings for specified search method."""
     return SEARCH_VARIANT_FIELD_BOOSTS[search_method]
+
+
+def build_autocomplete_name_index(
+    resources: list[ResourceDisplay],
+) -> list[tuple[str, str, str]]:
+    """Precompute lowercase + normalized forms used by autocomplete."""
+    return [
+        (name, name.lower(), "".join(TOKEN_RE.findall(name.lower())))
+        for name in {resource.name for resource in resources}
+    ]
+
+
+def autocomplete_resource_names(
+    resources: list[ResourceDisplay],
+    raw_query: str,
+    limit: int = 8,
+    min_score: float = 60.0,
+    name_index: list[tuple[str, str, str]] | None = None,
+) -> list[str]:
+    """Return table-name suggestions that are reasonably close to a query.
+
+    1. Clean up query
+    2. Compute similarity score with *exact* match (inc. punctuation) and
+       normalized query/resource name.
+    3. Sort the results by score and return the top `limit` results
+
+    We join tokens with `""` so that things like `eia860` and `eia 860` are
+    treated as the same.
+
+    NOTE (2026-02-17): our score threshold is 60 by default - but it's just a
+    guess. If we find the results are too noisy/strict we should change it.
+    """
+    query = raw_query.strip().lower()
+    if query.startswith("name:"):
+        query = query.removeprefix("name:").strip()
+    if not query:
+        return []
+
+    normalized_query = "".join(TOKEN_RE.findall(query))
+
+    scored: list[tuple[float, str]] = []
+    names = (
+        name_index
+        if name_index is not None
+        else build_autocomplete_name_index(resources)
+    )
+    for name, name_lower, normalized_name in names:
+        exact_score = fuzz.WRatio(query, name_lower)
+        normalized_score = fuzz.WRatio(normalized_query, normalized_name)
+        score = max(exact_score, normalized_score)
+
+        if score >= min_score:
+            scored.append((score, name))
+
+    scored.sort(key=lambda item: (-item[0], item[1]))
+    return [name for _, name in scored[:limit]]
 
 
 def run_search(

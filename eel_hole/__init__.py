@@ -1,8 +1,8 @@
 """Main app definition."""
 
-from collections import namedtuple
 import json
 import os
+from collections import namedtuple
 from dataclasses import asdict
 from urllib.parse import quote
 
@@ -36,6 +36,8 @@ from eel_hole.logs import log
 from eel_hole.models import User, db
 from eel_hole.search import (
     SEARCH_VARIANT_FIELD_BOOSTS,
+    autocomplete_resource_names,
+    build_autocomplete_name_index,
     initialize_index,
     run_search,
     search_settings,
@@ -45,6 +47,7 @@ from eel_hole.utils import (
     clean_ferc_xbrl_resource,
     clean_ferceqr_resource,
     clean_pudl_resource,
+    highlight_first,
 )
 
 AUTH0_DOMAIN = os.getenv("PUDL_VIEWER_AUTH0_DOMAIN")
@@ -213,6 +216,7 @@ def create_app():
             ),
         },
     )
+    app.add_template_filter(highlight_first, name="highlight_first")
 
     auth0 = __init_auth0(app)
 
@@ -230,6 +234,8 @@ def create_app():
         key=__sort_resources_by_name,
     )
     sorted_all_resources = sorted(all_resources, key=__sort_resources_by_name)
+    autocomplete_name_index_pudl_only = build_autocomplete_name_index(sorted_pudl_only)
+    autocomplete_name_index_all = build_autocomplete_name_index(sorted_all_resources)
 
     RequestedResources = namedtuple(
         "RequestedResources", "query search_method resources"
@@ -445,7 +451,7 @@ def create_app():
         Params:
             q: the query string
         """
-        template = "partials/search_results.html" if htmx else "search.html"
+        template = "partials/search_content.html" if htmx else "search.html"
         rr = resources_from_request()
 
         return render_template(template, resources=rr.resources, query=rr.query)
@@ -467,6 +473,32 @@ def create_app():
                 },
                 "results": [{"name": r["name"]} for r in rr.resources],
             }
+        )
+
+    @app.get("/search/autocomplete")
+    def search_autocomplete():
+        """Return autocomplete menu HTML for the current search query."""
+        query = request.args.get("q", "")
+        if not query.strip():
+            return ""
+        variants = request.args.get("variants")
+        raw_ferc_enabled = get_variant("search_packages") == "raw_ferc"
+        resources = sorted_all_resources if raw_ferc_enabled else sorted_pudl_only
+        name_index = (
+            autocomplete_name_index_all
+            if raw_ferc_enabled
+            else autocomplete_name_index_pudl_only
+        )
+        suggestions = autocomplete_resource_names(
+            resources=resources,
+            raw_query=query,
+            name_index=name_index,
+        )
+        return render_template(
+            "partials/search_autocomplete.html",
+            query=query,
+            suggestions=suggestions,
+            variants=variants,
         )
 
     @app.get("/api/duckdb")

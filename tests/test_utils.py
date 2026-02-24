@@ -4,6 +4,7 @@ from frictionless import Package, Resource, Schema, Field
 from eel_hole.utils import (
     clean_ferc_xbrl_resource,
     clean_pudl_resource,
+    highlight_first,
     rst_to_html,
     plaintext_to_html,
 )
@@ -117,3 +118,22 @@ def test_clean_ferc_xbrl_resource():
     assert "Something useful" in resource_description
     field_description = str(cleaned.columns[0].description)
     assert "<ol" in field_description and "<li>First</li>" in field_description
+
+
+def test_highlight_first_empty_to_highlight_returns_escaped_text():
+    assert (
+        str(highlight_first('Search for "codes"', "   "))
+        == "Search for &#34;codes&#34;"
+    )
+
+
+def test_highlight_first_matches_case_insensitively():
+    assert str(highlight_first("core_pudl__codes_datasources", "CoDeS_DaTaSoUrCe")) == (
+        "core_pudl__<strong>codes_datasource</strong>s"
+    )
+
+
+def test_highlight_first_escapes_html_and_only_adds_strong_markup():
+    assert str(highlight_first("<b>x</b> & value", "x</b>")) == (
+        "&lt;b&gt;<strong>x&lt;/b&gt;</strong> &amp; value"
+    )

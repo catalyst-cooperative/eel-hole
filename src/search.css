@@ -1,0 +1,61 @@
+/** This lets us hide elements even before Alpine's loaded.
+* See https://alpinejs.dev/directives/cloak
+*/
+[x-cloak] {
+  display: none !important;
+}
+
+#search-autocomplete-container {
+  position: relative;
+}
+
+.search-autocomplete-menu {
+  position: absolute;
+  z-index: 1;
+  width: 100%;
+  top: 100%;
+  border: 1px solid var(--bulma-border); /* otherwise no border at all */
+  border-radius: 0.5rem;
+  background-color: var(
+    --bulma-scheme-main
+  ); /* otherwise background is transparent */
+}
+
+.search-autocomplete-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  color: inherit; /* otherwise the links are blue */
+  text-decoration: none;
+}
+
+/* Make the selected item... visibly selected */
+.search-autocomplete-item.is-selected {
+  background-color: var(--bulma-scheme-main-ter);
+  outline: none;
+}
+
+/**
+* We want autocomplete menu and input box to look like a single element, so we
+* square off the adjacent corners when the menu is open, and make sure there's only one border between them.
+* We also get rid of the focus ring around the input when the menu is open.
+*/
+#search-autocomplete-container.is-autocomplete-open .input {
+  position: relative;
+  z-index: 2;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+#search-autocomplete-container.is-autocomplete-open .search-autocomplete-menu {
+  border-top: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+#search-autocomplete-container.is-autocomplete-open .input:focus,
+#search-autocomplete-container.is-autocomplete-open .input:focus-visible,
+#search-autocomplete-container.is-autocomplete-open .input:active {
+  border-color: var(--bulma-border);
+  box-shadow: none;
+}

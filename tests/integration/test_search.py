@@ -10,6 +10,7 @@ def test_search_metadata(page: Page):
         page.get_by_placeholder("Search...")
     )
     search_input.fill("out eia860 yearly ownership")
+    search_input.press("Enter")
 
     # figure out if the search has actually happened by looking to see if
     # something that *shouldn't* be in the results has disappeared
@@ -45,6 +46,21 @@ def test_search_for_ferc_table(page: Page):
     )
 
 
+def test_search_preserves_variants_in_url(page: Page):
+    _ = page.goto("http://localhost:8080/search?variants=search_packages:raw_ferc")
+    search_input = page.get_by_role("textbox").and_(
+        page.get_by_placeholder("Search...")
+    )
+    search_input.fill("package:ferc6_xbrl")
+    search_input.press("Enter")
+
+    expect(page).to_have_url(
+        "http://localhost:8080/search?variants=search_packages%3Araw_ferc&q=package%3Aferc6_xbrl"
+    )
+    num_results = page.locator("#search-results > *").count()
+    assert num_results == 50
+
+
 def test_search_preview(page: Page):
     """Preview button now navigates to dedicated preview page via HTMX instead of showing overlay."""
     _ = page.goto("http://localhost:8080/login")
@@ -73,6 +89,7 @@ def test_search_preview_back_button(page: Page):
         page.get_by_placeholder("Search...")
     )
     search_input.fill("name:core_pudl__codes_datasources")
+    search_input.press("Enter")
 
     # Wait for HTMX to update URL and results (: gets URL encoded to %3A)
     page.wait_for_url(
@@ -143,6 +160,7 @@ def test_search_preserves_variant_in_hx_requests(page: Page):
         page.get_by_placeholder("Search...")
     )
     search_input.fill("name:core_pudl__codes_datasources")
+    search_input.press("Enter")
 
     page.wait_for_url(re.compile(r".*/search\?.*q="))
     params = parse_qs(urlparse(page.url).query)

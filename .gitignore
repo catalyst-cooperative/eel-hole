@@ -7,3 +7,6 @@ node_modules/
 .envrc
 **/.DS_Store
 src/eel_hole.egg-info
+eel_hole/static/*.js
+eel_hole/static/index.css
+eel_hole/static/search.css

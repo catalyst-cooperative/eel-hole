@@ -242,6 +242,8 @@ def create_app():
     autocomplete_name_index_all = build_autocomplete_name_index(sorted_all_resources)
     quick_pudl_resources = {r.name: r for r in sorted_pudl_only}
     configured_examples = load_examples_config(Path(app.root_path) / "examples.yaml")
+    if not configured_examples:
+        log.warning("No examples configured in eel_hole/examples.yaml")
     configured_examples_by_slug = {
         example.slug: example for example in configured_examples
     }

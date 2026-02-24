@@ -1,8 +1,5 @@
-# If you need to work from local files, serve the examples locally and point url at your server port.
-# `slug` is the URL fragment after secret-examples/
-# `title` is the title of the gallery card
-# `description` is required and shown on the gallery card
-# `url` is the full hosted URL for the example
+# If you need to work from local files, serve the examples locally and point `url` at your server.
+# See examples_config.py for details.
 - slug: plant-explorer
   title: Plant Explorer
   description: Explore plant-level net generation trends over time.

@@ -20,22 +20,14 @@ def test_examples_gallery_reflects_config(
 
     open_links = page.get_by_role("link", name="Open example")
 
-    if not configured_examples:
-        expect(
-            page.get_by_text("No notebook examples are available yet.")
-        ).to_be_visible()
-        expect(open_links).to_have_count(0)
-        return
-
     expect(open_links).to_have_count(len(configured_examples))
 
-    hrefs = open_links.evaluate_all("els => els.map((el) => el.getAttribute('href'))")
-    expected_hrefs = [
-        f"/secret-examples/{example.slug}/" for example in configured_examples
-    ]
-    assert hrefs == expected_hrefs
-
-    for example in configured_examples:
+    for idx, example in enumerate(configured_examples):
+        # link goes to right place
+        expect(open_links.nth(idx)).to_have_attribute(
+            "href", f"/secret-examples/{example.slug}/"
+        )
+        # card shows title and description
         expect(
             page.locator(".card").filter(has_text=example.title).first
         ).to_be_visible()

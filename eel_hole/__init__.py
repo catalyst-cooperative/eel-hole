@@ -278,7 +278,6 @@ def create_app():
             topics = yaml.safe_load(f)
         for topic in topics:
             topic["tables"] = [quick_pudl_resources[t] for t in topic["tables"]]
-            log.info("topic", name=topic["name"], tables=topic["tables"])
         return render_template("welcome.html", topics=topics)
 
     @login_manager.user_loader

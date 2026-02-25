@@ -46,6 +46,7 @@ class PartitionedResourceDisplay(ResourceDisplay):
             name=self.name,
             package=self.package,
             description=self.description,
+            summary=self.summary,
             columns=self.columns,
             preview_path=self.preview_paths[partition],
             download_path=self.download_paths[partition],

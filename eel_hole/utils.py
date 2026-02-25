@@ -22,6 +22,7 @@ class ResourceDisplay:
     name: str
     package: str
     description: str
+    summary: str
     columns: list["ColumnDisplay"]
 
 
@@ -200,6 +201,7 @@ def clean_pudl_resource(resource: Resource) -> SingletonResourceDisplay:
     return SingletonResourceDisplay(
         name=resource.name,
         description=rst_to_html(getattr(resource, "description", "")),
+        summary=getattr(resource, "description", "").split("\n", 1)[0],
         package="pudl",
         columns=[
             ColumnDisplay(
@@ -228,6 +230,7 @@ def clean_ferceqr_resource(resource: Resource) -> PartitionedResourceDisplay:
     return PartitionedResourceDisplay(
         name=resource.name,
         description=rst_to_html(getattr(resource, "description", "")),
+        summary=getattr(resource, "description", "").split("\n", 1)[0],
         package="pudl",
         columns=[
             ColumnDisplay(
@@ -261,6 +264,7 @@ def clean_ferc_xbrl_resource(
     return SingletonResourceDisplay(
         name=resource.name,
         description=plaintext_to_html(getattr(resource, "title", "")),
+        summary=getattr(resource, "title", "").split("\n", 1)[0],
         package=package_name,
         columns=[
             ColumnDisplay(

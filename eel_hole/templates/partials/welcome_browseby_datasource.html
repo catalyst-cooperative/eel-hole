@@ -5,9 +5,12 @@
 </p>
 
 <div x-data="{allOpen: false}">
-  <div class="buttons has-addons">
-    <button class="button" @click="allOpen = true">Expand All</button>
-    <button class="button" @click="allOpen = false">Collapse All</button>
+  <div class="buttons">
+    <button
+      class="button"
+      @click="allOpen = !allOpen"
+      x-text="allOpen ? 'Collapse All' : 'Expand All'"
+    ></button>
   </div>
 
   <details :open="allOpen">

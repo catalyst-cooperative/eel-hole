@@ -1,0 +1,115 @@
+- name: Generation plant operations
+  tables:
+    - out_eia__monthly_generators
+    - out_eia__yearly_generators
+    - out_ferc1__yearly_all_plants
+    - out_pudl__yearly_assn_eia_ferc1_plant_parts
+- name: Emissions
+  tables:
+    - core_epacems__hourly_emissions
+    - out_eia860__yearly_emissions_control_equipment
+    - core_eia860__assn_yearly_boiler_emissions_control_equipment
+- name: Rate base & utility finance
+  tables:
+    - out_ferc1__yearly_rate_base
+    - core_eia861__yearly_sales
+    - core_eia861__yearly_operational_data_revenue
+    - out_ferc1__yearly_detailed_balance_sheet_assets
+    - out_ferc1__yearly_detailed_balance_sheet_liabilities
+    - out_ferc1__yearly_operating_revenues_sched300
+    - out_ferc1__yearly_sales_by_rate_schedules_sched304
+- name: Demand
+  tables:
+    - out_eia930__hourly_operations
+    - out_eia930__hourly_subregion_demand
+    - out_eia930__hourly_aggregated_demand
+    - out_ferc714__hourly_planning_area_demand
+    - out_ferc714__hourly_estimated_state_demand
+    - out_ferc714__summarized_demand
+- name: Renewables
+  tables:
+    - out_vcerare__hourly_available_capacity_factor
+    - out_gridpathratoolkit__hourly_available_capacity_factor
+    - core_eia860__scd_generators_energy_storage
+    - core_eia860__scd_generators_solar
+    - core_eia860__scd_generators_wind
+    - core_eia923__monthly_energy_storage
+- name: Cost and deployment predictions
+  tables:
+    - core_eiaaeo__yearly_projected_electric_sales
+    - core_eiaaeo__yearly_projected_energy_use_by_sector_and_type
+    - core_eiaaeo__yearly_projected_fuel_cost_in_electric_sector_by_type
+    - core_eiaaeo__yearly_projected_generation_in_electric_sector_by_technology
+    - core_eiaaeo__yearly_projected_generation_in_end_use_sectors_by_fuel_type
+    - core_nrelatb__yearly_projected_cost_performance
+    - core_nrelatb__yearly_projected_financial_cases
+    - core_nrelatb__yearly_projected_financial_cases_by_scenario
+    - core_nrelatb__yearly_technology_status
+- name: Distributed energy and demand management programs
+  tables:
+    - core_eia861__yearly_advanced_metering_infrastructure
+    - core_eia861__yearly_demand_response
+    - core_eia861__yearly_demand_response_water_heater
+    - core_eia861__yearly_demand_side_management_ee_dr
+    - core_eia861__yearly_demand_side_management_misc
+    - core_eia861__yearly_demand_side_management_sales
+    - core_eia861__yearly_distributed_generation_fuel
+    - core_eia861__yearly_distributed_generation_misc
+    - core_eia861__yearly_distributed_generation_tech
+    - core_eia861__yearly_distribution_systems
+    - core_eia861__yearly_dynamic_pricing
+    - core_eia861__yearly_energy_efficiency
+    - core_eia861__yearly_green_pricing
+    - core_eia861__yearly_net_metering_customer_fuel_class
+    - core_eia861__yearly_net_metering_misc
+- name: Utility ownership
+  tables:
+    - out_eia__yearly_generators_by_ownership
+    - out_eia923__yearly_generation_fuel_by_generator_energy_source_owner
+    - out_sec10k__parents_and_subsidiaries
+    - core_sec10k__assn_sec10k_filers_and_eia_utilities
+    - core_sec10k__assn_exhibit_21_subsidiaries_and_eia_utilities
+- name: Transmission
+  tables:
+    - out_ferc1__yearly_transmission_lines_sched422
+- name: Gas distribution
+  tables:
+    - core_eia176__yearly_gas_disposition
+    - core_eia176__yearly_gas_disposition_by_consumer
+    - core_phmsagas__yearly_distribution_operators
+    - _core_phmsagas__yearly_distribution_by_install_decade
+    - _core_phmsagas__yearly_distribution_by_material
+    - _core_phmsagas__yearly_distribution_by_material_and_size
+    - _core_phmsagas__yearly_distribution_excavation_damages
+    - _core_phmsagas__yearly_distribution_filings
+    - _core_phmsagas__yearly_distribution_leaks
+    - _core_phmsagas__yearly_distribution_misc
+- name: Electricity markets / transactions / interchange
+  tables:
+    - core_ferceqr__contracts
+    - core_ferceqr__transactions
+    - core_eia930__hourly_interchange
+    - out_ferc1__yearly_purchased_power_and_exchanges_sched326
+- name: Generation/plant operational costs
+  tables:
+    - out_eia923__monthly_fuel_receipts_costs
+    - out_ferc1__yearly_all_plants
+- name: Geospatial information
+  tables:
+    - out_ferc714__georeferenced_respondents
+    - out_ferc714__respondents_with_fips
+    - out_censusdp1tract__states
+    - out_censusdp1tract__counties
+    - out_censusdp1tract__tracts
+    - out_eia861__yearly_balancing_authority_service_territory
+    - out_eia861__yearly_utility_service_territory
+    - out_eia923__monthly_fuel_receipts_costs
+    - out_vcerare__hourly_available_capacity_factor
+    - core_eia861__yearly_service_territory
+    - core_eia923__entity_coalmine
+    - _core_eia860__fgd_equipment
+    - out_eia__monthly_generators
+    - out_eia__yearly_generators
+    - out_eia__yearly_boilers
+    - out_eia__yearly_plants
+    - core_eia__entity_plants

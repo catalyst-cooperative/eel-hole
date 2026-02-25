@@ -21,6 +21,9 @@
         <li :class="{'is-active': tab==='datasource'}">
           <a @click="tab='datasource'">By Data Source</a>
         </li>
+        <li :class="{'is-active': tab==='topic'}">
+          <a @click="tab='topic'">By Topic</a>
+        </li>
         <li :class="{'is-active': tab==='popular'}">
           <a @click="tab='popular'">By Most Popular</a>
         </li>
@@ -28,6 +31,9 @@
     </nav>
     <section class="block" x-show="tab === 'datasource'">
       {% include 'partials/welcome_browseby_datasource.html' %}
+    </section>
+    <section class="content" x-show="tab === 'topic'">
+      {% include 'partials/welcome_browseby_topic.html' %}
     </section>
     <section class="content" x-show="tab === 'popular'">
       {% include 'partials/welcome_browseby_popular.html' %}

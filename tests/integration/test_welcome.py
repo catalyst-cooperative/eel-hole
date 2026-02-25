@@ -63,7 +63,6 @@ def test_table_of_contents_stays_visible_while_scrolling(page: Page):
     expect(toc_links.last).to_be_in_viewport()
 
     page.evaluate("window.scrollTo(0, 0)")
-    page.wait_for_timeout(100)
     expect(toc_links.first).to_be_in_viewport()
     expect(toc_links.last).to_be_in_viewport()
 
@@ -72,16 +71,15 @@ def test_table_of_contents_links_scroll_to_sections(page: Page):
     page.goto("http://localhost:8080/")
 
     toc_links = page.locator("#welcome-nav a[href^='#']")
-    links = toc_links.all()
-    assert links
+    assert toc_links.count() > 0
 
-    for link in links:
+    for link in toc_links.all():
         href = link.get_attribute("href")
         assert href is not None
         target = href.removeprefix("#")
         assert target
 
         link.click()
-        expect(page).to_have_url(re.compile(rf".*#{target}$"))
-        section = page.locator(f"#{target}")
+        expect(page).to_have_url(re.compile(href))
+        section = page.locator(href)
         expect(section).to_be_in_viewport()

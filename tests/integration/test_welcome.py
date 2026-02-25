@@ -7,28 +7,38 @@ def test_finding_data_tabs_switch_content(page: Page):
     page.goto("http://localhost:8080/")
 
     by_data_source_tab = page.locator("#find-data .tabs a", has_text="By Data Source")
+    by_topic_tab = page.locator("#find-data .tabs a", has_text="By Topic")
     most_popular_tab = page.locator("#find-data .tabs a", has_text="By Most Popular")
 
     expect(by_data_source_tab).to_be_visible()
+    expect(by_topic_tab).to_be_visible()
     expect(most_popular_tab).to_be_visible()
 
     # "data source" is identifiable by EIA details section
     data_source_content = page.locator("#find-data summary").get_by_text(
         "Energy Information Administration"
     )
-    # "most popular" is identified by list item w/ yearly generators table
-    popular_content = page.locator("#find-data li").get_by_text(
-        "out_eia__yearly_generators"
-    )
+    # "topic" is identifiable by topics element
+    topic_content = page.locator("#find-data #topics")
+    # "most popular" is identified by popular element
+    popular_content = page.locator("#find-data #popular")
     expect(data_source_content).to_be_visible()
+    expect(topic_content).not_to_be_visible()
     expect(popular_content).not_to_be_visible()
 
     most_popular_tab.click()
     expect(popular_content).to_be_visible()
     expect(data_source_content).not_to_be_visible()
+    expect(topic_content).not_to_be_visible()
 
     by_data_source_tab.click()
     expect(data_source_content).to_be_visible()
+    expect(topic_content).not_to_be_visible()
+    expect(popular_content).not_to_be_visible()
+
+    by_topic_tab.click()
+    expect(topic_content).to_be_visible()
+    expect(data_source_content).not_to_be_visible()
     expect(popular_content).not_to_be_visible()
 
 

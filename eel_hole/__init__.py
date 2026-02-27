@@ -1,5 +1,6 @@
 """Main app definition."""
 
+import importlib
 import json
 import os
 from collections import namedtuple
@@ -29,6 +30,7 @@ from flask_login import (
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from frictionless import Package, Resource
+import yaml
 
 from eel_hole.duckdb_query import Filter, ag_grid_to_duckdb
 from eel_hole.feature_variants import FeatureVariants, get_variant
@@ -236,6 +238,7 @@ def create_app():
     sorted_all_resources = sorted(all_resources, key=__sort_resources_by_name)
     autocomplete_name_index_pudl_only = build_autocomplete_name_index(sorted_pudl_only)
     autocomplete_name_index_all = build_autocomplete_name_index(sorted_all_resources)
+    quick_pudl_resources = {r.name: r for r in sorted_pudl_only}
 
     RequestedResources = namedtuple(
         "RequestedResources", "query search_method resources"
@@ -270,8 +273,12 @@ def create_app():
 
     @app.get("/")
     def home():
-        """Just a redirect for search until we come up with proper content."""
-        return redirect(url_for("search"))
+        """Render landing page."""
+        with open(importlib.resources.files("eel_hole") / "topics.yaml") as f:
+            topics = yaml.safe_load(f)
+        for topic in topics:
+            topic["tables"] = [quick_pudl_resources[t] for t in topic["tables"]]
+        return render_template("welcome.html", topics=topics)
 
     @login_manager.user_loader
     def __load_user(user_id):
@@ -600,9 +607,5 @@ def create_app():
         """Mark a notification as dismissed in the session."""
         session[f"{name}_notification_dismissed"] = True
         return ""
-
-    @app.route("/xyzzy/")
-    def landing():
-        return render_template("welcome.html")
 
     return app

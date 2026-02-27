@@ -1,35 +1,50 @@
 {% extends "base.html" %}
+{% block extra_head %}
+  <script
+    type="module"
+    src="{{ url_for('static', filename='preview.js') }}"
+  ></script>
+{% endblock %}
 
 {% block title %}PUDL Viewer - Welcome!{% endblock %}
 
 {% block content %}
-
-<div class="section">
-  <div class="container is-max-desktop">
-    <div class="block title">
-      Welcome to PUDL!
+  <div class="columns">
+    <nav class="menu section pr-0" id="welcome-nav">
+      <p class="menu-label is-hidden-touch">Contents</p>
+      <ul class="menu-list">
+        <li><a href="#find-data">Finding Data</a></li>
+        <li><a href="#data-access">Data Access</a></li>
+        <li><a href="#naming-conventions">Table Names</a></li>
+        <li><a href="#data-standards">Data Standards</a></li>
+      </ul>
+    </nav>
+    <div class="section column pl-0">
+      <div class="container is-max-desktop">
+        <div class="block title">Welcome to PUDL!</div>
+        <div class="content">
+          The Public Utility Data Liberation (PUDL) project takes publicly
+          <em>available</em> U.S. energy data and makes it publicly
+          <em>accessible</em>. PUDL is a free and open source project managed
+          and maintained by
+          <a href="https://catalyst.coop/">Catalyst Cooperative</a>.
+        </div>
+        <section class="block" id="find-data">
+          {% include 'partials/welcome_browseby.html' %}
+        </section>
+        <hr />
+        <section class="content" id="data-access">
+          {% include 'partials/welcome_access.html' %}
+        </section>
+        <hr />
+        <section class="content" id="naming-conventions">
+          {% include 'partials/welcome_naming.html' %}
+        </section>
+        <hr />
+        <section class="content" id="data-standards">
+          {% include 'partials/welcome_standards.html' %}
+        </section>
+      </div>
     </div>
-    <div class="content">
-      The Public Utility Data Liberation (PUDL) project takes publicly <em>available</em>
-      US energy data and makes it publicly <em>accessible</em>. PUDL is a free and open
-      source project managed and maintained by <a href="https://catalyst.coop/">Catalyst Cooperative</a>.
-    </div>
-    <section class="block" id="find-data">
-        {% include 'partials/welcome_browseby.html' %}
-    </section>
-    <hr/>
-    <section class="content" id="naming-conventions">
-        {% include 'partials/welcome_naming.html' %}
-    </section>
-    <hr/>
-    <section class="content" id="data-standards">
-        {% include 'partials/welcome_standards.html' %}
-    </section>
-    <hr/>
-    <section class="content" id="data-access">
-        {% include 'partials/welcome_access.html' %}
-    </section>
   </div>
-</div>
-
 {% endblock %}

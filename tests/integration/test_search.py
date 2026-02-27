@@ -131,7 +131,7 @@ def test_search_preview_ctrl_click_new_tab(page: Page):
     )
 
     with page.context.expect_page() as new_page_info:
-        preview_link.click(modifiers=["Control"])
+        preview_link.click(modifiers=["ControlOrMeta"])
 
     new_page = new_page_info.value
     new_page.wait_for_url(

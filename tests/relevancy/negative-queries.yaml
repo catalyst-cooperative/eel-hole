@@ -1,0 +1,8 @@
+- query: rus7
+  forbidden_regex:
+    - rus12
+  notes: Searching rus7 should not include rus12 results.
+- query: rus12
+  forbidden_regex:
+    - rus7
+  notes: Searching rus12 should not include rus7 results.

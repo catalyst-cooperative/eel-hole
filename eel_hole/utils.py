@@ -2,7 +2,7 @@
 
 import html
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import structlog
 from docutils.core import publish_parts
@@ -17,13 +17,41 @@ SPHINX_TAGS = re.compile(r":(?:ref|func|doc):`([^`]+)`")
 
 @dataclass
 class ResourceDisplay:
-    """Display metadata for a data resource."""
+    """Display metadata for a data resource.
 
+    We include the classname so that we can deserialize to the right class.
+    """
+
+    classname: str = field(init=False)
     name: str
     package: str
     description: str
     summary: str
     columns: list["ColumnDisplay"]
+
+    def __post_init__(self):
+        """Instead of taking classname at init, always set it to the actual class name."""
+        self.classname = self.__class__.__name__
+
+    @classmethod
+    def fromdict(cls, resource_data: dict) -> "ResourceDisplay":
+        """Rebuild the appropriate display class from index-stored data.
+
+        Dispatch based on the classname which was stored via asdict()."""
+        resource_data = dict(resource_data)
+        resource_data["columns"] = [
+            ColumnDisplay(**column) for column in resource_data["columns"]
+        ]
+        class_name = resource_data.pop("classname", None)
+        match class_name:
+            case "ResourceDisplay":
+                return ResourceDisplay(**resource_data)
+            case "SingletonResourceDisplay":
+                return SingletonResourceDisplay(**resource_data)
+            case "PartitionedResourceDisplay":
+                return PartitionedResourceDisplay(**resource_data)
+            case _:
+                raise ValueError(f"Unknown indexed resource class: {class_name!r}")
 
 
 @dataclass

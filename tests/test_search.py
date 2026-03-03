@@ -1,3 +1,5 @@
+from whoosh.filedb.filestore import RamStorage
+
 from eel_hole.search import initialize_index, run_search
 from eel_hole.utils import ColumnDisplay, ResourceDisplay
 
@@ -8,18 +10,20 @@ def _build_search_index():
             name="out_token123_title_match",
             package="pudl",
             description="title-oriented example",
+            summary="title-oriented example",
             columns=[ColumnDisplay(name="id", description="identifier")],
         ),
         ResourceDisplay(
             name="out_other_table",
             package="pudl",
             description="column-oriented example",
+            summary="column-oriented example",
             columns=[
                 ColumnDisplay(name="token123_metric", description="token123 value")
             ],
         ),
     ]
-    return initialize_index(resources)
+    return initialize_index(resources, RamStorage())
 
 
 def test_title_boost_prefers_name_match():

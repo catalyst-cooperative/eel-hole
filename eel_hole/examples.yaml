@@ -1,0 +1,6 @@
+# If you need to work from local files, serve the examples locally and point `url` at your server.
+# See examples_config.py for details.
+- slug: plant-explorer
+  title: Plant Explorer
+  description: Explore plant-level net generation trends over time.
+  url: https://docs.catalyst.coop/pudl-examples/plant-explorer.html

@@ -8,7 +8,6 @@ from dataclasses import asdict
 from pathlib import Path
 from urllib.parse import quote
 
-import requests
 import yaml
 from authlib.integrations.flask_client import OAuth
 from flask import (
@@ -31,7 +30,7 @@ from flask_login import (
 )
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
-from frictionless import Package, Resource
+from frictionless import Resource
 
 from eel_hole.duckdb_query import Filter, ag_grid_to_duckdb
 from eel_hole.examples_config import load_examples_config
@@ -42,21 +41,20 @@ from eel_hole.search import (
     SEARCH_VARIANT_FIELD_BOOSTS,
     autocomplete_resource_names,
     build_autocomplete_name_index,
-    initialize_index,
+    build_or_load_search_index,
     run_search,
     search_settings,
 )
 from eel_hole.utils import (
     PartitionedResourceDisplay,
-    clean_ferc_xbrl_resource,
-    clean_ferceqr_resource,
-    clean_pudl_resource,
+    ResourceDisplay,
     highlight_first,
 )
 
 AUTH0_DOMAIN = os.getenv("PUDL_VIEWER_AUTH0_DOMAIN")
 CLIENT_ID = os.getenv("PUDL_VIEWER_AUTH0_CLIENT_ID")
 CLIENT_SECRET = os.getenv("PUDL_VIEWER_AUTH0_CLIENT_SECRET")
+SEARCH_INDEX_DIR = os.getenv("PUDL_VIEWER_SEARCH_INDEX_DIR", ".search-index")
 
 
 def __init_auth0(app: Flask):
@@ -105,66 +103,7 @@ def __init_db(db: SQLAlchemy, app: Flask):
     migrate.init_app(app, db)
 
 
-def __build_search_index():
-    """Create a search index.
-
-    We currently convert a static YAML file into a Frictionless datapackage,
-    then pass that in.
-    """
-
-    def get_datapackage(datapackage_path: str) -> Package:
-        log.info(f"Getting datapackage from {datapackage_path}")
-        descriptor = requests.get(datapackage_path).json()
-        log.info(f"{datapackage_path} downloaded")
-        return Package.from_descriptor(descriptor)
-
-    s3_base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop"
-    pudl_package = get_datapackage(
-        f"{s3_base_url}/eel-hole/pudl_parquet_datapackage.json"
-    )
-    log.info("Cleaning up descriptors for pudl")
-    pudl_resources = [
-        clean_pudl_resource(resource) for resource in pudl_package.resources
-    ]
-    log.info("Cleaned up descriptors for pudl")
-
-    ferceqr_package = get_datapackage(
-        f"{s3_base_url}/ferceqr/ferceqr_parquet_datapackage.json"
-    )
-    log.info("Cleaning up descriptors for ferceqr")
-    ferceqr_resources = [
-        clean_ferceqr_resource(resource) for resource in ferceqr_package.resources
-    ]
-    log.info("Cleaned up descriptors for ferceqr")
-
-    ferc_xbrls = [
-        "ferc1_xbrl",
-        "ferc2_xbrl",
-        "ferc6_xbrl",
-        "ferc60_xbrl",
-        "ferc714_xbrl",
-    ]
-
-    ferc_xbrl_resources = []
-    for ferc_xbrl in ferc_xbrls:
-        ferc_xbrl_package = get_datapackage(
-            f"{s3_base_url}/eel-hole/{ferc_xbrl}_datapackage.json"
-        )
-        log.info(f"Cleaning up descriptors for {ferc_xbrl}")
-        ferc_xbrl_resources.extend(
-            clean_ferc_xbrl_resource(resource, ferc_xbrl)
-            for resource in ferc_xbrl_package.resources
-        )
-        log.info(f"Cleaned up descriptors for {ferc_xbrl}")
-
-    all_resources = pudl_resources + ferceqr_resources + ferc_xbrl_resources
-    index = initialize_index(all_resources)
-    log.info("index done")
-
-    return all_resources, index
-
-
-def __sort_resources_by_name(resource: Resource):
+def __sort_resources_by_name(resource: Resource | ResourceDisplay):
     """Helper function to enforce resource ordering with no query.
 
     Four recommended tables show up first, then we order by layer.
@@ -232,7 +171,7 @@ def create_app():
     login_manager = LoginManager()
     login_manager.init_app(app)
 
-    all_resources, search_index = __build_search_index()
+    all_resources, search_index = build_or_load_search_index(SEARCH_INDEX_DIR)
     sorted_pudl_only = sorted(
         [resource for resource in all_resources if resource.package == "pudl"],
         key=__sort_resources_by_name,

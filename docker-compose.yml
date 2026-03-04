@@ -29,6 +29,7 @@ services:
     ports:
       - target: 8080
         published: 8080
+    stop_grace_period: 1s
   postgres:
     image: postgres:17
     environment:

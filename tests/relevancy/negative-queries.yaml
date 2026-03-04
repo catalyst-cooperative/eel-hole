@@ -1,3 +1,9 @@
+# NOTE (2023-03-04): if a user searches for rus12 employee statistics i feel
+# like the rus7 employee statistics table is a pretty good guess for what they
+# were looking for. but maybe that's just a signal that we shouldn't try to
+# handle negative queries with anything hardcoded, and should use the power of
+# booleans wherever possible
+# (https://github.com/catalyst-cooperative/eel-hole/pull/126#discussion_r2885241117)
 - query: rus7
   forbidden_regex:
     - rus12

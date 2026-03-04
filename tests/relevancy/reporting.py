@@ -3,9 +3,9 @@
 import yaml
 
 
-def _format_query_metrics(worst_queries):
+def _format_query_metrics(queries):
     serialized = []
-    for query, details in worst_queries:
+    for query, details in queries:
         relevant_ranks = [
             f"{name}@{details['relevant_ranks'][name]}"
             for name in sorted(

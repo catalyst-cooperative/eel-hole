@@ -54,7 +54,8 @@ the app detects changes to the .py files it will restart, and changes to the
 template files and frontend files should work on refresh because they're being
 read/served at request time.
 
-The main thing you'd have to rebuild the Docker image for would be if you need to rebuild the search index for whatever reason. It should take about a minute.
+The main thing you'd have to rebuild the Docker image for would be if you need
+to rebuild the search index for whatever reason. It should take about a minute.
 
 If you want to skip the auth0 setup for integration testing, set the `PUDL_VIEWER_INTEGRATION_TEST` env var:
 

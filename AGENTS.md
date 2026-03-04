@@ -9,11 +9,10 @@
 
 - Build frontend assets before starting the app: `npm run build`.
 - Start services with integration-test auth bypass: `PUDL_VIEWER_INTEGRATION_TEST=true docker compose up -d`.
-- Use `--build` only when image layers/dependencies changed.
-- This project uses bind mounts, so most code/template changes do not require rebuilds or container restarts.
-- We no longer need to wait for a Flask auto-reload re-index cycle after Python changes.
+  - Use `--build` only when image layers/dependencies changed, or when you need to rebuild the search index.
 - If you need to rebuild the search index, restart the container with a build: `PUDL_VIEWER_INTEGRATION_TEST=true docker compose up -d --build`.
-- Use `logs -f` to follow startup/reload output and confirm readiness before Playwright runs.
+- This project uses bind mounts, so most code/template changes do not require rebuilds or container restarts.
+- Use `docker compose logs -f eel_hole` to follow startup/reload output and confirm readiness before Playwright runs.
 - Apply DB migrations: `docker compose exec eel_hole uv run flask db upgrade`.
 - Run integration tests: `uv run pytest tests/integration`.
 - Install Playwright Chromium only when missing (not every run): `uv run playwright install chromium`.

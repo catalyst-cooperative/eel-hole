@@ -57,10 +57,11 @@ def initialize_index(
     Configure index-level settings, then add each resource to the index.
 
     We store the "original object" so we can grab anything we need for resource
-    display later. To avoid pickling & its cross-platform dicey-ness, we use
-    dataclasses.asdict() to serialize. Since there are multiple different
-    classes we could be serializing here, we need to store the classname - we
-    use a custom deserializer (ResourceDisplay.fromdict()) on the other end.
+    display later. We use dataclasses.asdict() to serialize over Pickle, to
+    avoid having to remember to think about the stability/robustness limitations
+    of Pickle in the future. Since there are multiple different classes we could
+    be serializing here, we need to store the classname - we use a custom
+    deserializer (ResourceDisplay.fromdict()) on the other end.
     """
     analyzer = (
         RegexTokenizer(r"[A-Za-z]+|[0-9]+")

@@ -51,7 +51,7 @@ class ResourceDisplay:
             case "PartitionedResourceDisplay":
                 return PartitionedResourceDisplay(**resource_data)
             case _:
-                raise ValueError(f"Unknown indexed resource class: {class_name!r}")
+                raise ValueError(f"Unknown indexed resource class: {repr(class_name)}")
 
 
 @dataclass

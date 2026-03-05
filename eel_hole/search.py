@@ -18,7 +18,7 @@ from whoosh.analysis import (
     StemFilter,
     StopFilter,
 )
-from whoosh.fields import KEYWORD, STORED, TEXT, Schema
+from whoosh.fields import ID, KEYWORD, STORED, TEXT, Schema
 from whoosh.filedb.filestore import FileStorage, RamStorage
 from whoosh.lang.porter import stem
 from whoosh.qparser import MultifieldParser
@@ -50,7 +50,7 @@ def search_variants() -> dict[str, SearchVariant]:
     * it wants to be at the top of the file
     * it needs to see the other functions
     """
-    return {"default": default_search_query}
+    return {"default": default_search_query, "boost_exact_match": boost_exact_match}
 
 
 def custom_stemmer(word: str) -> str:
@@ -60,6 +60,18 @@ def custom_stemmer(word: str) -> str:
         "generator": "generator",
     }
     return stem_map.get(word, stem(word))
+
+
+def compact_for_name_match(text: str) -> str:
+    """Smash the differences between strange spellings of names.
+
+    When we're *only* looking at table-name or column-name, we don't really care
+    about cases or punctuation, so remove them.
+
+    Currently this is useful for autocomplete (fuzzy match) and for the
+    exact-name-match boosting.
+    """
+    return "".join(TOKEN_RE.findall(text.lower())).strip()
 
 
 def initialize_index(
@@ -85,8 +97,11 @@ def initialize_index(
     )
     schema = Schema(
         name=TEXT(analyzer=analyzer, stored=True),
+        name_exact=ID,
         description=TEXT(analyzer=analyzer),
-        columns=TEXT(analyzer=analyzer),
+        column_names=TEXT(analyzer=analyzer),
+        column_descriptions=TEXT(analyzer=analyzer),
+        column_name_exact=KEYWORD(commas=True),
         package=KEYWORD(stored=True),
         tags=KEYWORD(stored=True),
         original_object=STORED,
@@ -96,18 +111,23 @@ def initialize_index(
 
     for resource in resources:
         description = re.sub("<[^<]+?>", "", resource.description)
-        columns = "".join(
-            (" ".join([col.name, col.description]) for col in resource.columns)
-        )
+        column_names = " ".join(col.name for col in resource.columns)
+        column_descriptions = " ".join(col.description for col in resource.columns)
+        column_name_exact_tokens = [
+            compact_for_name_match(col.name) for col in resource.columns
+        ]
         tags = [resource.name.strip("_").split("_")[0]]
         if resource.name.startswith("_"):
             tags.append("preliminary")
 
         writer.add_document(
             name=resource.name,
+            name_exact=compact_for_name_match(resource.name),
             description=description,
             package=resource.package,
-            columns=columns,
+            column_names=column_names,
+            column_descriptions=column_descriptions,
+            column_name_exact=",".join(t for t in column_name_exact_tokens if t),
             original_object=dataclasses.asdict(resource),
             tags=" ".join(tags),
         )
@@ -212,7 +232,7 @@ def build_autocomplete_name_index(
 ) -> list[tuple[str, str, str]]:
     """Precompute lowercase + normalized forms used by autocomplete."""
     return [
-        (name, name.lower(), "".join(TOKEN_RE.findall(name.lower())))
+        (name, name.lower(), compact_for_name_match(name))
         for name in {resource.name for resource in resources}
     ]
 
@@ -243,7 +263,7 @@ def autocomplete_resource_names(
     if not query:
         return []
 
-    normalized_query = "".join(TOKEN_RE.findall(query))
+    normalized_query = compact_for_name_match(query)
 
     scored: list[tuple[float, str]] = []
     names = (
@@ -272,22 +292,83 @@ def default_search_query(
 
     Query behavior:
 
-    * AND keywords together and search over 'name', 'description', and 'columns' fields
+    * AND keywords together and search over
+      'name', 'description', 'column_names', and 'column_descriptions' fields
     * apply boost if the table's an `out` table
     * apply penalty if the table starts with `_` (i.e. it's a "preliminary" table)
     """
-    field_boosts = {"name": 1.5, "description": 1.0, "columns": 0.5}
 
     parser = MultifieldParser(
-        ["name", "description", "columns"],
+        ["name", "description", "column_names", "column_descriptions"],
         schema,
-        fieldboosts=field_boosts,
+        fieldboosts={
+            "name": 1.5,
+            "description": 1.0,
+            "column_names": 0.8,
+            "column_descriptions": 0.4,
+        },
     )
     user_query = parser.parse(raw_query)
     out_boost = Term("tags", "out", boost=10.0)
     preliminary_penalty = Term("tags", "preliminary", boost=-10.0)
     keyword_and_boost = AndMaybe(user_query, Or([out_boost, preliminary_penalty]))
     return execute_search(keyword_and_boost)
+
+
+def boost_exact_match(
+    schema: Schema, raw_query: str, execute_search: SearchExecutor
+) -> Results:
+    """Run
+
+    * apply manual query substitutions
+    * combine two queries (apply layer-based boosts/penalties to both)
+      * full text query
+      * exact-match query on table/column names
+    """
+    rewritten_query = apply_manual_query_substitutions(
+        raw_query,
+        {"form 1": "ferc1", "utility finance": "'balance sheets' OR income"},
+    )
+
+    out_boost = Term("tags", "out", boost=10.0)
+    preliminary_penalty = Term("tags", "preliminary", boost=-10.0)
+    ranking_adjustments = Or([out_boost, preliminary_penalty])
+
+    full_text_parser = MultifieldParser(
+        ["name", "description", "column_names", "column_descriptions"],
+        schema,
+        fieldboosts={
+            "name": 1.5,
+            "description": 1.0,
+            "column_names": 0.8,
+            "column_descriptions": 0.4,
+        },
+    )
+
+    full_text_query = full_text_parser.parse(rewritten_query)
+    boosted_full_text_results = execute_search(
+        AndMaybe(full_text_query, ranking_adjustments)
+    )
+
+    normalized_query = compact_for_name_match(rewritten_query)
+    exact_query = Or(
+        [
+            Term("name_exact", normalized_query, boost=3.0),
+            Term("column_name_exact", normalized_query, boost=1.5),
+        ]
+    )
+    exact_results = execute_search(AndMaybe(exact_query, ranking_adjustments))
+
+    exact_results.upgrade_and_extend(boosted_full_text_results)
+
+    return exact_results
+
+
+def apply_manual_query_substitutions(query: str, subs: dict[str, str]) -> str:
+    """Apply curated query substitutions before parsing."""
+    for target, replacement in subs.items():
+        query = query.replace(target, replacement)
+    return query
 
 
 def run_search(

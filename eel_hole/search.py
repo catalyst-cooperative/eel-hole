@@ -4,7 +4,7 @@ import dataclasses
 import re
 import shutil
 from pathlib import Path
-from typing import Any, Callable
+from typing import Callable
 
 import requests
 from frictionless import Package
@@ -35,7 +35,16 @@ from eel_hole.utils import (
 TOKEN_RE = re.compile(r"[a-z0-9]+")
 
 
-def search_variants() -> dict[str, Callable[[str], Query]]:
+@dataclasses.dataclass(frozen=True)
+class SearchResult:
+    """A single ranked search hit."""
+
+    resource: ResourceDisplay
+    name: str
+    score: float
+
+
+def search_variants() -> dict[str, Callable[[Schema, str], Query]]:
     """Define available search variants.
 
     A search variant takes a raw query and returns a Whoosh query which can be
@@ -73,7 +82,7 @@ def initialize_index(
     deserializer (ResourceDisplay.fromdict()) on the other end.
     """
     analyzer = (
-        RegexTokenizer(r"[A-Za-z]+|[0-9]+")
+        RegexTokenizer(re.compile(r"[A-Za-z]+|[0-9]+"))
         | LowercaseFilter()
         | StopFilter()
         | StemFilter(custom_stemmer)
@@ -283,11 +292,11 @@ def default_search_query(schema: Schema, raw_query: str) -> Query:
 
 def run_search(
     ix: index.Index, raw_query: str, search_method: str, search_packages: str
-) -> list[dict[str, Any]]:
-    # TODO make a real "hit" type
+) -> list[SearchResult]:
     """Actually run a user query.
 
-    * parse raw query according to search method
+    * turn raw querystring into a structured query object, according to search
+      method
     * search, applying global filters & limits
     """
     query = search_variants()[search_method](ix.schema, raw_query)
@@ -297,10 +306,10 @@ def run_search(
         else:
             results = searcher.search(query, limit=50)
         return [
-            {
-                "original_object": r["original_object"],
-                "name": r["name"],
-                "score": r.score,
-            }
+            SearchResult(
+                resource=ResourceDisplay.fromdict(r["original_object"]),
+                name=r["name"],
+                score=r.score,
+            )
             for r in results
         ]

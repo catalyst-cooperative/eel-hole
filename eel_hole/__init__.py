@@ -384,8 +384,8 @@ def create_app():
                 search_method=search_method,
                 search_packages=search_packages,
             )
-            resources = [hit["original_object"] for hit in hits]
-            scores = {hit["name"]: hit["score"] for hit in hits}
+            resources = [hit.resource for hit in hits]
+            scores = {hit.name: hit.score for hit in hits}
         else:
             resources = (
                 sorted_all_resources
@@ -427,8 +427,7 @@ def create_app():
                     "method": rr.search_method,
                 },
                 "results": [
-                    {"name": r["name"], "score": rr.scores[r["name"]]}
-                    for r in rr.resources
+                    {"name": r.name, "score": rr.scores[r.name]} for r in rr.resources
                 ],
             }
         )

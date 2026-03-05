@@ -14,7 +14,7 @@ def _format_results(results, relevant_names):
     formatted = []
     for rank, result in enumerate(results, start=1):
         name = f"{result['name']:<{max_name_len}}"
-        relevance = "✅" if name in relevant_names else "❌"
+        relevance = "✅" if result["name"] in relevant_names else "❌"
         score_text = f"score={float(result['score']):.3f}"
         line = f"{rank:02d}:{name} {score_text} {relevance}"
         formatted.append(line)

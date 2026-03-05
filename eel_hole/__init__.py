@@ -43,7 +43,6 @@ from eel_hole.search import (
     build_autocomplete_name_index,
     build_or_load_search_index,
     run_search,
-    search_settings,
 )
 from eel_hole.utils import (
     PartitionedResourceDisplay,
@@ -188,7 +187,7 @@ def create_app():
     }
 
     RequestedResources = namedtuple(
-        "RequestedResources", "query search_method resources"
+        "RequestedResources", "query search_method resources scores"
     )
 
     @app.before_request
@@ -379,20 +378,23 @@ def create_app():
         search_method = get_variant("search_method")
 
         if query:
-            resources = run_search(
+            hits = run_search(
                 ix=search_index,
                 raw_query=query,
                 search_method=search_method,
                 search_packages=search_packages,
             )
+            resources = [hit["original_object"] for hit in hits]
+            scores = {hit["name"]: hit["score"] for hit in hits}
         else:
             resources = (
                 sorted_all_resources
                 if search_packages == "raw_ferc"
                 else sorted_pudl_only
             )
+            scores = {}
         return RequestedResources(
-            query=query, search_method=search_method, resources=resources
+            query=query, search_method=search_method, resources=resources, scores=scores
         )
 
     @app.get("/search")
@@ -423,9 +425,11 @@ def create_app():
                 "query": rr.query,
                 "settings": {
                     "method": rr.search_method,
-                    "boosts": search_settings(rr.search_method),
                 },
-                "results": [{"name": r["name"]} for r in rr.resources],
+                "results": [
+                    {"name": r["name"], "score": rr.scores[r["name"]]}
+                    for r in rr.resources
+                ],
             }
         )
 

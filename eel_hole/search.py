@@ -279,12 +279,11 @@ def run_search(
             )
         else:
             results = searcher.search(query_with_boosts, limit=50)
-        for hit in results:
-            log.debug(
-                "hit",
-                name=hit["name"],
-                tags=hit["tags"],
-                score=hit.score,
-                search_method=search_method,
-            )
-        return [hit["original_object"] for hit in results]
+        return [
+            {
+                "original_object": r["original_object"],
+                "name": r["name"],
+                "score": r.score,
+            }
+            for r in results
+        ]

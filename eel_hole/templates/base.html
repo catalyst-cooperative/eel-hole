@@ -22,7 +22,7 @@
 
       {% if not session.get('beta_notification_dismissed') %}
         <div
-          class="container is-fluid"
+          class="banner container is-fluid"
           hx-post="/dismiss-notification/beta"
           hx-swap="outerHTML"
           hx-trigger="click from:#beta-dismiss"

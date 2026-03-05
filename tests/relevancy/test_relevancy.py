@@ -4,7 +4,7 @@ import pytest
 import requests
 import yaml
 
-from eel_hole.search import SEARCH_VARIANT_FIELD_BOOSTS
+from eel_hole.search import search_variants
 
 
 def query_search_api(query: str, variant: str) -> dict:
@@ -38,17 +38,26 @@ def _compute_relevant_ranks(result_names, relevant_names):
     return ranks
 
 
-def _compute_average_precision(result_names, relevant_names):
-    """Get the average precision for one query, based on the actual results + relevant set."""
-    n_relevant = len(relevant_names)
-    if n_relevant == 0 and len(result_names) == 0:
-        return 1.0
+def _compute_average_precision(
+    n_results: int, n_relevant: int, relevant_ranks: list[int]
+):
+    """Compute AP from ranked hits.
 
-    relevant_ranks = _compute_relevant_ranks(result_names, relevant_names)
-    ap = 0.0
-    for retrieved_count, rank in enumerate(sorted(relevant_ranks.values()), start=1):
-        ap += retrieved_count / rank / n_relevant
-    return ap
+    Inputs are the number of returned results, number of truly relevant documents,
+    and 0-based ranks where relevant results appeared in the returned list.
+    """
+    if n_results == 0 and n_relevant == 0:
+        return 1.0
+    if n_results == 0 or n_relevant == 0 or not relevant_ranks:
+        return 0.0
+
+    relevant_in_results = min(len(relevant_ranks), n_relevant)
+    return sum(
+        (retrieved_relevant / (rank + 1)) / n_relevant
+        for retrieved_relevant, rank in enumerate(
+            sorted(relevant_ranks)[:relevant_in_results], start=1
+        )
+    )
 
 
 def _collect_query_metrics(reference_queries, variant):
@@ -59,17 +68,25 @@ def _collect_query_metrics(reference_queries, variant):
     n_queries = len(reference_queries)
 
     for ex in reference_queries:
-        result = query_search_api(ex["query"], variant)
-        result_names = [doc["name"] for doc in result["results"]]
-        relevant_ranks = _compute_relevant_ranks(result_names, ex["relevant"])
-        missing = set(ex["relevant"]) - set(result_names)
-        average_precision = _compute_average_precision(result_names, ex["relevant"])
+        relevant_set = set(ex["relevant"])
+        results = query_search_api(ex["query"], variant)["results"]
+        relevant_ranks = {
+            result["name"]: result | {"rank": i}
+            for i, result in enumerate(results)
+            if result["name"] in relevant_set
+        }
+        missing = relevant_set - {result["name"] for result in results}
+        average_precision = _compute_average_precision(
+            len(results),
+            len(relevant_set),
+            [r["rank"] for r in relevant_ranks.values()],
+        )
 
         query_metrics[ex["query"]] = {
             "average_precision": average_precision,
             "missing": missing,
             "relevant_ranks": relevant_ranks,
-            "top_results": result_names[:n_top_results],
+            "top_results": results[:n_top_results],
         }
         map_score += average_precision / n_queries
 
@@ -92,7 +109,7 @@ def negative_queries():
 
 @pytest.mark.parametrize(
     "variant",
-    set(SEARCH_VARIANT_FIELD_BOOSTS.keys()),
+    set(search_variants().keys()),
 )
 def test_relevancy_map(reference_queries, variant, pytestconfig):
     """Measure search performance of available variants using Mean Average Precision (MAP).
@@ -112,10 +129,10 @@ def test_relevancy_map(reference_queries, variant, pytestconfig):
     assert map > 0, "MAP too miserable to ship"
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail()
 @pytest.mark.parametrize(
     "variant",
-    set(SEARCH_VARIANT_FIELD_BOOSTS.keys()),
+    set(search_variants().keys()),
 )
 def test_negative_queries(negative_queries, variant):
     failures = []
@@ -138,3 +155,19 @@ def test_negative_queries(negative_queries, variant):
         f"query={f['query']!r} pattern={f['pattern']!r} matches={f['matches']}"
         for f in failures
     )
+
+
+@pytest.mark.parametrize(
+    "n_results,n_relevant,relevant_ranks,expected",
+    [
+        (5, 2, [0, 2], (1 + (2 / 3)) / 2),
+        (10, 3, [0, 1, 2], 1.0),
+        (4, 3, [1], (1 / 2) / 3),
+        (0, 2, [], 0.0),
+        (0, 0, [], 1.0),
+    ],
+)
+def test_compute_average_precision(n_results, n_relevant, relevant_ranks, expected):
+    assert _compute_average_precision(
+        n_results, n_relevant, relevant_ranks
+    ) == pytest.approx(expected)

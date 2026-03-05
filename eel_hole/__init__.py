@@ -378,14 +378,18 @@ def create_app():
         search_method = get_variant("search_method")
 
         if query:
-            hits = run_search(
-                ix=search_index,
-                raw_query=query,
-                search_method=search_method,
-                search_packages=search_packages,
-            )
-            resources = [hit.resource for hit in hits]
-            scores = {hit.name: hit.score for hit in hits}
+            with search_index.searcher() as searcher:
+                results = run_search(
+                    searcher=searcher,
+                    raw_query=query,
+                    search_method=search_method,
+                    search_packages=search_packages,
+                )
+                resources = [
+                    ResourceDisplay.fromdict(result["original_object"])
+                    for result in results
+                ]
+                scores = {result["name"]: result.score for result in results}
         else:
             resources = (
                 sorted_all_resources

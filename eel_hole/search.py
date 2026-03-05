@@ -23,6 +23,7 @@ from whoosh.filedb.filestore import FileStorage, RamStorage
 from whoosh.lang.porter import stem
 from whoosh.qparser import MultifieldParser
 from whoosh.query import AndMaybe, Or, Query, Term
+from whoosh.searching import Results, Searcher
 
 from eel_hole.logs import log
 from eel_hole.utils import (
@@ -35,20 +36,15 @@ from eel_hole.utils import (
 TOKEN_RE = re.compile(r"[a-z0-9]+")
 
 
-@dataclasses.dataclass(frozen=True)
-class SearchResult:
-    """A single ranked search hit."""
-
-    resource: ResourceDisplay
-    name: str
-    score: float
+SearchExecutor = Callable[[Query], Results]
+SearchVariant = Callable[[Schema, str, SearchExecutor], Results]
 
 
-def search_variants() -> dict[str, Callable[[Schema, str], Query]]:
+def search_variants() -> dict[str, SearchVariant]:
     """Define available search variants.
 
-    A search variant takes a raw query and returns a Whoosh query which can be
-    pushed into search.
+    A search variant takes a raw query and runs one or more index searches,
+    returning a Whoosh Results object.
 
     This is a function, not a module level variable, because:
     * it wants to be at the top of the file
@@ -267,15 +263,18 @@ def autocomplete_resource_names(
     return [name for _, name in scored[:limit]]
 
 
-def default_search_query(schema: Schema, raw_query: str) -> Query:
+def default_search_query(
+    schema: Schema, raw_query: str, execute_search: SearchExecutor
+) -> Results:
     """Default search method.
 
-    * parse query for raw keyword score
-      * AND terms together
-      * search the name, description, columns fields
-      * apply field boosts
-    * apply boosts/penalties for specific tags
-      * + "out", - "preliminary" (i.e., "starts with _")
+    Build one query from user text and execute it against the index.
+
+    Query behavior:
+
+    * AND keywords together and search over 'name', 'description', and 'columns' fields
+    * apply boost if the table's an `out` table
+    * apply penalty if the table starts with `_` (i.e. it's a "preliminary" table)
     """
     field_boosts = {"name": 1.5, "description": 1.0, "columns": 0.5}
 
@@ -287,29 +286,27 @@ def default_search_query(schema: Schema, raw_query: str) -> Query:
     user_query = parser.parse(raw_query)
     out_boost = Term("tags", "out", boost=10.0)
     preliminary_penalty = Term("tags", "preliminary", boost=-10.0)
-    return AndMaybe(user_query, Or([out_boost, preliminary_penalty]))
+    keyword_and_boost = AndMaybe(user_query, Or([out_boost, preliminary_penalty]))
+    return execute_search(keyword_and_boost)
 
 
 def run_search(
-    ix: index.Index, raw_query: str, search_method: str, search_packages: str
-) -> list[SearchResult]:
+    searcher: Searcher, raw_query: str, search_method: str, search_packages: str
+) -> Results:
     """Actually run a user query.
 
-    * turn raw querystring into a structured query object, according to search
-      method
-    * search, applying global filters & limits
+    Run the selected search variant and return Whoosh Results.
+
+    Callers must consume the returned Results before the provided searcher is closed.
     """
-    query = search_variants()[search_method](ix.schema, raw_query)
-    with ix.searcher() as searcher:
+
+    def execute_search(query: Query) -> Results:
         if search_packages == "pudl_only":
-            results = searcher.search(query, filter=Term("package", "pudl"), limit=50)
-        else:
-            results = searcher.search(query, limit=50)
-        return [
-            SearchResult(
-                resource=ResourceDisplay.fromdict(r["original_object"]),
-                name=r["name"],
-                score=r.score,
-            )
-            for r in results
-        ]
+            return searcher.search(query, filter=Term("package", "pudl"), limit=50)
+        return searcher.search(query, limit=50)
+
+    return search_variants()[search_method](
+        schema=searcher.schema,
+        raw_query=raw_query,
+        execute_search=execute_search,
+    )

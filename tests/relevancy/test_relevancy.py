@@ -4,7 +4,7 @@ import pytest
 import requests
 import yaml
 
-from eel_hole.search import SEARCH_VARIANT_FIELD_BOOSTS
+from eel_hole.search import search_variants
 
 
 def query_search_api(query: str, variant: str) -> dict:
@@ -109,7 +109,7 @@ def negative_queries():
 
 @pytest.mark.parametrize(
     "variant",
-    set(SEARCH_VARIANT_FIELD_BOOSTS.keys()),
+    set(search_variants().keys()),
 )
 def test_relevancy_map(reference_queries, variant, pytestconfig):
     """Measure search performance of available variants using Mean Average Precision (MAP).
@@ -131,7 +131,7 @@ def test_relevancy_map(reference_queries, variant, pytestconfig):
 
 @pytest.mark.parametrize(
     "variant",
-    set(SEARCH_VARIANT_FIELD_BOOSTS.keys()),
+    set(search_variants().keys()),
 )
 def test_negative_queries(negative_queries, variant):
     failures = []

@@ -4,9 +4,10 @@ import dataclasses
 import re
 import shutil
 from pathlib import Path
+from typing import Any, Callable
 
 import requests
-from frictionless import Package, Resource
+from frictionless import Package
 from rapidfuzz import fuzz
 
 # TODO 2025-01-15: think about switching this over to py-tantivy since that's better maintained
@@ -21,7 +22,7 @@ from whoosh.fields import KEYWORD, STORED, TEXT, Schema
 from whoosh.filedb.filestore import FileStorage, RamStorage
 from whoosh.lang.porter import stem
 from whoosh.qparser import MultifieldParser
-from whoosh.query import AndMaybe, Or, Term
+from whoosh.query import AndMaybe, Or, Query, Term
 
 from eel_hole.logs import log
 from eel_hole.utils import (
@@ -31,12 +32,20 @@ from eel_hole.utils import (
     clean_pudl_resource,
 )
 
-SEARCH_VARIANT_FIELD_BOOSTS = {
-    "default": {"name": 1.5, "description": 1.0, "columns": 0.5},
-    "title_boost": {"name": 3.0, "description": 1.0, "columns": 0.5},
-    "column_boost": {"name": 0.5, "description": 1.0, "columns": 3.0},
-}
 TOKEN_RE = re.compile(r"[a-z0-9]+")
+
+
+def search_variants() -> dict[str, Callable[[str], Query]]:
+    """Define available search variants.
+
+    A search variant takes a raw query and returns a Whoosh query which can be
+    pushed into search.
+
+    This is a function, not a module level variable, because:
+    * it wants to be at the top of the file
+    * it needs to see the other functions
+    """
+    return {"default": default_search_query}
 
 
 def custom_stemmer(word: str) -> str:
@@ -193,11 +202,6 @@ def build_or_load_search_index(
     return build_search_index(target_dir)
 
 
-def search_settings(search_method: str) -> dict[str, float]:
-    """Identify settings for specified search method."""
-    return SEARCH_VARIANT_FIELD_BOOSTS[search_method]
-
-
 def build_autocomplete_name_index(
     resources: list[ResourceDisplay],
 ) -> list[tuple[str, str, str]]:
@@ -254,31 +258,44 @@ def autocomplete_resource_names(
     return [name for _, name in scored[:limit]]
 
 
+def default_search_query(schema: Schema, raw_query: str) -> Query:
+    """Default search method.
+
+    * parse query for raw keyword score
+      * AND terms together
+      * search the name, description, columns fields
+      * apply field boosts
+    * apply boosts/penalties for specific tags
+      * + "out", - "preliminary" (i.e., "starts with _")
+    """
+    field_boosts = {"name": 1.5, "description": 1.0, "columns": 0.5}
+
+    parser = MultifieldParser(
+        ["name", "description", "columns"],
+        schema,
+        fieldboosts=field_boosts,
+    )
+    user_query = parser.parse(raw_query)
+    out_boost = Term("tags", "out", boost=10.0)
+    preliminary_penalty = Term("tags", "preliminary", boost=-10.0)
+    return AndMaybe(user_query, Or([out_boost, preliminary_penalty]))
+
+
 def run_search(
     ix: index.Index, raw_query: str, search_method: str, search_packages: str
-) -> list[Resource]:
+) -> list[dict[str, Any]]:
+    # TODO make a real "hit" type
     """Actually run a user query.
 
-    This doctors the raw query with some field boosts + tag boosts.
+    * parse raw query according to search method
+    * search, applying global filters & limits
     """
-    field_boosts = search_settings(search_method)
-
+    query = search_variants()[search_method](ix.schema, raw_query)
     with ix.searcher() as searcher:
-        parser = MultifieldParser(
-            ["name", "description", "columns"],
-            ix.schema,
-            fieldboosts=field_boosts,
-        )
-        user_query = parser.parse(raw_query)
-        out_boost = Term("tags", "out", boost=10.0)
-        preliminary_penalty = Term("tags", "preliminary", boost=-10.0)
-        query_with_boosts = AndMaybe(user_query, Or([out_boost, preliminary_penalty]))
         if search_packages == "pudl_only":
-            results = searcher.search(
-                query_with_boosts, filter=Term("package", "pudl"), limit=50
-            )
+            results = searcher.search(query, filter=Term("package", "pudl"), limit=50)
         else:
-            results = searcher.search(query_with_boosts, limit=50)
+            results = searcher.search(query, limit=50)
         return [
             {
                 "original_object": r["original_object"],

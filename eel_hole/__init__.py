@@ -38,11 +38,11 @@ from eel_hole.feature_variants import FeatureVariants, get_variant
 from eel_hole.logs import log
 from eel_hole.models import User, db
 from eel_hole.search import (
-    SEARCH_VARIANT_FIELD_BOOSTS,
     autocomplete_resource_names,
     build_autocomplete_name_index,
     build_or_load_search_index,
     run_search,
+    search_variants,
 )
 from eel_hole.utils import (
     PartitionedResourceDisplay,
@@ -154,7 +154,7 @@ def create_app():
                 default="pudl_only", variants={"raw_ferc", "pudl_only"}
             ),
             "search_method": FeatureVariants(
-                default="default", variants=set(SEARCH_VARIANT_FIELD_BOOSTS.keys())
+                default="default", variants=set(search_variants().keys())
             ),
         },
     )

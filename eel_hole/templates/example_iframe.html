@@ -5,20 +5,49 @@
 {% block extra_head %}
   <style>
     /*
-     * Make example iframe take up the whole page underneath the navbar.
+     * Keep iframe filling the visible viewport below top chrome so
+     * scrolling happens inside the iframe, not on the outer page.
      */
 
     #main-content {
-      flex: 1;
-      display: flex;
+      /* Prevent body/outer-page scrollbars; the embedded notebook should own
+       * vertical scrolling so navbar + banners stay visible. */
+      overflow: hidden;
     }
 
     .example-iframe {
-      flex: 1;
+      display: block;
       width: 100%;
       height: 100%;
+      border: 0;
     }
   </style>
+  <script>
+    // CSS-only sizing can't handle this reliably because the top chrome height
+    // changes at runtime when dismissible banners are removed. Recompute
+    // iframe container height after load, resize, and DOM mutations.
+    function resizeExampleIframe() {
+      const mainContent = document.getElementById("main-content");
+      if (!mainContent) return;
+
+      const topOffset = mainContent.getBoundingClientRect().top;
+      const availableHeight = Math.max(0, window.innerHeight - topOffset);
+      mainContent.style.height = `${availableHeight}px`;
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      resizeExampleIframe();
+
+      const observer = new MutationObserver(() => resizeExampleIframe());
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["class", "style", "hidden"],
+      });
+    });
+    window.addEventListener("resize", resizeExampleIframe);
+  </script>
 {% endblock %}
 
 {% block content %}

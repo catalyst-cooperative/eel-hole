@@ -8,7 +8,8 @@ def _resource(name: str) -> ResourceDisplay:
     return ResourceDisplay(
         name=name,
         package="pudl",
-        description="",
+        description=f"{name} description",
+        summary=f"{name} summary",
         columns=[ColumnDisplay(name="id", description="")],
     )
 

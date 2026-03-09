@@ -4,9 +4,10 @@ import dataclasses
 import re
 import shutil
 from pathlib import Path
+from typing import Callable
 
 import requests
-from frictionless import Package, Resource
+from frictionless import Package
 from rapidfuzz import fuzz
 
 # TODO 2025-01-15: think about switching this over to py-tantivy since that's better maintained
@@ -17,11 +18,12 @@ from whoosh.analysis import (
     StemFilter,
     StopFilter,
 )
-from whoosh.fields import KEYWORD, STORED, TEXT, Schema
+from whoosh.fields import ID, KEYWORD, STORED, TEXT, Schema
 from whoosh.filedb.filestore import FileStorage, RamStorage
 from whoosh.lang.porter import stem
 from whoosh.qparser import MultifieldParser
-from whoosh.query import AndMaybe, Or, Term
+from whoosh.query import AndMaybe, Or, Query, Term
+from whoosh.searching import Results, Searcher
 
 from eel_hole.logs import log
 from eel_hole.utils import (
@@ -31,12 +33,24 @@ from eel_hole.utils import (
     clean_pudl_resource,
 )
 
-SEARCH_VARIANT_FIELD_BOOSTS = {
-    "default": {"name": 1.5, "description": 1.0, "columns": 0.5},
-    "title_boost": {"name": 3.0, "description": 1.0, "columns": 0.5},
-    "column_boost": {"name": 0.5, "description": 1.0, "columns": 3.0},
-}
 TOKEN_RE = re.compile(r"[a-z0-9]+")
+
+
+SearchExecutor = Callable[[Query], Results]
+SearchVariant = Callable[[Schema, str, SearchExecutor], Results]
+
+
+def search_variants() -> dict[str, SearchVariant]:
+    """Define available search variants.
+
+    A search variant takes a raw query and runs one or more index searches,
+    returning a Whoosh Results object.
+
+    This is a function, not a module level variable, because:
+    * it wants to be at the top of the file
+    * it needs to see the other functions
+    """
+    return {"default": default_search_query, "boost_exact_match": boost_exact_match}
 
 
 def custom_stemmer(word: str) -> str:
@@ -46,6 +60,18 @@ def custom_stemmer(word: str) -> str:
         "generator": "generator",
     }
     return stem_map.get(word, stem(word))
+
+
+def compact_for_name_match(text: str) -> str:
+    """Smash the differences between strange spellings of names.
+
+    When we're *only* looking at table-name or column-name, we don't really care
+    about token boundaries, cases, or punctuation, so remove them.
+
+    Currently this is useful for autocomplete (fuzzy match) and for the
+    exact-name-match boosting.
+    """
+    return "".join(TOKEN_RE.findall(text.lower())).strip()
 
 
 def initialize_index(
@@ -64,15 +90,19 @@ def initialize_index(
     deserializer (ResourceDisplay.fromdict()) on the other end.
     """
     analyzer = (
-        RegexTokenizer(r"[A-Za-z]+|[0-9]+")
+        RegexTokenizer(re.compile(r"[A-Za-z]+|[0-9]+"))
         | LowercaseFilter()
         | StopFilter()
         | StemFilter(custom_stemmer)
     )
     schema = Schema(
         name=TEXT(analyzer=analyzer, stored=True),
+        name_exact=ID,
         description=TEXT(analyzer=analyzer),
-        columns=TEXT(analyzer=analyzer),
+        column_names=TEXT(analyzer=analyzer),
+        column_descriptions=TEXT(analyzer=analyzer),
+        # each keyword is a column
+        column_names_exact=KEYWORD(commas=True),
         package=KEYWORD(stored=True),
         tags=KEYWORD(stored=True),
         original_object=STORED,
@@ -82,18 +112,23 @@ def initialize_index(
 
     for resource in resources:
         description = re.sub("<[^<]+?>", "", resource.description)
-        columns = "".join(
-            (" ".join([col.name, col.description]) for col in resource.columns)
-        )
+        column_names = " ".join(col.name for col in resource.columns)
+        column_descriptions = " ".join(col.description for col in resource.columns)
+        column_names_exact_tokens = [
+            compact_for_name_match(col.name) for col in resource.columns
+        ]
         tags = [resource.name.strip("_").split("_")[0]]
         if resource.name.startswith("_"):
             tags.append("preliminary")
 
         writer.add_document(
             name=resource.name,
+            name_exact=compact_for_name_match(resource.name),
             description=description,
             package=resource.package,
-            columns=columns,
+            column_names=column_names,
+            column_descriptions=column_descriptions,
+            column_names_exact=",".join(t for t in column_names_exact_tokens if t),
             original_object=dataclasses.asdict(resource),
             tags=" ".join(tags),
         )
@@ -193,17 +228,12 @@ def build_or_load_search_index(
     return build_search_index(target_dir)
 
 
-def search_settings(search_method: str) -> dict[str, float]:
-    """Identify settings for specified search method."""
-    return SEARCH_VARIANT_FIELD_BOOSTS[search_method]
-
-
 def build_autocomplete_name_index(
     resources: list[ResourceDisplay],
 ) -> list[tuple[str, str, str]]:
     """Precompute lowercase + normalized forms used by autocomplete."""
     return [
-        (name, name.lower(), "".join(TOKEN_RE.findall(name.lower())))
+        (name, name.lower(), compact_for_name_match(name))
         for name in {resource.name for resource in resources}
     ]
 
@@ -234,7 +264,7 @@ def autocomplete_resource_names(
     if not query:
         return []
 
-    normalized_query = "".join(TOKEN_RE.findall(query))
+    normalized_query = compact_for_name_match(query)
 
     scored: list[tuple[float, str]] = []
     names = (
@@ -254,37 +284,111 @@ def autocomplete_resource_names(
     return [name for _, name in scored[:limit]]
 
 
+def default_search_query(
+    schema: Schema, raw_query: str, execute_search: SearchExecutor
+) -> Results:
+    """Default search method.
+
+    Build one query from user text and execute it against the index.
+
+    Query behavior:
+
+    * AND keywords together and search over
+      'name', 'description', 'column_names', and 'column_descriptions' fields
+    * apply boost if the table's an `out` table
+    * apply penalty if the table starts with `_` (i.e. it's a "preliminary" table)
+    """
+
+    parser = MultifieldParser(
+        ["name", "description", "column_names", "column_descriptions"],
+        schema,
+        fieldboosts={
+            "name": 1.5,
+            "description": 1.0,
+            "column_names": 0.8,
+            "column_descriptions": 0.4,
+        },
+    )
+    user_query = parser.parse(raw_query)
+    out_boost = Term("tags", "out", boost=10.0)
+    preliminary_penalty = Term("tags", "preliminary", boost=-10.0)
+    keyword_and_boost = AndMaybe(user_query, Or([out_boost, preliminary_penalty]))
+    return execute_search(keyword_and_boost)
+
+
+def boost_exact_match(
+    schema: Schema, raw_query: str, execute_search: SearchExecutor
+) -> Results:
+    """Run
+
+    * apply manual query substitutions
+    * combine two queries (apply layer-based boosts/penalties to both)
+      * full text query
+      * exact-match query on table/column names
+    """
+    rewritten_query = apply_manual_query_substitutions(
+        raw_query,
+        {"form 1": "ferc1", "utility finance": "'balance sheets' OR income"},
+    )
+
+    out_boost = Term("tags", "out", boost=10.0)
+    preliminary_penalty = Term("tags", "preliminary", boost=-10.0)
+    ranking_adjustments = Or([out_boost, preliminary_penalty])
+
+    full_text_parser = MultifieldParser(
+        ["name", "description", "column_names", "column_descriptions"],
+        schema,
+        fieldboosts={
+            "name": 1.5,
+            "description": 1.0,
+            "column_names": 0.8,
+            "column_descriptions": 0.4,
+        },
+    )
+
+    full_text_query = full_text_parser.parse(rewritten_query)
+    boosted_full_text_results = execute_search(
+        AndMaybe(full_text_query, ranking_adjustments)
+    )
+
+    normalized_query = compact_for_name_match(rewritten_query)
+    exact_query = Or(
+        [
+            Term("name_exact", normalized_query, boost=3.0),
+            Term("column_names_exact", normalized_query, boost=1.5),
+        ]
+    )
+    exact_results = execute_search(AndMaybe(exact_query, ranking_adjustments))
+
+    exact_results.upgrade_and_extend(boosted_full_text_results)
+
+    return exact_results
+
+
+def apply_manual_query_substitutions(query: str, subs: dict[str, str]) -> str:
+    """Apply curated query substitutions before parsing."""
+    for target, replacement in subs.items():
+        query = query.replace(target, replacement)
+    return query
+
+
 def run_search(
-    ix: index.Index, raw_query: str, search_method: str, search_packages: str
-) -> list[Resource]:
+    searcher: Searcher, raw_query: str, search_method: str, search_packages: str
+) -> Results:
     """Actually run a user query.
 
-    This doctors the raw query with some field boosts + tag boosts.
-    """
-    field_boosts = search_settings(search_method)
+    Run the selected search variant and return Whoosh Results.
 
-    with ix.searcher() as searcher:
-        parser = MultifieldParser(
-            ["name", "description", "columns"],
-            ix.schema,
-            fieldboosts=field_boosts,
-        )
-        user_query = parser.parse(raw_query)
-        out_boost = Term("tags", "out", boost=10.0)
-        preliminary_penalty = Term("tags", "preliminary", boost=-10.0)
-        query_with_boosts = AndMaybe(user_query, Or([out_boost, preliminary_penalty]))
+    Callers must consume the returned Results before the provided searcher is closed.
+    """
+
+    def execute_search(query: Query) -> Results:
         if search_packages == "pudl_only":
-            results = searcher.search(
-                query_with_boosts, filter=Term("package", "pudl"), limit=50
-            )
-        else:
-            results = searcher.search(query_with_boosts, limit=50)
-        for hit in results:
-            log.debug(
-                "hit",
-                name=hit["name"],
-                tags=hit["tags"],
-                score=hit.score,
-                search_method=search_method,
-            )
-        return [hit["original_object"] for hit in results]
+            return searcher.search(query, filter=Term("package", "pudl"), limit=50)
+        return searcher.search(query, limit=50)
+
+    return search_variants()[search_method](
+        schema=searcher.schema,
+        raw_query=raw_query,
+        execute_search=execute_search,
+    )

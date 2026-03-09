@@ -66,7 +66,7 @@ def compact_for_name_match(text: str) -> str:
     """Smash the differences between strange spellings of names.
 
     When we're *only* looking at table-name or column-name, we don't really care
-    about cases or punctuation, so remove them.
+    about token boundaries, cases, or punctuation, so remove them.
 
     Currently this is useful for autocomplete (fuzzy match) and for the
     exact-name-match boosting.
@@ -101,7 +101,8 @@ def initialize_index(
         description=TEXT(analyzer=analyzer),
         column_names=TEXT(analyzer=analyzer),
         column_descriptions=TEXT(analyzer=analyzer),
-        column_name_exact=KEYWORD(commas=True),
+        # each keyword is a column
+        column_names_exact=KEYWORD(commas=True),
         package=KEYWORD(stored=True),
         tags=KEYWORD(stored=True),
         original_object=STORED,

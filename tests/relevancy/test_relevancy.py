@@ -41,7 +41,7 @@ def _compute_relevant_ranks(result_names, relevant_names):
 def _compute_average_precision(
     n_results: int, n_relevant: int, relevant_ranks: list[int]
 ):
-    """Compute AP from ranked hits.
+    """Compute AP from hit ranks.
 
     Inputs are the number of returned results, number of truly relevant documents,
     and 0-based ranks where relevant results appeared in the returned list.

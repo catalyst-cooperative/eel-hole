@@ -114,7 +114,7 @@ def initialize_index(
         description = re.sub("<[^<]+?>", "", resource.description)
         column_names = " ".join(col.name for col in resource.columns)
         column_descriptions = " ".join(col.description for col in resource.columns)
-        column_name_exact_tokens = [
+        column_names_exact_tokens = [
             compact_for_name_match(col.name) for col in resource.columns
         ]
         tags = [resource.name.strip("_").split("_")[0]]
@@ -128,7 +128,7 @@ def initialize_index(
             package=resource.package,
             column_names=column_names,
             column_descriptions=column_descriptions,
-            column_name_exact=",".join(t for t in column_name_exact_tokens if t),
+            column_names_exact=",".join(t for t in column_names_exact_tokens if t),
             original_object=dataclasses.asdict(resource),
             tags=" ".join(tags),
         )
@@ -355,7 +355,7 @@ def boost_exact_match(
     exact_query = Or(
         [
             Term("name_exact", normalized_query, boost=3.0),
-            Term("column_name_exact", normalized_query, boost=1.5),
+            Term("column_names_exact", normalized_query, boost=1.5),
         ]
     )
     exact_results = execute_search(AndMaybe(exact_query, ranking_adjustments))

@@ -9,8 +9,10 @@ jobs:
   build_deploy:
     name: Build eel hole image, push to Artifact Registry, and re-deploy service.
     runs-on: ubuntu-latest
+    environment: production
     permissions:
       contents: read
+      deployments: write
       id-token: write
     steps:
       - name: Check out repository

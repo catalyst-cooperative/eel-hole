@@ -2,6 +2,14 @@
   height: 100dvh;
 }
 
+/* since banners are also 'containers' they default to flex-grow: 1.
+
+Which then makes them take up a bunch of vertical space if the main content is
+relatively small */
+.banner {
+  flex-grow: 0;
+}
+
 .navbar {
   height: 3rem;
 }

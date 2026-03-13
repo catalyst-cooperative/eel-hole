@@ -8,6 +8,7 @@ from typing import Callable
 
 import requests
 from frictionless import Package
+from pydantic import BaseModel, ConfigDict
 from rapidfuzz import fuzz
 
 # TODO 2025-01-15: think about switching this over to py-tantivy since that's better maintained
@@ -37,7 +38,7 @@ TOKEN_RE = re.compile(r"[a-z0-9]+")
 
 
 SearchExecutor = Callable[[Query], Results]
-SearchVariant = Callable[[Schema, str, SearchExecutor], Results]
+SearchVariant = Callable[[Schema, str, SearchExecutor, dict], Results]
 
 
 def search_variants() -> dict[str, SearchVariant]:
@@ -284,8 +285,20 @@ def autocomplete_resource_names(
     return [name for _, name in scored[:limit]]
 
 
+class DefaultSearchConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    fieldboosts: dict[str, float] = {
+        "name": 1.5,
+        "description": 1.0,
+        "column_names": 0.8,
+        "column_descriptions": 0.4,
+    }
+    out_boost: float = 10.0
+    preliminary_penalty: float = -10.0
+
+
 def default_search_query(
-    schema: Schema, raw_query: str, execute_search: SearchExecutor
+    schema: Schema, raw_query: str, execute_search: SearchExecutor, config: dict
 ) -> Results:
     """Default search method.
 
@@ -298,26 +311,21 @@ def default_search_query(
     * apply boost if the table's an `out` table
     * apply penalty if the table starts with `_` (i.e. it's a "preliminary" table)
     """
-
+    config = DefaultSearchConfig(**config)
     parser = MultifieldParser(
         ["name", "description", "column_names", "column_descriptions"],
         schema,
-        fieldboosts={
-            "name": 1.5,
-            "description": 1.0,
-            "column_names": 0.8,
-            "column_descriptions": 0.4,
-        },
+        fieldboosts=config.fieldboosts,
     )
     user_query = parser.parse(raw_query)
-    out_boost = Term("tags", "out", boost=10.0)
-    preliminary_penalty = Term("tags", "preliminary", boost=-10.0)
+    out_boost = Term("tags", "out", boost=config.out_boost)
+    preliminary_penalty = Term("tags", "preliminary", boost=config.preliminary_penalty)
     keyword_and_boost = AndMaybe(user_query, Or([out_boost, preliminary_penalty]))
     return execute_search(keyword_and_boost)
 
 
 def boost_exact_match(
-    schema: Schema, raw_query: str, execute_search: SearchExecutor
+    schema: Schema, raw_query: str, execute_search: SearchExecutor, config: dict
 ) -> Results:
     """Run
 
@@ -373,7 +381,11 @@ def apply_manual_query_substitutions(query: str, subs: dict[str, str]) -> str:
 
 
 def run_search(
-    searcher: Searcher, raw_query: str, search_method: str, search_packages: str
+    searcher: Searcher,
+    raw_query: str,
+    search_method: str,
+    search_packages: str,
+    search_config: dict,
 ) -> Results:
     """Actually run a user query.
 
@@ -391,4 +403,5 @@ def run_search(
         schema=searcher.schema,
         raw_query=raw_query,
         execute_search=execute_search,
+        config=search_config,
     )

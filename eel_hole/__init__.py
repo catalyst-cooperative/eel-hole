@@ -376,6 +376,7 @@ def create_app():
 
         search_packages = get_variant("search_packages")
         search_method = get_variant("search_method")
+        search_config = json.loads(request.args.get("config", "{}"))
 
         if query:
             with search_index.searcher() as searcher:
@@ -384,6 +385,7 @@ def create_app():
                     raw_query=query,
                     search_method=search_method,
                     search_packages=search_packages,
+                    search_config=search_config,
                 )
                 resources = [
                     ResourceDisplay.fromdict(result["original_object"])

@@ -1,3 +1,5 @@
+from collections import namedtuple
+from itertools import product
 import re
 
 import pytest
@@ -7,13 +9,14 @@ import yaml
 from eel_hole.search import search_variants
 
 
-def query_search_api(query: str, variant: str) -> dict:
+def query_search_api(query: str, variant: str, config: str) -> dict:
     """Query the search API for one query/variant pair and validate response."""
     result = requests.get(
         "http://localhost:8080/api/search",
         params={
             "q": query,
             "variants": f"search_method:{variant}",
+            "config": config,
         },
         headers={"accept-mimetypes": "application/json"},
     )
@@ -60,7 +63,7 @@ def _compute_average_precision(
     )
 
 
-def _collect_query_metrics(reference_queries, variant):
+def _collect_query_metrics(reference_queries, variant, config="{}"):
     """Get metrics for the set of reference queries, and compute MAP."""
     map_score = 0.0
     query_metrics = {}
@@ -69,7 +72,7 @@ def _collect_query_metrics(reference_queries, variant):
 
     for ex in reference_queries:
         relevant_set = set(ex["relevant"])
-        results = query_search_api(ex["query"], variant)["results"]
+        results = query_search_api(ex["query"], variant, config)["results"]
         relevant_ranks = {
             result["name"]: result | {"rank": i}
             for i, result in enumerate(results)
@@ -171,3 +174,49 @@ def test_compute_average_precision(n_results, n_relevant, relevant_ranks, expect
     assert _compute_average_precision(
         n_results, n_relevant, relevant_ranks
     ) == pytest.approx(expected)
+
+
+DefaultConfig = namedtuple(
+    "DefaultConfig",
+    "name description column_names column_descriptions out_boost preliminary_penalty",
+)
+
+
+@pytest.fixture
+def experiment(request):
+    return request.config.getoption("--experiment")
+
+
+def pytest_generate_tests(metafunc):
+    if "sweep_options" in metafunc.fixturenames:
+        with open(metafunc.config.getoption("experiment")) as f:
+            experiment_params = yaml.safe_load(f)
+        metafunc.parametrize(
+            "sweep_options",
+            (
+                DefaultConfig(*p)
+                for p in product(
+                    *[list(x.values()).pop() for x in experiment_params["sweep"]]
+                )
+            ),
+        )
+
+
+def test_sweep_default(reference_queries, sweep_options, pytestconfig):
+    import json
+
+    config_dict = {
+        "fieldboosts": {
+            "name": sweep_options.name,
+            "description": sweep_options.description,
+            "column_names": sweep_options.column_names,
+            "column_descriptions": sweep_options.column_descriptions,
+        },
+        "out_boost": sweep_options.out_boost,
+        "preliminary_penalty": sweep_options.preliminary_penalty,
+    }
+    config_param = json.dumps(config_dict)
+    map, _ = _collect_query_metrics(reference_queries, "default", config_param)
+    pytestconfig._sweep_results.append(
+        f"{map:.3f},{','.join(f'{v:.3f}' for v in sweep_options)}"
+    )

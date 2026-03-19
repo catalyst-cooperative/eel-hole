@@ -24,6 +24,7 @@ class User(UserMixin, db.Model):
     accepted_privacy_policy: Mapped[bool] = mapped_column(server_default=false())
     do_individual_outreach: Mapped[bool] = mapped_column(server_default=false())
     send_newsletter: Mapped[bool] = mapped_column(server_default=false())
+    email_verified: Mapped[bool] = mapped_column(server_default=false())
 
     def get_domain(self) -> str:
         return self.email.partition("@")[-1]
@@ -34,10 +35,12 @@ class User(UserMixin, db.Model):
 
     @staticmethod
     def from_userinfo(userinfo):
+        """Build our User object from Auth0's profile payload."""
         return User(
             auth0_id=userinfo["sub"],
             email=userinfo["email"],
             username=userinfo.get(
                 "preferred_username", userinfo["email"].split("@")[0]
             ),
+            email_verified=userinfo.get("email_verified", False),
         )

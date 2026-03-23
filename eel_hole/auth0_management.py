@@ -6,6 +6,9 @@ import requests
 class Auth0ManagementAPIClient:
     """Talk to Auth0 Management API.
 
+    Do *not* instantiate directly. Use `get_auth0_management_client` instead so
+    we don't end up requesting too many tokens and using up our quota.
+
     Needs the client ID and client secret from a machine-to-machine application
     from the Auth0 dashboard.
 

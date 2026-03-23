@@ -93,6 +93,12 @@ Go to Applications (it's the triple stack on the left) -> [dev-dx] PUDL Viewer
 and click "Settings"
 to find the env variables you need from envrc-template.
 
+If you want to trigger verification emails from the backend,
+grab the "User email verification" machine-to-machine application
+credentials and set `PUDL_VIEWER_AUTH0_MANAGEMENT_API_ENABLED=true`,
+`PUDL_VIEWER_AUTH0_USER_API_CLIENT_ID`, and
+`PUDL_VIEWER_AUTH0_USER_API_CLIENT_SECRET` in your environment.
+
 ### Everyone else
 
 Go to https://manage.auth0.com/dashboard and register as a tenant.

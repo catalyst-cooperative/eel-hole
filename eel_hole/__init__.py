@@ -32,6 +32,7 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from frictionless import Resource
 
+from eel_hole.auth0_management import get_auth0_management_client
 from eel_hole.duckdb_query import Filter, ag_grid_to_duckdb
 from eel_hole.examples_config import load_examples_config
 from eel_hole.feature_variants import FeatureVariants, get_variant
@@ -53,7 +54,17 @@ from eel_hole.utils import (
 AUTH0_DOMAIN = os.getenv("PUDL_VIEWER_AUTH0_DOMAIN")
 CLIENT_ID = os.getenv("PUDL_VIEWER_AUTH0_CLIENT_ID")
 CLIENT_SECRET = os.getenv("PUDL_VIEWER_AUTH0_CLIENT_SECRET")
+AUTH0_USER_API_CLIENT_ID = os.getenv("PUDL_VIEWER_AUTH0_USER_API_CLIENT_ID")
+AUTH0_USER_API_CLIENT_SECRET = os.getenv("PUDL_VIEWER_AUTH0_USER_API_CLIENT_SECRET")
 SEARCH_INDEX_DIR = os.getenv("PUDL_VIEWER_SEARCH_INDEX_DIR", ".search-index")
+
+
+def _env_var_is_true(var_name: str, default: bool = False) -> bool:
+    """Munge env var value to something boolean.
+
+    Pass something that looks like "True" please.
+    """
+    return str(os.getenv(var_name, default)).lower() == "true"
 
 
 def __init_auth0(app: Flask):
@@ -88,7 +99,7 @@ def __init_db(db: SQLAlchemy, app: Flask):
     password = os.getenv("PUDL_VIEWER_DB_PASSWORD")
     database = os.getenv("PUDL_VIEWER_DB_NAME")
 
-    if os.environ.get("IS_CLOUD_RUN"):
+    if _env_var_is_true("IS_CLOUD_RUN"):
         cloud_sql_connection_name = os.environ.get("CLOUD_SQL_CONNECTION_NAME")
         db_uri = f"postgresql://{username}:{password}@/{database}?host=/cloudsql/{cloud_sql_connection_name}"
     else:
@@ -142,13 +153,17 @@ def create_app():
     3. add a middleware that bounces people to privacy policy if necessary
     3. define a bunch of application routes
     """
+
     app = Flask("eel_hole", instance_relative_config=True)
-    if os.getenv("IS_CLOUD_RUN"):
+    if _env_var_is_true("IS_CLOUD_RUN"):
         app.config["PREFERRED_URL_SCHEME"] = "https"
     app.config.from_mapping(
         SECRET_KEY=os.getenv("PUDL_VIEWER_SECRET_KEY"),
         TEMPLATES_AUTO_RELOAD=True,
-        INTEGRATION_TEST=os.getenv("PUDL_VIEWER_INTEGRATION_TEST", False),
+        INTEGRATION_TEST=_env_var_is_true("PUDL_VIEWER_INTEGRATION_TEST"),
+        AUTH0_MANAGEMENT_API_ENABLED=_env_var_is_true(
+            "PUDL_VIEWER_AUTH0_MANAGEMENT_API_ENABLED", default=True
+        ),
         FEATURE_VARIANTS={
             "search_packages": FeatureVariants(
                 default="pudl_only", variants={"raw_ferc", "pudl_only"}
@@ -210,6 +225,7 @@ def create_app():
         if request.path in {
             "/privacy-policy",
             "/privacy-settings",
+            "/verify-email",
             "/logout",
         }:
             return None
@@ -291,6 +307,45 @@ def create_app():
                 db.session.commit()
         login_user(user, remember=True)
         return redirect(next_url)
+
+    @app.post("/verify-email")
+    @login_required
+    def verify_email():
+        """Trigger a new Auth0 email verification job for the logged-in user.
+
+        See https://auth0.com/docs/api/management/v2/jobs/post-verification-email
+        for details.
+
+        404 if we don't have the management API available.
+        502 if upstream (Auth0) failed.
+
+        Otherwise 200.
+        """
+        if not app.config["AUTH0_MANAGEMENT_API_ENABLED"]:
+            abort(404)
+
+        auth0_management_client = get_auth0_management_client(
+            domain=AUTH0_DOMAIN,
+            client_id=AUTH0_USER_API_CLIENT_ID,
+            client_secret=AUTH0_USER_API_CLIENT_SECRET,
+        )
+        response = auth0_management_client.request_verification_email(
+            current_user.auth0_id
+        )
+
+        if not response.ok:
+            log.warning(
+                "verify-email-failed",
+                status_code=response.status_code,
+                user_id=current_user.get_id(),
+            )
+            abort(502)
+
+        log.info(
+            "verify-email-requested",
+            user_id=current_user.get_id(),
+        )
+        return "", 200
 
     @login_required
     @app.route("/logout")

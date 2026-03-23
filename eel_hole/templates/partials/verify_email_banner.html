@@ -1,4 +1,4 @@
-{% if current_user.is_authenticated and not current_user.email_verified and config["AUTH0_MANAGEMENT_API_ENABLED"] %}
+{% if current_user.is_authenticated and not current_user.email_verified and (config["AUTH0_MANAGEMENT_API_ENABLED"] or config["INTEGRATION_TEST"]) %}
   <div class="banner container is-fluid" id="verify-email-notification">
     <div class="notification is-warning my-3">
       Hi! We've noticed your email, <strong>{{ current_user.email }}</strong>,

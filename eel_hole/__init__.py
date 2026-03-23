@@ -284,6 +284,11 @@ def create_app():
             user = User.from_userinfo(userinfo)
             db.session.add(user)
             db.session.commit()
+        else:
+            email_verified = userinfo.get("email_verified", False)
+            if user.email_verified != email_verified:
+                user.email_verified = email_verified
+                db.session.commit()
         login_user(user, remember=True)
         return redirect(next_url)
 

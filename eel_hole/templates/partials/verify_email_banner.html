@@ -1,0 +1,25 @@
+{% if current_user.is_authenticated and not current_user.email_verified and config["AUTH0_MANAGEMENT_API_ENABLED"] %}
+  <div class="banner container is-fluid" id="verify-email-notification">
+    <div class="notification is-warning my-3">
+      Hi! We've noticed your email, <strong>{{ current_user.email }}</strong>,
+      hasn't been verified yet!
+      <a
+        class="inline"
+        hx-post="/verify-email"
+        hx-swap="none"
+        href="/verify-email"
+        >Verify your email</a
+      >
+      and
+      <a
+        class="inline"
+        hx-post="/refresh-email-verification"
+        hx-target="#verify-email-notification"
+        hx-swap="outerHTML"
+        href="/refresh-email-verification"
+        >refresh status</a
+      >
+      to get rid of this banner.
+    </div>
+  </div>
+{% endif %}

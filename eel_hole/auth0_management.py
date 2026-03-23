@@ -25,25 +25,19 @@ class Auth0ManagementAPIClient:
         self._cached_access_token = self._get_access_token()
 
     def request_verification_email(self, auth0_user_id: str) -> requests.Response:
-        """Ask Auth0 to send a new verification email to a logged-in user.
-
-        If we get a 401, get a new token and try again.
-        """
-        token = self._cached_access_token
-        response = self._post_verification_email(
-            auth0_user_id=auth0_user_id,
-            access_token=token,
+        """Ask Auth0 to send a new verification email to a logged-in user."""
+        return self._make_authenticated_request(
+            http_method="post",
+            endpoint="jobs/verification-email",
+            json={"user_id": auth0_user_id},
         )
 
-        if response.status_code == 401:
-            token = self._get_access_token()
-            self._cached_access_token = token
-            response = self._post_verification_email(
-                auth0_user_id=auth0_user_id,
-                access_token=token,
-            )
-
-        return response
+    def get_user(self, auth0_user_id: str) -> requests.Response:
+        """Get one Auth0 user profile by Auth0 user ID."""
+        return self._make_authenticated_request(
+            http_method="get",
+            endpoint=f"users/{auth0_user_id}",
+        )
 
     def _get_access_token(self) -> str:
         """Request a fresh Auth0 Management API token."""
@@ -61,18 +55,36 @@ class Auth0ManagementAPIClient:
         access_token = token_response.json()["access_token"]
         return access_token
 
-    def _post_verification_email(
+    def _make_authenticated_request(
         self,
-        auth0_user_id: str,
-        access_token: str,
+        http_method: str,
+        endpoint: str,
+        **kwargs,
     ) -> requests.Response:
-        """POST the verification-email job request."""
-        return self.http_session.post(
-            f"https://{self.domain}/api/v2/jobs/verification-email",
-            headers={"authorization": f"Bearer {access_token}"},
-            json={"user_id": auth0_user_id},
+        """Make one authenticated Auth0 Management API request.
+
+        We optimistically try the cached token first, then refresh and retry
+        once if Auth0 responds with 401.
+        """
+        response = self.http_session.request(
+            http_method,
+            f"https://{self.domain}/api/v2/{endpoint}",
+            headers={"authorization": f"Bearer {self._cached_access_token}"},
             timeout=10,
+            **kwargs,
         )
+
+        if response.status_code == 401:
+            self._cached_access_token = self._get_access_token()
+            response = self.http_session.request(
+                http_method,
+                f"https://{self.domain}/api/v2/{endpoint}",
+                headers={"authorization": f"Bearer {self._cached_access_token}"},
+                timeout=10,
+                **kwargs,
+            )
+
+        return response
 
 
 _auth0_management_client: "Auth0ManagementAPIClient | None" = None

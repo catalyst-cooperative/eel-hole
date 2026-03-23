@@ -21,9 +21,9 @@ def client(mocker):
 
 def test_request_verification_email_reuses_cached_token(mocker, client):
     ok_response = mocker.Mock(status_code=200, content=b"")
-    post_mock = mocker.patch.object(
+    request_mock = mocker.patch.object(
         client,
-        "_post_verification_email",
+        "_make_authenticated_request",
         return_value=ok_response,
     )
 
@@ -31,30 +31,34 @@ def test_request_verification_email_reuses_cached_token(mocker, client):
     client.request_verification_email("auth0|user-123")
 
     assert client._cached_access_token == "fresh-token"
-    post_mock.assert_has_calls(
+    request_mock.assert_has_calls(
         [
-            call(auth0_user_id="auth0|user-123", access_token="fresh-token"),
-            call(auth0_user_id="auth0|user-123", access_token="fresh-token"),
+            call(
+                http_method="post",
+                endpoint="jobs/verification-email",
+                json={"user_id": "auth0|user-123"},
+            ),
+            call(
+                http_method="post",
+                endpoint="jobs/verification-email",
+                json={"user_id": "auth0|user-123"},
+            ),
         ]
     )
 
 
-def test_request_verification_email_refreshes_token_after_401(mocker, client):
-    client._cached_access_token = "expired-token"
-    unauthorized_response = mocker.Mock(status_code=401, content=b"")
+def test_get_user_calls_authenticated_request(mocker, client):
     ok_response = mocker.Mock(status_code=200, content=b"")
-    post_mock = mocker.patch.object(
+    request_mock = mocker.patch.object(
         client,
-        "_post_verification_email",
-        side_effect=[unauthorized_response, ok_response],
+        "_make_authenticated_request",
+        return_value=ok_response,
     )
 
-    client.request_verification_email("auth0|user-123")
+    response = client.get_user("auth0|user-123")
 
-    assert client._cached_access_token == "fresh-token"
-    post_mock.assert_has_calls(
-        [
-            call(auth0_user_id="auth0|user-123", access_token="expired-token"),
-            call(auth0_user_id="auth0|user-123", access_token="fresh-token"),
-        ]
+    assert response is ok_response
+    request_mock.assert_called_once_with(
+        http_method="get",
+        endpoint="users/auth0|user-123",
     )

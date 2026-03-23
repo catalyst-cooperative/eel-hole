@@ -20,6 +20,10 @@
     <div class="full-app is-flex is-flex-direction-column">
       {% include 'partials/navbar.html' %}
 
+      {% if current_user.is_authenticated and not current_user.email_verified and config["AUTH0_MANAGEMENT_API_ENABLED"] %}
+        {% include 'partials/verify_email_banner.html' %}
+      {% endif %}
+
       {% if not session.get('beta_notification_dismissed') %}
         <div
           class="banner container is-fluid"

@@ -226,6 +226,9 @@ def create_app():
             "/privacy-policy",
             "/privacy-settings",
             "/verify-email",
+            "/refresh-email-verification",
+            "/dismiss-notification/beta",
+            "/dismiss-notification/campaign",
             "/logout",
         }:
             return None
@@ -346,6 +349,39 @@ def create_app():
             user_id=current_user.get_id(),
         )
         return "", 200
+
+    @app.post("/refresh-email-verification")
+    @login_required
+    def refresh_email_verification():
+        """Refresh one logged-in user's email verification state from Auth0.
+
+        Returns the verify-email banner partial so HTMX can either keep showing
+        it or remove it once the user is verified.
+        """
+        if not app.config["AUTH0_MANAGEMENT_API_ENABLED"]:
+            abort(404)
+
+        auth0_management_client = get_auth0_management_client(
+            domain=AUTH0_DOMAIN,
+            client_id=AUTH0_USER_API_CLIENT_ID,
+            client_secret=AUTH0_USER_API_CLIENT_SECRET,
+        )
+        response = auth0_management_client.get_user(current_user.auth0_id)
+
+        if not response.ok:
+            log.warning(
+                "refresh-email-verification-failed",
+                status_code=response.status_code,
+                user_id=current_user.get_id(),
+            )
+            abort(502)
+
+        email_verified = response.json().get("email_verified", False)
+        if current_user.email_verified != email_verified:
+            current_user.email_verified = email_verified
+            db.session.commit()
+
+        return render_template("partials/verify_email_banner.html")
 
     @login_required
     @app.route("/logout")

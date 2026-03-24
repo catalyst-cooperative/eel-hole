@@ -71,55 +71,37 @@ You'll still need to set up the users table in the database, though:
 docker compose exec eel_hole uv run flask db upgrade
 ```
 
-## auth0 setup
+## Auth0 setup
 
-You will have to set some auth0 environment variables -
-see the `[envrc-template](./envrc-template)` for which ones.
-If you are using a tool like `[direnv](https://direnv.net/)`,
-you probably want to just copy that template to `.envrc`
-and update the values with ones you get from
-[the auth0 dashboard](https://manage.auth0.com/dashboard).
+We use Auth0 for user authentication. This means you'll need to set up your own
+Auth0 credentials for development.
 
-Finding the values of the variables depends on whether
-you're using the shared Catalyst auth0 tenant account
-or making your own tenant account.
+1. Go to the [Auth0 dashboard](https://manage.auth0.com/dashboard) and sign up for a free account.
 
-### Catalyst members
+2. [Create a new tenant](https://auth0.com/docs/get-started/auth0-overview/create-tenants). Name it something easy to remember.
 
-Log in to https://manage.auth0.com/dashboard using the inframundo auth0 credentials
-in our password manager.
+3. [Create a Regular Web
+   Application](https://auth0.com/docs/get-started/auth0-overview/create-applications).
+   This will be the main application that manages login/logout.
+   Once at the application dashboard, go to the Settings tab, where you'll
+   find the client ID and secret which should go in the
+   `PUDL_VIEWER_AUTH0_CLIENT_ID` and `PUDL_VIEWER_AUTH0_CLIENT_SECRET` env
+   vars, respectively.
 
-Go to Applications (it's the triple stack on the left) -> [dev-dx] PUDL Viewer
-and click "Settings"
-to find the env variables you need from envrc-template.
+   While you're there, set the Application URIs to dev addresses as follows:
+   - Allowed Callback URLs: http://127.0.0.1:8080/callback
+   - Allowed Logout URLs: http://127.0.0.1:8080
 
-If you want to trigger verification emails from the backend,
-grab the "User email verification" machine-to-machine application
-credentials and set `PUDL_VIEWER_AUTH0_MANAGEMENT_API_ENABLED=true`,
-`PUDL_VIEWER_AUTH0_USER_API_CLIENT_ID`, and
-`PUDL_VIEWER_AUTH0_USER_API_CLIENT_SECRET` in your environment.
+   If you plan to access your app via `localhost` instead of `127.0.0.1`,
+   substitute as appropriate.
 
-### Everyone else
+   Note that you'll want **HTTP**, not **HTTPS**.
 
-Go to https://manage.auth0.com/dashboard and register as a tenant.
-
-Register your local development environment as an application
-with the following settings:
-
-- Name: whatever you like, but f"eelhole@{your_dev_machine}" is easy to remember
-- Application Type: Regular Web App
-- Configure options for user authentication: Social (& select whatever you prefer for dev)
-
-Once at the application dashboard, go to Settings
-to find the env variables you need from envrc-template.
-
-While you're there, set the Application URIs to localhost addresses as follows:
-
-- Allowed Callback URLs: http://127.0.0.1:8080/callback
-- Allowed Logout URLs: http://127.0.0.1:8080
-
-If you are using `localhost` instead of `127.0.0.1` to access your app,
-set those callback and logout URLs with `localhost`.
+4. Create another application, this time as a Machine-to-Machine application.
+   This will allow you to trigger email verification emails. Select the Auth0
+   Management API and give it the `read:users` and `update:users` scopes. Put
+   _its_ client ID and secret into the `PUDL_VIEWER_AUTH0_USER_API_CLIENT_ID`
+   and `PUDL_VIEWER_AUTH0_USER_API_CLIENT_SECRET` scopes, respectively.
 
 ## Tests
 
@@ -147,21 +129,21 @@ To run the search relevancy tests:
 $ uv run pytest -s tests/relevancy/test_*
 ```
 
-## Feature Flags
+## Feature Variants
 
-In order to make testing out features more convenient, you can toggle feature flags in a query parameter in the url or via a config file.
+In order to make testing out features more convenient, you can set feature variants in a query parameter in the url or via app config.
 
 To enable a feature flag temporarily during development, append it as a query string in the URL:
 
 ```
-http://localhost:8080/somepage?my_feature=true
+http://localhost:8080/somepage?variants=my_feature:value
 ```
 
 You can also define persistent feature flags via the Flask config:
 
 ```
-app.config["FEATURE_FLAGS"] = {
-    "my_feature": True,
+app.config["FEATURE_VARIANTS"] = {
+    "my_feature": "value",
 }
 ```
 
@@ -169,24 +151,11 @@ This allows you to add conditional logic in your code:
 
 ```
 def some_function():
-    if is_flag_enabled('my_feature'):
+    if get_variant('my_feature') == "value":
         # behavior of the feature we want to test
     else:
         # regular behavior
 ```
-
-To conditionally guard routes with feature flags, use the `@require_feature_flag("my_feature")` decorator. If the flag is not enabled, the route will return a `404`.
-
-For example:
-
-```
-@app.route("/new-feature")
-@require_feature_flag("my_feature")
-def new_feature():
-    return "This feature is gated!"
-```
-
-Note that a feature flag added in the URL is only accessible after the app has been loaded.
 
 ## Running on GCP
 

@@ -264,6 +264,7 @@ def create_app():
                     auth0_id="integration_test_auth0_id",
                     email="integration_test@catalyst.coop",
                     username="integration_test",
+                    email_verified=True,
                     accepted_privacy_policy=True,
                     do_individual_outreach=False,
                     send_newsletter=False,
@@ -317,9 +318,9 @@ def create_app():
         for details.
 
         404 if we don't have the management API available.
-        502 if upstream (Auth0) failed.
 
-        Otherwise 200.
+        Otherwise 200 with the banner partial - even in error state, since
+        HTMX expects a 200 as long as we return anything renderable.
         """
         if app.config["INTEGRATION_TEST"]:
             abort(404)
@@ -339,13 +340,25 @@ def create_app():
                 status_code=response.status_code,
                 user_id=current_user.get_id(),
             )
-            abort(502)
+            return (
+                render_template(
+                    "partials/verify_email_banner.html",
+                    verification_email_error=True,
+                ),
+                200,
+            )
 
         log.info(
             "verify-email-requested",
             user_id=current_user.get_id(),
         )
-        return "", 200
+        return (
+            render_template(
+                "partials/verify_email_banner.html",
+                verification_email_requested=True,
+            ),
+            200,
+        )
 
     @app.post("/refresh-email-verification")
     @login_required

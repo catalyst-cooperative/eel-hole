@@ -5,13 +5,21 @@
     <div class="notification is-warning my-3">
       Hi! We've noticed your email, <strong>{{ current_user.email }}</strong>,
       hasn't been verified yet!
-      <a
-        class="inline"
-        hx-post="/verify-email"
-        hx-swap="none"
-        href="/verify-email"
-        >Verify your email</a
-      >
+      {% if verification_email_requested %}
+        We've requested a verification email. Check your inbox
+      {% elif verification_email_error %}
+        Oops! An error occurred. Try again later or email
+        <a href="mailto:hello@catalyst.coop">hello@catalyst.coop</a> for help
+      {% else %}
+        <a
+          class="inline"
+          hx-post="/verify-email"
+          hx-target="#verify-email-notification"
+          hx-swap="outerHTML"
+          href="/verify-email"
+          >Verify your email</a
+        >
+      {% endif %}
       and
       <a
         class="inline"

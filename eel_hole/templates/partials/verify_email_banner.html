@@ -1,4 +1,6 @@
-{% if current_user.is_authenticated and not current_user.email_verified and (config["AUTH0_MANAGEMENT_API_ENABLED"] or config["INTEGRATION_TEST"]) %}
+{# Keep this banner visible during integration tests even though those tests skip
+   live Auth0 calls. That lets the UI test keep covering the banner itself. #}
+{% if current_user.is_authenticated and not current_user.email_verified %}
   <div class="banner container is-fluid" id="verify-email-notification">
     <div class="notification is-warning my-3">
       Hi! We've noticed your email, <strong>{{ current_user.email }}</strong>,

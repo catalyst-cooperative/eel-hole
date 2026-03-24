@@ -161,9 +161,6 @@ def create_app():
         SECRET_KEY=os.getenv("PUDL_VIEWER_SECRET_KEY"),
         TEMPLATES_AUTO_RELOAD=True,
         INTEGRATION_TEST=_env_var_is_true("PUDL_VIEWER_INTEGRATION_TEST"),
-        AUTH0_MANAGEMENT_API_ENABLED=_env_var_is_true(
-            "PUDL_VIEWER_AUTH0_MANAGEMENT_API_ENABLED", default=True
-        ),
         FEATURE_VARIANTS={
             "search_packages": FeatureVariants(
                 default="pudl_only", variants={"raw_ferc", "pudl_only"}
@@ -324,7 +321,7 @@ def create_app():
 
         Otherwise 200.
         """
-        if not app.config["AUTH0_MANAGEMENT_API_ENABLED"]:
+        if app.config["INTEGRATION_TEST"]:
             abort(404)
 
         auth0_management_client = get_auth0_management_client(
@@ -358,7 +355,7 @@ def create_app():
         Returns the verify-email banner partial so HTMX can either keep showing
         it or remove it once the user is verified.
         """
-        if not app.config["AUTH0_MANAGEMENT_API_ENABLED"]:
+        if app.config["INTEGRATION_TEST"]:
             abort(404)
 
         auth0_management_client = get_auth0_management_client(

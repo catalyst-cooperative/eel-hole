@@ -10,3 +10,4 @@ eel_hole/static/*.js
 eel_hole/static/index.css
 eel_hole/static/search.css
 eel_hole.egg-info
+.search-index

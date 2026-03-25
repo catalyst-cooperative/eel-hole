@@ -36,7 +36,7 @@ class Auth0ManagementAPIClient:
         )
 
     def get_user(self, auth0_user_id: str) -> requests.Response:
-        """Get one Auth0 user profile by Auth0 user ID."""
+        """Get an Auth0 user profile by Auth0 user ID."""
         return self._make_authenticated_request(
             http_method="get",
             endpoint=f"users/{auth0_user_id}",

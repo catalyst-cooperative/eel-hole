@@ -8,6 +8,7 @@ from dataclasses import asdict
 from pathlib import Path
 from urllib.parse import quote
 
+from requests import HTTPError
 import yaml
 from authlib.integrations.flask_client import OAuth
 from flask import (
@@ -261,7 +262,7 @@ def create_app():
             user = User.query.filter_by(email="integration_test@catalyst.coop").first()
             if not user:
                 user = User(
-                    auth0_id="integration_test_auth0_id",
+                    auth0_id="auth0|integration_test_auth0_id",
                     email="integration_test@catalyst.coop",
                     username="integration_test",
                     email_verified=True,
@@ -318,28 +319,37 @@ def create_app():
         for details.
 
         404 if we don't have the management API available.
+        400 if the user is not an email-auth user.
 
         Otherwise 200 with the banner partial - even in error state, since
         HTMX expects a 200 as long as we return anything renderable.
         """
         if app.config["INTEGRATION_TEST"]:
             abort(404)
+        if not current_user.auth0_id.lower().startswith("auth0|"):
+            abort(400)
 
-        auth0_management_client = get_auth0_management_client(
-            domain=AUTH0_DOMAIN,
-            client_id=AUTH0_USER_API_CLIENT_ID,
-            client_secret=AUTH0_USER_API_CLIENT_SECRET,
-        )
+        try:
+            auth0_management_client = get_auth0_management_client(
+                domain=AUTH0_DOMAIN,
+                client_id=AUTH0_USER_API_CLIENT_ID,
+                client_secret=AUTH0_USER_API_CLIENT_SECRET,
+            )
+        except HTTPError as err:
+            log.warning("verify-email-failed", status_code=err.response.status_code)
+            return (
+                render_template(
+                    "partials/verify_email_banner.html",
+                    verification_email_error=True,
+                ),
+                200,
+            )
         response = auth0_management_client.request_verification_email(
             current_user.auth0_id
         )
 
         if not response.ok:
-            log.warning(
-                "verify-email-failed",
-                status_code=response.status_code,
-                user_id=current_user.get_id(),
-            )
+            log.warning("verify-email-failed", status_code=response.status_code)
             return (
                 render_template(
                     "partials/verify_email_banner.html",
@@ -348,10 +358,7 @@ def create_app():
                 200,
             )
 
-        log.info(
-            "verify-email-requested",
-            user_id=current_user.get_id(),
-        )
+        log.info("verify-email-requested")
         return (
             render_template(
                 "partials/verify_email_banner.html",
@@ -363,7 +370,7 @@ def create_app():
     @app.post("/refresh-email-verification")
     @login_required
     def refresh_email_verification():
-        """Refresh one logged-in user's email verification state from Auth0.
+        """Refresh the logged-in user's email verification state from Auth0.
 
         Returns the verify-email banner partial so HTMX can either keep showing
         it or remove it once the user is verified.

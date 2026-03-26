@@ -1,42 +1,4 @@
-import os
-
-import pytest
 from playwright.sync_api import Page, expect
-from sqlalchemy import create_engine, text
-
-
-@pytest.fixture(scope="function")
-def page(browser):
-    page = browser.new_page()
-    yield page
-    page.close()
-
-
-@pytest.fixture(scope="function", autouse=True)
-def cleanup_test_user():
-    """Clean up integration test user before and after each test using direct SQL."""
-
-    def delete_test_user():
-        """Delete the test user directly via SQLAlchemy Core."""
-        username = os.getenv("PUDL_VIEWER_DB_USERNAME", "pudl_viewer")
-        password = os.getenv("PUDL_VIEWER_DB_PASSWORD", "pudl_viewer")
-        database = os.getenv("PUDL_VIEWER_DB_NAME", "pudl_viewer")
-        port = os.getenv("PUDL_VIEWER_DB_PORT", "5432")
-
-        # Use localhost directly since we're connecting from the host machine
-        db_uri = f"postgresql://{username}:{password}@localhost:{port}/{database}"
-        engine = create_engine(db_uri)
-
-        with engine.connect() as conn:
-            conn.execute(
-                text('DELETE FROM "user" WHERE email = :email'),
-                {"email": "integration_test@catalyst.coop"},
-            )
-            conn.commit()
-
-    delete_test_user()
-    yield
-    delete_test_user()
 
 
 def test_login_logout_flow(page: Page):

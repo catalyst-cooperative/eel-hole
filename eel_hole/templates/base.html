@@ -19,6 +19,7 @@
   <body>
     <div class="full-app is-flex is-flex-direction-column">
       {% include 'partials/navbar.html' %}
+      {% include 'partials/verify_email_banner.html' %}
 
       {% if not session.get('beta_notification_dismissed') %}
         <div

@@ -16,7 +16,7 @@ def app(monkeypatch) -> Flask:
     - connecting to postgres
     - accessing search index
     - building autocomplete index
-    - loading dashboard/examples
+    - loading dashboards
 
     Also, add a fake user so we have someone to be logged in as while we look
     at the banner state.
@@ -35,7 +35,7 @@ def app(monkeypatch) -> Flask:
     monkeypatch.setattr(
         eel_hole, "build_autocomplete_name_index", lambda _resources: {}
     )
-    monkeypatch.setattr(eel_hole, "load_examples_config", lambda _path: [])
+    monkeypatch.setattr(eel_hole, "load_dashboards_config", lambda _path: [])
 
     app = eel_hole.create_app()
     app.config["TESTING"] = True

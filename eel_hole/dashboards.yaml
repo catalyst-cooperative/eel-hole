@@ -1,0 +1,9 @@
+# If you need to work from local files, serve the dashboards locally and point `url` at your server.
+# Thumbnails should be 4:3 images, ideally around 1200x900 pixels.
+# See dashboards_config.py for details.
+- slug: plant-explorer
+  title: Plant Explorer
+  description: Explore plant- and generator-level generation, fuel mix, and other attributes!
+  thumbnail_path: /static/img/plant-explorer.png
+  thumbnail_alt_text: A screenshot showing two net generation charts, one total and one broken out by fuel type.
+  url: https://docs.catalyst.coop/pudl-examples/plant-explorer.html

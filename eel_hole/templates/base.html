@@ -20,29 +20,6 @@
     <div class="full-app is-flex is-flex-direction-column">
       {% include 'partials/navbar.html' %}
       {% include 'partials/verify_email_banner.html' %}
-
-      {% if not session.get('beta_notification_dismissed') %}
-        <div
-          class="banner container is-fluid"
-          hx-post="/dismiss-notification/beta"
-          hx-swap="outerHTML"
-          hx-trigger="click from:#beta-dismiss"
-          id="beta-notification"
-        >
-          <div class="notification has-background-info has-text-dark my-3">
-            Welcome! The PUDL data viewer is in beta right now. We filmed a
-            short
-            <a class="inline" href="https://youtu.be/-mU7QwAZY8c"
-              >tutorial video</a
-            >, and would love any
-            <a class="is-inline" href="https://forms.gle/ohzyKRoQutqxY3WZ6"
-              >feedback</a
-            >
-            you have for the site!
-            <button class="delete" id="beta-dismiss"></button>
-          </div>
-        </div>
-      {% endif %}
       {% include 'partials/campaign.html' %}
 
       <main id="main-content">

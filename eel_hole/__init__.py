@@ -227,7 +227,6 @@ def create_app():
             "/privacy-settings",
             "/verify-email",
             "/refresh-email-verification",
-            "/dismiss-notification/beta",
             "/dismiss-notification/campaign",
             "/logout",
         }:

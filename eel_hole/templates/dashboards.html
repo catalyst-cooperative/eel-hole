@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboards - PUDL Data Viewer{% endblock %}
+
+{% block content %}
+  <section class="section">
+    <div class="container">
+      <h1 class="title">Dashboards</h1>
+      <p class="subtitle is-6">
+        Explore PUDL data with these interactive visualizations! More coming
+        soon.
+      </p>
+      <div
+        class="fixed-grid has-1-cols-mobile has-2-cols-tablet has-3-cols-desktop"
+      >
+        <div class="grid">
+          {% for dashboard in dashboards %}
+            <div class="cell">
+              <div class="card">
+                <div class="card-image">
+                  <a href="{{ url_for('dashboard', slug=dashboard.slug) }}">
+                    <figure class="image is-4by3">
+                      <img
+                        src="{{ dashboard.thumbnail_path }}"
+                        alt="{{ dashboard.thumbnail_alt_text }}"
+                      />
+                    </figure>
+                  </a>
+                </div>
+                <div class="card-content">
+                  <p class="title is-5">
+                    <a href="{{ url_for('dashboard', slug=dashboard.slug) }}">
+                      {{ dashboard.title }}
+                    </a>
+                  </p>
+                  <div class="content">
+                    <p>{{ dashboard.description }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}

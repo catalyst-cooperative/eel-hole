@@ -1,0 +1,35 @@
+{# Keep this banner visible during integration tests even though those tests skip
+   live Auth0 calls. That lets the UI test keep covering the banner itself. #}
+{% if current_user.is_authenticated and current_user.should_verify_email() %}
+  <div class="banner container is-fluid" id="verify-email-notification">
+    <div class="notification is-warning my-3">
+      Hi! We've noticed your email, <strong>{{ current_user.email }}</strong>,
+      hasn't been verified yet!
+      {% if verification_email_requested %}
+        We've requested a verification email. Check your inbox
+      {% elif verification_email_error %}
+        Oops! An error occurred. Try again later or email
+        <a href="mailto:hello@catalyst.coop">hello@catalyst.coop</a> for help
+      {% else %}
+        <a
+          class="inline"
+          hx-post="/verify-email"
+          hx-target="#verify-email-notification"
+          hx-swap="outerHTML"
+          href="/verify-email"
+          >Verify your email</a
+        >
+      {% endif %}
+      and
+      <a
+        class="inline"
+        hx-post="/refresh-email-verification"
+        hx-target="#verify-email-notification"
+        hx-swap="outerHTML"
+        href="/refresh-email-verification"
+        >refresh status</a
+      >
+      to get rid of this banner.
+    </div>
+  </div>
+{% endif %}

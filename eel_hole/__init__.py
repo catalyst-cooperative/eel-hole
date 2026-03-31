@@ -8,6 +8,7 @@ from dataclasses import asdict
 from pathlib import Path
 from urllib.parse import quote
 
+from requests import HTTPError
 import yaml
 from authlib.integrations.flask_client import OAuth
 from flask import (
@@ -32,8 +33,9 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from frictionless import Resource
 
+from eel_hole.auth0_management import get_auth0_management_client
 from eel_hole.duckdb_query import Filter, ag_grid_to_duckdb
-from eel_hole.examples_config import load_examples_config
+from eel_hole.dashboards_config import load_dashboards_config
 from eel_hole.feature_variants import FeatureVariants, get_variant
 from eel_hole.logs import log
 from eel_hole.models import User, db
@@ -53,7 +55,17 @@ from eel_hole.utils import (
 AUTH0_DOMAIN = os.getenv("PUDL_VIEWER_AUTH0_DOMAIN")
 CLIENT_ID = os.getenv("PUDL_VIEWER_AUTH0_CLIENT_ID")
 CLIENT_SECRET = os.getenv("PUDL_VIEWER_AUTH0_CLIENT_SECRET")
+AUTH0_USER_API_CLIENT_ID = os.getenv("PUDL_VIEWER_AUTH0_USER_API_CLIENT_ID")
+AUTH0_USER_API_CLIENT_SECRET = os.getenv("PUDL_VIEWER_AUTH0_USER_API_CLIENT_SECRET")
 SEARCH_INDEX_DIR = os.getenv("PUDL_VIEWER_SEARCH_INDEX_DIR", ".search-index")
+
+
+def _env_var_is_true(var_name: str, default: bool = False) -> bool:
+    """Munge env var value to something boolean.
+
+    Pass something that looks like "True" please.
+    """
+    return str(os.getenv(var_name, default)).lower() == "true"
 
 
 def __init_auth0(app: Flask):
@@ -88,7 +100,7 @@ def __init_db(db: SQLAlchemy, app: Flask):
     password = os.getenv("PUDL_VIEWER_DB_PASSWORD")
     database = os.getenv("PUDL_VIEWER_DB_NAME")
 
-    if os.environ.get("IS_CLOUD_RUN"):
+    if _env_var_is_true("IS_CLOUD_RUN"):
         cloud_sql_connection_name = os.environ.get("CLOUD_SQL_CONNECTION_NAME")
         db_uri = f"postgresql://{username}:{password}@/{database}?host=/cloudsql/{cloud_sql_connection_name}"
     else:
@@ -142,13 +154,14 @@ def create_app():
     3. add a middleware that bounces people to privacy policy if necessary
     3. define a bunch of application routes
     """
+
     app = Flask("eel_hole", instance_relative_config=True)
-    if os.getenv("IS_CLOUD_RUN"):
+    if _env_var_is_true("IS_CLOUD_RUN"):
         app.config["PREFERRED_URL_SCHEME"] = "https"
     app.config.from_mapping(
         SECRET_KEY=os.getenv("PUDL_VIEWER_SECRET_KEY"),
         TEMPLATES_AUTO_RELOAD=True,
-        INTEGRATION_TEST=os.getenv("PUDL_VIEWER_INTEGRATION_TEST", False),
+        INTEGRATION_TEST=_env_var_is_true("PUDL_VIEWER_INTEGRATION_TEST"),
         FEATURE_VARIANTS={
             "search_packages": FeatureVariants(
                 default="pudl_only", variants={"raw_ferc", "pudl_only"}
@@ -179,11 +192,13 @@ def create_app():
     autocomplete_name_index_pudl_only = build_autocomplete_name_index(sorted_pudl_only)
     autocomplete_name_index_all = build_autocomplete_name_index(sorted_all_resources)
     quick_pudl_resources = {r.name: r for r in sorted_pudl_only}
-    configured_examples = load_examples_config(Path(app.root_path) / "examples.yaml")
-    if not configured_examples:
-        log.warning("No examples configured in eel_hole/examples.yaml")
-    configured_examples_by_slug = {
-        example.slug: example for example in configured_examples
+    configured_dashboards = load_dashboards_config(
+        Path(app.root_path) / "dashboards.yaml"
+    )
+    if not configured_dashboards:
+        log.warning("No dashboards configured in eel_hole/dashboards.yaml")
+    configured_dashboards_by_slug = {
+        dashboard.slug: dashboard for dashboard in configured_dashboards
     }
 
     RequestedResources = namedtuple(
@@ -210,6 +225,9 @@ def create_app():
         if request.path in {
             "/privacy-policy",
             "/privacy-settings",
+            "/verify-email",
+            "/refresh-email-verification",
+            "/dismiss-notification/campaign",
             "/logout",
         }:
             return None
@@ -245,9 +263,10 @@ def create_app():
             user = User.query.filter_by(email="integration_test@catalyst.coop").first()
             if not user:
                 user = User(
-                    auth0_id="integration_test_auth0_id",
+                    auth0_id="auth0|integration_test_auth0_id",
                     email="integration_test@catalyst.coop",
                     username="integration_test",
+                    email_verified=True,
                     accepted_privacy_policy=True,
                     do_individual_outreach=False,
                     send_newsletter=False,
@@ -284,8 +303,103 @@ def create_app():
             user = User.from_userinfo(userinfo)
             db.session.add(user)
             db.session.commit()
+        else:
+            email_verified = userinfo.get("email_verified", False)
+            if user.email_verified != email_verified:
+                user.email_verified = email_verified
+                db.session.commit()
         login_user(user, remember=True)
         return redirect(next_url)
+
+    @app.post("/verify-email")
+    @login_required
+    def verify_email():
+        """Trigger a new Auth0 email verification job for the logged-in user.
+
+        See https://auth0.com/docs/api/management/v2/jobs/post-verification-email
+        for details.
+
+        404 if we don't have the management API available.
+        400 if the user is not an email-auth user.
+
+        Otherwise 200 with the banner partial - even in error state, since
+        HTMX expects a 200 as long as we return anything renderable.
+        """
+        if app.config["INTEGRATION_TEST"]:
+            abort(404)
+        if not current_user.auth0_id.lower().startswith("auth0|"):
+            abort(400)
+
+        try:
+            auth0_management_client = get_auth0_management_client(
+                domain=AUTH0_DOMAIN,
+                client_id=AUTH0_USER_API_CLIENT_ID,
+                client_secret=AUTH0_USER_API_CLIENT_SECRET,
+            )
+        except HTTPError as err:
+            log.warning("verify-email-failed", status_code=err.response.status_code)
+            return (
+                render_template(
+                    "partials/verify_email_banner.html",
+                    verification_email_error=True,
+                ),
+                200,
+            )
+        response = auth0_management_client.request_verification_email(
+            current_user.auth0_id
+        )
+
+        if not response.ok:
+            log.warning("verify-email-failed", status_code=response.status_code)
+            return (
+                render_template(
+                    "partials/verify_email_banner.html",
+                    verification_email_error=True,
+                ),
+                200,
+            )
+
+        log.info("verify-email-requested")
+        return (
+            render_template(
+                "partials/verify_email_banner.html",
+                verification_email_requested=True,
+            ),
+            200,
+        )
+
+    @app.post("/refresh-email-verification")
+    @login_required
+    def refresh_email_verification():
+        """Refresh the logged-in user's email verification state from Auth0.
+
+        Returns the verify-email banner partial so HTMX can either keep showing
+        it or remove it once the user is verified.
+        """
+        if app.config["INTEGRATION_TEST"]:
+            abort(404)
+
+        auth0_management_client = get_auth0_management_client(
+            domain=AUTH0_DOMAIN,
+            client_id=AUTH0_USER_API_CLIENT_ID,
+            client_secret=AUTH0_USER_API_CLIENT_SECRET,
+        )
+        response = auth0_management_client.get_user(current_user.auth0_id)
+
+        if not response.ok:
+            log.warning(
+                "refresh-email-verification-failed",
+                status_code=response.status_code,
+                user_id=current_user.get_id(),
+            )
+            abort(502)
+
+        email_verified = response.json().get("email_verified", False)
+        if current_user.email_verified != email_verified:
+            current_user.email_verified = email_verified
+            db.session.commit()
+
+        return render_template("partials/verify_email_banner.html")
 
     @login_required
     @app.route("/logout")
@@ -464,27 +578,27 @@ def create_app():
             variants=variants,
         )
 
-    @app.get("/secret-examples")
-    @app.get("/secret-examples/")
-    def examples():
-        """Render gallery of configured notebook examples."""
-        return render_template("examples.html", examples=configured_examples)
+    @app.get("/dashboards")
+    @app.get("/dashboards/")
+    def dashboards():
+        """Render the gallery page for configured dashboards."""
+        return render_template("dashboards.html", dashboards=configured_dashboards)
 
-    @app.get("/secret-examples/<slug>")
-    @app.get("/secret-examples/<slug>/")
-    def example(slug: str):
-        """Render a configured notebook example in an iframe.
+    @app.get("/dashboards/<slug>")
+    @app.get("/dashboards/<slug>/")
+    def dashboard(slug: str):
+        """Render a configured dashboard inside an iframe.
 
         404 if the requested slug doesn't correspond to a real example."""
-        example_cfg = configured_examples_by_slug.get(slug)
-        if example_cfg is None:
+        dashboard_cfg = configured_dashboards_by_slug.get(slug)
+        if dashboard_cfg is None:
             abort(404)
 
-        hosted_url = example_cfg.url
+        hosted_url = dashboard_cfg.url
 
         return render_template(
-            "example_iframe.html",
-            example=example_cfg,
+            "dashboard_iframe.html",
+            dashboard=dashboard_cfg,
             hosted_url=hosted_url,
         )
 

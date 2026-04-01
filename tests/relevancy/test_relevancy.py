@@ -203,6 +203,7 @@ def pytest_generate_tests(metafunc):
 
 
 def test_sweep_default(reference_queries, sweep_options, pytestconfig):
+    """Perform local parameter sweep for default search variant."""
     import json
 
     config_dict = {

@@ -37,7 +37,7 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
                 )
             )
     if sweep_results:
-        experiment = Path(config.getoption("experiment"))
+        experiment = Path(config.getoption("experiment", "0"))
 
         with open(f"sweep.{experiment.stem}.out", "w") as f:
             f.write("\n".join(sweep_results))

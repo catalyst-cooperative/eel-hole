@@ -324,6 +324,20 @@ def default_search_query(
     return execute_search(keyword_and_boost)
 
 
+class BoostExactMatchConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    out_boost: float = 10.0
+    preliminary_penalty: float = -10.0
+    fieldboosts: dict[str, float] = {
+        "name": 1.5,
+        "description": 1.0,
+        "column_names": 0.8,
+        "column_descriptions": 0.4,
+    }
+    name_exact: float = 3.0
+    column_names_exact: float = 1.5
+
+
 def boost_exact_match(
     schema: Schema, raw_query: str, execute_search: SearchExecutor, config: dict
 ) -> Results:
@@ -334,24 +348,20 @@ def boost_exact_match(
       * full text query
       * exact-match query on table/column names
     """
+    config = BoostExactMatchConfig(**config)
     rewritten_query = apply_manual_query_substitutions(
         raw_query,
         {"form 1": "ferc1", "utility finance": "'balance sheets' OR income"},
     )
 
-    out_boost = Term("tags", "out", boost=10.0)
-    preliminary_penalty = Term("tags", "preliminary", boost=-10.0)
+    out_boost = Term("tags", "out", boost=config.out_boost)
+    preliminary_penalty = Term("tags", "preliminary", boost=config.preliminary_penalty)
     ranking_adjustments = Or([out_boost, preliminary_penalty])
 
     full_text_parser = MultifieldParser(
         ["name", "description", "column_names", "column_descriptions"],
         schema,
-        fieldboosts={
-            "name": 1.5,
-            "description": 1.0,
-            "column_names": 0.8,
-            "column_descriptions": 0.4,
-        },
+        fieldboosts=config.fieldboosts,
     )
 
     full_text_query = full_text_parser.parse(rewritten_query)
@@ -362,8 +372,10 @@ def boost_exact_match(
     normalized_query = compact_for_name_match(rewritten_query)
     exact_query = Or(
         [
-            Term("name_exact", normalized_query, boost=3.0),
-            Term("column_names_exact", normalized_query, boost=1.5),
+            Term("name_exact", normalized_query, boost=config.name_exact),
+            Term(
+                "column_names_exact", normalized_query, boost=config.column_names_exact
+            ),
         ]
     )
     exact_results = execute_search(AndMaybe(exact_query, ranking_adjustments))

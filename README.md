@@ -197,3 +197,196 @@ The database is _only_ used for storing users right now.
 - [Alpine](https://alpinejs.dev/) for client-side interactivity
 - [HTMX](https://htmx.org/) for server-side interactivity and partial DOM updates
 - [AG Grid](https://www.ag-grid.com/) for display of interactive tabular data
+
+# Tuning search parameters using parameter sweeps
+
+## 1. Set up an initial step file
+
+Make a YAML file according to the SweepConfig schema in tests/relevancy/sweep_config.py.
+
+Configure this initial step file with the current MAP score you want to beat,
+the values of the search parameters that yield that MAP score, and an empty set
+of sweep parameters.
+
+The order and names of the sweep parameters come from however you laid out the search
+parameter configuration in search.py.
+
+Here is an example for the default search variant. It uses named references
+(id001) to reduce copy-pasting, since the list of params to beat and the list of
+center params are the same, but you can put the full list in both places if you
+prefer.
+
+```
+$ cat steps/default.yaml
+variant: default
+beat:
+  map: 0.55
+  params: &id001
+  - 1.5
+  - 1.0
+  - 0.8
+  - 0.4
+  - 10.0
+  - -10.0
+center: *id001
+sweep:
+  fieldboosts.name: []
+  fieldboosts.description: []
+  fieldboosts.column_names: []
+  fieldboosts.column_descriptions: []
+  out_boost: []
+  preliminary_penalty: []
+```
+
+## 2. Test generating the next set of sweep parameters
+
+The tool that generates the next set of sweep parameters is tests/relevancy/sweep.py.
+
+It can generate sweep parameters from a bare step file, or from the combination of a step file and its performance measurements.
+
+At this stage we are generating sweep parameters from a bare step file.
+
+```
+$ uv run python tests/relevancy/sweep.py steps/default.yaml
+MAP to beat: 0.55
+From params: [1.5, 1.0, 0.8, 0.4, 10.0, -10.0]
+Best MAP this round: 0.550000 (1 of 0)
+Next center: [1.500000, 1.000000, 0.800000, 0.400000, 10.000000, -10.000000]
+Delta: 0.0
+Next increment: [0.300000, 0.200000, 0.160000, 0.080000, 2.000000, -2.000000]
+Enter next experiment stem (like default):
+```
+
+type in something like "default1" and hit enter. "default1" is the new experiment stem.
+
+```
+Ready to run next experiment
+```
+
+Check the output; you should have three options for each of the sweep parameters.
+Note that the sweep parameters might be in a different order in this file than in
+the initial step file, but that's okay -- the order between beat.params, center, and sweep
+is consistent within a file, and the system will use the order of whatever step file
+it's processing.
+
+```
+$ cat steps/default1.yaml
+beat:
+  map: 0.55
+  params:
+  - 1.5
+  - 1.0
+  - 0.8
+  - 0.4
+  - 10.0
+  - -10.0
+center:
+- 1.5
+- 1.0
+- 0.8
+- 0.4
+- 10.0
+- -10.0
+sweep:
+  fieldboosts.column_descriptions:
+  - 0.32
+  - 0.4
+  - 0.48000000000000004
+  fieldboosts.column_names:
+  - 0.64
+  - 0.8
+  - 0.9600000000000001
+  fieldboosts.description:
+  - 0.8
+  - 1.0
+  - 1.2
+  fieldboosts.name:
+  - 1.2
+  - 1.5
+  - 1.8
+  out_boost:
+  - 8.0
+  - 10.0
+  - 12.0
+  preliminary_penalty:
+  - -8.0
+  - -10.0
+  - -12.0
+variant: default
+```
+
+## 3. Test evaluating performance for the generated parameters
+
+The tool that evaluates the performance for the generated parameters is the pytest test, `tests/relevancy/test_relevancy.py::test_sweep`.
+
+Run it, passing in the step file using the `experiment` parameter.
+
+```
+$ uv run pytest tests/relevancy/test_relevancy.py::test_sweep --experiment steps/default1.yaml
+==================================== test session starts =================================================
+platform darwin -- Python 3.13.11, pytest-9.0.1, pluggy-1.6.0
+rootdir: /Users/katie/Documents/work/catalyst/eel-hole
+configfile: pyproject.toml
+plugins: mock-3.15.1, playwright-0.7.2, base-url-2.1.0
+collected 729 items
+
+tests/relevancy/test_relevancy.py ....
+```
+
+You should get one green '.' for each of the 3\*\*(number of sweep parameters) configurations for this sweep.
+Up to 1000 configurations will run in 3-4 minutes; if you have significantly more than that, consider running over lunch or overnight.
+
+Check the output; you should get one row in `sweep.{stem}.out` for each parameter configuration.
+The first column is the MAP score. The remaining columns are the parameters used for that run.
+
+```
+$ head sweep.default1.out
+0.648,0.320,0.640,0.800,1.200,8.000,-8.000
+0.651,0.320,0.640,0.800,1.200,8.000,-10.000
+0.651,0.320,0.640,0.800,1.200,8.000,-12.000
+0.660,0.320,0.640,0.800,1.200,10.000,-8.000
+0.662,0.320,0.640,0.800,1.200,10.000,-10.000
+0.662,0.320,0.640,0.800,1.200,10.000,-12.000
+0.666,0.320,0.640,0.800,1.200,12.000,-8.000
+0.668,0.320,0.640,0.800,1.200,12.000,-10.000
+0.668,0.320,0.640,0.800,1.200,12.000,-12.000
+0.647,0.320,0.640,0.800,1.500,8.000,-8.000
+```
+
+## 4. Run the experiment
+
+The tool that can iterate between generating parameters and evaluating their performance is `tests/relevancy/run_sweep_experiment.sh`.
+
+It will run for 10 iterations.
+If the experiment reaches a point where no further improvements are available,
+`sweep.py` will not create the next step file,
+and the script will halt (likely with a "file not found" error from one component or another).
+
+```
+$ tests/relevancy/run_sweep_experiment.sh steps/default.yaml
+[...]
+```
+
+This is definitely a lunch/overnight/weekend situation. The number of configurations usually
+decreases over time as individual parameters stop moving though, so it's not quite 10x your test run.
+
+## 5. Analyze the results
+
+We're still at the "idk load it into a notebook and see if it looks okay" prototyping stage with this.
+The pattern we're looking for is (if pretty hacky) gradient ascent with simulated annealing.
+If it worked properly, we found a local maximum in the parameter manifold (🤓).
+If it was almost right, we headed uphill but didn't reach the top before we quit looking.
+If it was totally busted, we bounced around the parameter wilderness without making much improvement at all.
+
+Look for:
+
+- Patterns in MAP-to-beat. Ideally this never decreases, but it might stall out.
+  If it stalls out super early, it might be interesting to look at the range of
+  parameter settings that all have equivalent performance.
+- Patterns in the path of individual parameters.
+  These might start out always-increasing or always-decreasing,
+  but if we did manage to narrow in on a local maximum,
+  you'll get oscillations.
+
+Anyway if you found any improvement at all, update the default params settings in search.py,
+and we can figure out later whether we need to refine further.

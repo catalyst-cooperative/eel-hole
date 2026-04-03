@@ -3,6 +3,7 @@ import yaml
 from pathlib import Path
 from math import sqrt
 import random
+import sweep_config as s  # SweepConfig, load_sweep_config
 
 
 def terrible_vector_len(old_center, new_center):
@@ -14,11 +15,10 @@ def terrible_vector_len(old_center, new_center):
 
 if __name__ == "__main__":
     experiment = Path(sys.argv[-1])
-    with open(experiment) as f:
-        config = yaml.safe_load(f)
+    config = s.load_sweep_config(experiment)
     results_file = Path(f"sweep.{experiment.stem}.out")
-    best_score = config["beat"]["map"]
-    best_params = [",".join(str(p) for p in config["beat"]["params"])]
+    best_score = config.beat.map
+    best_params = [",".join(str(p) for p in config.beat.params)]
     results = []
     if results_file.exists():
         with open(results_file) as f:
@@ -32,8 +32,8 @@ if __name__ == "__main__":
             if score >= best_score:
                 best_params.append(params)
         best_params = sorted(best_params)
-    print(f"MAP to beat: {config['beat']['map']}")
-    print(f"From params: {config['beat']['params']}")
+    print(f"MAP to beat: {config.beat.map}")
+    print(f"From params: {config.beat.params}")
     print(
         f"Best MAP this round: {best_score:3f} ({len(best_params)} of {len(results)})"
     )
@@ -44,7 +44,7 @@ if __name__ == "__main__":
     selected_params = best_params_arr[0]
     if n > 1:
         selected_params = [sum(axis) / n for axis in zip(*best_params_arr)]
-    delta, vector = terrible_vector_len(config["beat"]["params"], selected_params)
+    delta, vector = terrible_vector_len(config.beat.params, selected_params)
     if not results:
         # seed increment with appropriate scale for each parameter
         inc = [xi * 0.2 for xi in selected_params]
@@ -57,15 +57,19 @@ if __name__ == "__main__":
     print(f"Delta: {delta}")
     print(f"Next increment: [{', '.join(f'{di:3f}' for di in inc)}]")
     next_stem = input(f"Enter next experiment stem (like {experiment.stem}): ")
-    next_config = {
-        "variant": config["variant"],
-        "beat": {"map": best_score, "params": random.choice(best_params_arr)},
-        "center": selected_params,
-        "sweep": [
-            {f"x{i}": [ci - di, ci, ci + di]} if di != 0 else {f"x{i}": [ci]}
-            for (i, (ci, di)) in enumerate(zip(selected_params, inc))
-        ],
-    }
+    next_config = s.SweepConfig(
+        variant=config.variant,
+        beat=s.SweepConfig.BeatConfig(
+            map=best_score, params=random.choice(best_params_arr)
+        ),
+        center=selected_params,
+        sweep={
+            ki: [ci - di, ci, ci + di] if di != 0 else [ci]
+            for (i, (ki, ci, di)) in enumerate(
+                zip(config.sweep.keys(), selected_params, inc)
+            )
+        },
+    )
     with open(sys.argv[-1].replace(experiment.stem, next_stem), "w") as f:
-        yaml.safe_dump(next_config, f)
+        yaml.safe_dump(next_config.model_dump(), f)
     print("\nReady to run next experiment")

@@ -1,5 +1,6 @@
 from collections import namedtuple
 from itertools import product
+from pathlib import Path
 import re
 
 import pytest
@@ -7,6 +8,7 @@ import requests
 import yaml
 
 from eel_hole.search import search_variants
+from tests.relevancy.sweep_config import load_sweep_config
 
 
 def query_search_api(query: str, variant: str, config: str) -> dict:
@@ -189,35 +191,45 @@ def experiment(request):
 
 def pytest_generate_tests(metafunc):
     if "sweep_options" in metafunc.fixturenames:
-        with open(metafunc.config.getoption("experiment")) as f:
-            experiment_params = yaml.safe_load(f)
-        metafunc.parametrize(
-            "sweep_options",
-            (
-                DefaultConfig(*p)
-                for p in product(
-                    *[list(x.values()).pop() for x in experiment_params["sweep"]]
-                )
-            ),
-        )
+        experiment = metafunc.config.getoption("experiment")
+        if experiment:
+            config = load_sweep_config(Path(experiment))
+            metafunc.parametrize(
+                "sweep_options",
+                (
+                    dict(zip(config.sweep.keys(), p))
+                    for p in product(*list(config.sweep.values()))
+                ),
+            )
+            metafunc.parametrize("sweep_variant", (config.variant,))
+        else:
+            metafunc.parametrize("sweep_options", [])
+            metafunc.parametrize("sweep_variant", [])
 
 
-def test_sweep_default(reference_queries, sweep_options, pytestconfig):
-    """Perform local parameter sweep for default search variant."""
+def set_key_at_path(dct: dict, path: str | list[str], value):
+    if isinstance(path, str):
+        path = path.split(".")
+    key = path.pop(0)
+    if path:
+        if key not in dct:
+            dct[key] = {}
+        set_key_at_path(dct[key], path, value)
+    else:
+        dct[key] = value
+    return dct
+
+
+def test_sweep(reference_queries, sweep_options, sweep_variant, pytestconfig):
+    """Perform local parameter sweep based on a specified experiment configuration."""
     import json
 
-    config_dict = {
-        "fieldboosts": {
-            "name": sweep_options.name,
-            "description": sweep_options.description,
-            "column_names": sweep_options.column_names,
-            "column_descriptions": sweep_options.column_descriptions,
-        },
-        "out_boost": sweep_options.out_boost,
-        "preliminary_penalty": sweep_options.preliminary_penalty,
-    }
+    config_dict = {}
+    for k, v in sweep_options.items():
+        set_key_at_path(config_dict, k, v)
+
     config_param = json.dumps(config_dict)
-    map, _ = _collect_query_metrics(reference_queries, "default", config_param)
+    map, _ = _collect_query_metrics(reference_queries, sweep_variant, config_param)
     pytestconfig._sweep_results.append(
-        f"{map:.3f},{','.join(f'{v:.3f}' for v in sweep_options)}"
+        f"{map:.3f},{','.join(f'{v:.3f}' for v in sweep_options.values())}"
     )

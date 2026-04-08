@@ -490,7 +490,7 @@ def create_app():
 
         search_packages = get_variant("search_packages")
         search_method = get_variant("search_method")
-        search_config = json.loads(request.args.get("config", "{}"))
+        search_config = json.loads(request.args.get("search_config", "{}"))
 
         if query:
             with search_index.searcher() as searcher:

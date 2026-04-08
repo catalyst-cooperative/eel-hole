@@ -18,7 +18,7 @@ def query_search_api(query: str, variant: str, config: str) -> dict:
         params={
             "q": query,
             "variants": f"search_method:{variant}",
-            "config": config,
+            "search_config": config,
         },
         headers={"accept-mimetypes": "application/json"},
     )

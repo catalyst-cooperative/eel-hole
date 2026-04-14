@@ -1,3 +1,4 @@
+---
 volumes:
   pudl_viewer_postgres_data:
 services:

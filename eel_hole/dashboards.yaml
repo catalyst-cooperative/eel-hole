@@ -1,3 +1,4 @@
+---
 # If you need to work from local files, serve the dashboards locally and point `url` at your server.
 # Thumbnails should be 4:3 images, ideally around 1200x900 pixels.
 # See dashboards_config.py for details.

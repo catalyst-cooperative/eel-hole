@@ -1,0 +1,41 @@
+---
+name: update-lockfiles
+
+on:
+  schedule:
+    - cron: "0 0 * * 0" # Every Sunday at midnight
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  update-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "lts/*"
+          cache: "npm"
+
+      - name: Update Python dependencies (uv)
+        run: |
+          uv lock --upgrade
+          uv sync
+          uv run prek autoupdate
+
+      - name: Update JavaScript dependencies (npm)
+        run: npm update
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: weekly dependency update"
+          title: "chore: weekly dependency update"
+          body: "Automated weekly PR to update dependency lockfiles."
+          branch: "update-lockfiles"

@@ -36,7 +36,7 @@ python-downloads = "automatic"
 [dependency-groups]
 dev = [
     "playwright>=1.55.0",
-    "pre-commit>=4.5.1",
+    "prek>=0.3.9",
     "pytest>=8.4.2",
     "pytest-mock>=3.15.1",
     "pytest-playwright>=0.7.1",

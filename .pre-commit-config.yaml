@@ -28,7 +28,7 @@ repos:
         additional_dependencies:
           - prettier@3.8.1
           - prettier-plugin-jinja-template
-        types_or: [yaml]
+        types_or: [yaml, javascript, jsx, ts, tsx, html, css]
 
   - repo: https://github.com/adrienverge/yamllint.git
     rev: v1.38.0

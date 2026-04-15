@@ -1,16 +1,25 @@
+---
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
 
 ci:
-  skip: [prettier] # pre-commit.ci can't install the additional_dependencies, so will fail while trying to load prettier-plugin-jinja-template.
+  # pre-commit.ci can't install the additional_dependencies and
+  # so will fail while trying to load prettier-plugin-jinja-template.
+  skip: [prettier]
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
-      - id: check-yaml
       - id: check-added-large-files
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.10
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
 
   - repo: https://github.com/rbubley/mirrors-prettier
     rev: v3.8.2
@@ -20,9 +29,13 @@ repos:
           - prettier@3.8.1
           - prettier-plugin-jinja-template
 
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.10
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.38.0
     hooks:
-      - id: ruff-check
-        args: [--fix]
-      - id: ruff-format
+      - id: yamllint
+        args: [--strict, -c=.yamllint]
+
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint

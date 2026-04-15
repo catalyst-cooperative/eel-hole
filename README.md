@@ -21,7 +21,7 @@ npm run build
 Set up pre-commit hooks:
 
 ```
-uv run pre-commit install
+uv run prek install
 ```
 
 In most cases, you don't need to actually log in locally.

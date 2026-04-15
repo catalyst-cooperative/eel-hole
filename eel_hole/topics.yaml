@@ -1,3 +1,4 @@
+---
 - name: Generation plant operations
   tables:
     - out_eia__monthly_generators

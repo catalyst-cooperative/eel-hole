@@ -3,7 +3,7 @@ revision = 3
 requires-python = ">=3.13"
 
 [options]
-exclude-newer = "2026-04-08T16:02:12.0237Z"
+exclude-newer = "2026-04-08T16:07:18.384859Z"
 exclude-newer-span = "P1W"
 
 [[package]]
@@ -363,7 +363,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.10.3" },
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "rapidfuzz", specifier = ">=3.14.1" },
-    { name = "requests", specifier = ">=2.32.3" },
+    { name = "requests", specifier = ">=2.33.0" },
     { name = "structlog", specifier = ">=25.1.0" },
     { name = "whoosh-reloaded", specifier = ">=2.7.5" },
 ]

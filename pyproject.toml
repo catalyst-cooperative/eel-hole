@@ -29,14 +29,14 @@ dependencies = [
 ]
 
 [tool.uv]
-
 python-preference = "only-managed"
 python-downloads = "automatic"
+exclude-newer = "1 week"
 
 [dependency-groups]
 dev = [
     "playwright>=1.55.0",
-    "prek>=0.3.9",
+    "prek>=0.3.8",
     "pytest>=9.0.3",
     "pytest-mock>=3.15.1",
     "pytest-playwright>=0.7.1",

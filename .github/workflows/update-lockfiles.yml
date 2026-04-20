@@ -28,12 +28,12 @@ jobs:
           uv run prek autoupdate
 
       - name: Update JavaScript dependencies (npm)
-        run: npm update
+        run: npm update --min-release-age 7
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v8
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PUDL_BOT_PAT }}
           commit-message: "chore: weekly dependency update"
           title: "chore: weekly dependency update"
           body: "Automated weekly PR to update dependency lockfiles."

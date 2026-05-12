@@ -3,6 +3,7 @@
 import html
 import re
 from dataclasses import dataclass, field
+from urllib.parse import urljoin
 
 import structlog
 from docutils.core import publish_parts
@@ -226,6 +227,7 @@ def clean_pudl_resource(resource: Resource) -> SingletonResourceDisplay:
     templates/partials/search_results.html Jinja template.
     """
     preview_base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/eel-hole"
+    # TODO: update this to point at nightly, not eel-hole
     download_base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/eel-hole"
     return SingletonResourceDisplay(
         name=resource.name,
@@ -274,7 +276,9 @@ def clean_ferceqr_resource(resource: Resource) -> PartitionedResourceDisplay:
 
 
 def clean_ferc_xbrl_resource(
-    resource: Resource, package_name: str
+    resource: Resource,
+    package_name: str,
+    datapackage_uri: str,
 ) -> SingletonResourceDisplay:
     """Clean up the FERC XBRL datapackage descriptions for display.
 
@@ -289,7 +293,6 @@ def clean_ferc_xbrl_resource(
     frictionless datapackage validation, as well as think about pulling out the
     table name from the datapackage.
     """
-
     return SingletonResourceDisplay(
         name=resource.name,
         description=plaintext_to_html(getattr(resource, "title", "")),
@@ -302,6 +305,10 @@ def clean_ferc_xbrl_resource(
             )
             for field in resource.schema.fields
         ],
-        preview_path=resource.path,
-        download_path=resource.path,
+        preview_path=urljoin(datapackage_uri, resource.path).replace(
+            "172.17.0.1", "localhost"
+        ),
+        download_path=urljoin(datapackage_uri, resource.path).replace(
+            "172.17.0.1", "localhost"
+        ),  # TODO in theory this should point at nightly & above should point at eel-hole
     )

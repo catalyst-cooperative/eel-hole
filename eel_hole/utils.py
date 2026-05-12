@@ -227,8 +227,9 @@ def clean_pudl_resource(resource: Resource) -> SingletonResourceDisplay:
     templates/partials/search_results.html Jinja template.
     """
     preview_base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/eel-hole"
-    # TODO: update this to point at nightly, not eel-hole
-    download_base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/eel-hole"
+    # Point download path at nightly instead of eel-hole. eel-hole is for preview
+    # because preview is duckdb noisy in ways we want to keep siloed for user metrics
+    download_base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/nightly"
     return SingletonResourceDisplay(
         name=resource.name,
         description=rst_to_html(getattr(resource, "description", "")),
@@ -305,10 +306,10 @@ def clean_ferc_xbrl_resource(
             )
             for field in resource.schema.fields
         ],
-        preview_path=urljoin(datapackage_uri, resource.path).replace(
-            "172.17.0.1", "localhost"
-        ),
+        preview_path=urljoin(datapackage_uri, resource.path),
+        # Point download path at nightly instead of eel-hole. eel-hole is for preview
+        # because preview is duckdb noisy in ways we want to keep siloed for user metrics
         download_path=urljoin(datapackage_uri, resource.path).replace(
-            "172.17.0.1", "localhost"
-        ),  # TODO in theory this should point at nightly & above should point at eel-hole
+            "eel-hole", "nightly"
+        ),
     )

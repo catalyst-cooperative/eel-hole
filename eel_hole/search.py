@@ -185,8 +185,7 @@ def build_search_index(
 
     ferc_xbrl_resources = []
     for ferc_xbrl in ferc_xbrls:
-        # 172.17.0.1 is docker-compose's internal view of the host machine
-        datapackage_uri = f"http://172.17.0.1:8000/{ferc_xbrl}/datapackage.json"
+        datapackage_uri = f"{s3_base_url}/eel-hole/{ferc_xbrl}/datapackage.json"
         ferc_xbrl_package = get_datapackage(datapackage_uri)
         log.info(f"Cleaning up descriptors for {ferc_xbrl}")
         ferc_xbrl_resources.extend(

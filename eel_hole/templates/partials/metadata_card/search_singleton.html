@@ -13,9 +13,7 @@
       >Log in or sign up to preview / export as CSV</a
     >
   {% endif %}
-  <a
-    class="button is-link is-light"
-    href="https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/nightly/{{ resource.name }}.parquet"
+  <a class="button is-link is-light" href="{{ resource.download_path }}"
     >Download full table as Parquet</a
   >
 </div>

@@ -1,14 +1,10 @@
 {% for resource in resources %}
   <div class="block" data-testid="{{ resource.name }}">
-    {% if resource.package == "pudl" %}
-      {% if resource.preview_path %}
-        {% include 'partials/metadata_card/search_singleton.html' %}
-      {% else %}
-        {% include 'partials/metadata_card/_title_package.html' %}
-        {% include 'partials/metadata_card/search_partitioned.html' %}
-      {% endif %}
+    {% if resource.preview_path %}
+      {% include 'partials/metadata_card/search_singleton.html' %}
     {% else %}
-      {% include 'partials/metadata_card/search_stub.html' %}
+      {% include 'partials/metadata_card/_title_package.html' %}
+      {% include 'partials/metadata_card/search_partitioned.html' %}
     {% endif %}
   </div>
 {% endfor %}

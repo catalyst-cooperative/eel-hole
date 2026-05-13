@@ -156,6 +156,7 @@ def build_search_index(
 
     s3_base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop"
 
+    # TODO: for all the resource cleaners: pass in datapackage path so we can construct the path relative to datapackage location.
     pudl_package = get_datapackage(
         f"{s3_base_url}/eel-hole/pudl_parquet_datapackage.json"
     )
@@ -184,12 +185,11 @@ def build_search_index(
 
     ferc_xbrl_resources = []
     for ferc_xbrl in ferc_xbrls:
-        ferc_xbrl_package = get_datapackage(
-            f"{s3_base_url}/eel-hole/{ferc_xbrl}_datapackage.json"
-        )
+        datapackage_uri = f"{s3_base_url}/eel-hole/{ferc_xbrl}/datapackage.json"
+        ferc_xbrl_package = get_datapackage(datapackage_uri)
         log.info(f"Cleaning up descriptors for {ferc_xbrl}")
         ferc_xbrl_resources.extend(
-            clean_ferc_xbrl_resource(resource, ferc_xbrl)
+            clean_ferc_xbrl_resource(resource, ferc_xbrl, datapackage_uri)
             for resource in ferc_xbrl_package.resources
         )
         log.info(f"Cleaned up descriptors for {ferc_xbrl}")

@@ -40,6 +40,7 @@ from eel_hole.feature_variants import FeatureVariants, get_variant
 from eel_hole.logs import log
 from eel_hole.models import User, db
 from eel_hole.search import (
+    SEARCH_PACKAGES,
     autocomplete_resource_names,
     build_autocomplete_name_index,
     build_or_load_search_index,
@@ -202,7 +203,7 @@ def create_app():
     }
 
     RequestedResources = namedtuple(
-        "RequestedResources", "query search_method resources scores"
+        "RequestedResources", "query package search_method resources scores"
     )
 
     @app.before_request
@@ -488,7 +489,10 @@ def create_app():
         query = request.args.get("q")
         log.info("search", url=request.full_path, query=query)
 
-        search_packages = get_variant("search_packages")
+        search_packages = request.args.get(
+            "package", "pudl"
+        )  # get_variant("search_packages")
+
         search_method = get_variant("search_method")
         search_config = json.loads(request.args.get("search_config", "{}"))
 
@@ -498,7 +502,7 @@ def create_app():
                     searcher=searcher,
                     raw_query=query,
                     search_method=search_method,
-                    search_packages=search_packages,
+                    search_package=search_packages,
                     search_config=search_config,
                 )
                 resources = [
@@ -508,13 +512,18 @@ def create_app():
                 scores = {result["name"]: result.score for result in results}
         else:
             resources = (
-                sorted_all_resources
-                if search_packages == "raw_ferc"
-                else sorted_pudl_only
+                # revisit: does this code ever need to show something
+                # other than pudl, if search_packages is no longer
+                # a secret hidden value?
+                sorted_pudl_only if search_packages == "pudl" else sorted_all_resources
             )
             scores = {}
         return RequestedResources(
-            query=query, search_method=search_method, resources=resources, scores=scores
+            query=query,
+            package=search_packages,
+            search_method=search_method,
+            resources=resources,
+            scores=scores,
         )
 
     @app.get("/search")
@@ -530,7 +539,21 @@ def create_app():
         template = "partials/search_content.html" if htmx else "search.html"
         rr = resources_from_request()
 
-        return render_template(template, resources=rr.resources, query=rr.query)
+        return_query = ""
+        if rr.query:
+            return_query = "?" + "&".join(
+                f"return_{param}={param_value}"
+                for param, param_value in request.args.items()
+            )
+
+        return render_template(
+            template,
+            resources=rr.resources,
+            query=rr.query,
+            package=rr.package,
+            available_packages=SEARCH_PACKAGES,
+            return_query=return_query,
+        )
 
     @app.get("/api/search")
     def api_search():
@@ -690,10 +713,18 @@ def create_app():
             else:
                 resource = resource.to_singleton(partition)
 
+        return_query = ""
+        if request.args.get("return_q"):
+            return_query = "?" + "&".join(
+                f"{param.replace('return_', '')}={param_value}"
+                for param, param_value in request.args.items()
+            )
+
         return render_template(
             "preview.html",
             resource=resource,
             partition=partition,
+            return_query=return_query,
         )
 
     @app.post("/dismiss-notification/<name>")

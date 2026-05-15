@@ -3,7 +3,7 @@
   {% if current_user.is_authenticated %}
     <a
       class="button is-primary preview-button"
-      href="/preview/{{ resource.package }}/{{ resource.name }}{{ '?return_q=' + request.args.get('q') if request.args.get('q') }}"
+      href="/preview/{{ resource.package }}/{{ resource.name }}{{ return_query }}"
       >Preview / export as CSV</a
     >
   {% else %}

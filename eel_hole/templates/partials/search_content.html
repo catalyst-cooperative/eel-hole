@@ -30,7 +30,7 @@
       <div class="columns is-gapless">
         <div class="column is-one-fifth">
           <div class="select is-medium">
-            <select name="package">
+            <select id="search-package-select" name="package">
               {% for package_option in available_packages %}
                 <option {% if package == package_option %}selected{% endif %}>
                   {{ package_option }}
@@ -49,6 +49,7 @@
             hx-trigger="input changed delay:120ms"
             hx-target="#search-autocomplete"
             hx-swap="innerHTML"
+            hx-vals='js:{"package":document.getElementById("search-package-select").value}'
             autocomplete="off"
             placeholder="Search..."
             hx-replace-url="false"

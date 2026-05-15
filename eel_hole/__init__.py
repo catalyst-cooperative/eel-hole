@@ -3,7 +3,7 @@
 import importlib
 import json
 import os
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 from dataclasses import asdict
 from pathlib import Path
 from urllib.parse import quote
@@ -185,14 +185,21 @@ def create_app():
     login_manager.init_app(app)
 
     all_resources, search_index = build_or_load_search_index(SEARCH_INDEX_DIR)
-    sorted_pudl_only = sorted(
-        [resource for resource in all_resources if resource.package == "pudl"],
-        key=__sort_resources_by_name,
-    )
-    sorted_all_resources = sorted(all_resources, key=__sort_resources_by_name)
-    autocomplete_name_index_pudl_only = build_autocomplete_name_index(sorted_pudl_only)
-    autocomplete_name_index_all = build_autocomplete_name_index(sorted_all_resources)
-    quick_pudl_resources = {r.name: r for r in sorted_pudl_only}
+    sorted_resources_by_package = defaultdict(list)
+    for resource in all_resources:
+        sorted_resources_by_package[resource.package].append(resource)
+    for package in sorted_resources_by_package:
+        sorted_resources_by_package[package] = sorted(
+            sorted_resources_by_package[package],
+            key=__sort_resources_by_name,
+        )
+
+    autocomplete_name_index_by_package = {
+        package: build_autocomplete_name_index(sorted_resources_by_package[package])
+        for package in sorted_resources_by_package
+    }
+
+    quick_pudl_resources = {r.name: r for r in sorted_resources_by_package["pudl"]}
     configured_dashboards = load_dashboards_config(
         Path(app.root_path) / "dashboards.yaml"
     )
@@ -489,9 +496,7 @@ def create_app():
         query = request.args.get("q")
         log.info("search", url=request.full_path, query=query)
 
-        search_packages = request.args.get(
-            "package", "pudl"
-        )  # get_variant("search_packages")
+        search_packages = request.args.get("package", "pudl")
 
         search_method = get_variant("search_method")
         search_config = json.loads(request.args.get("search_config", "{}"))
@@ -512,10 +517,9 @@ def create_app():
                 scores = {result["name"]: result.score for result in results}
         else:
             resources = (
-                # revisit: does this code ever need to show something
-                # other than pudl, if search_packages is no longer
-                # a secret hidden value?
-                sorted_pudl_only if search_packages == "pudl" else sorted_all_resources
+                sorted_resources_by_package[search_packages]
+                if search_packages in sorted_resources_by_package
+                else sorted_resources_by_package["pudl"]
             )
             scores = {}
         return RequestedResources(
@@ -581,14 +585,13 @@ def create_app():
         query = request.args.get("q", "")
         if not query.strip():
             return ""
+        package = request.args.get("package", "pudl")
+        if package not in sorted_resources_by_package:
+            package = "pudl"
+        # TODO: variants still needed?
         variants = request.args.get("variants")
-        raw_ferc_enabled = get_variant("search_packages") == "raw_ferc"
-        resources = sorted_all_resources if raw_ferc_enabled else sorted_pudl_only
-        name_index = (
-            autocomplete_name_index_all
-            if raw_ferc_enabled
-            else autocomplete_name_index_pudl_only
-        )
+        resources = sorted_resources_by_package[package]
+        name_index = autocomplete_name_index_by_package[package]
         suggestions = autocomplete_resource_names(
             resources=resources,
             raw_query=query,

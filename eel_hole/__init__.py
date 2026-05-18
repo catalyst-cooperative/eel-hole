@@ -164,9 +164,6 @@ def create_app():
         TEMPLATES_AUTO_RELOAD=True,
         INTEGRATION_TEST=_env_var_is_true("PUDL_VIEWER_INTEGRATION_TEST"),
         FEATURE_VARIANTS={
-            "search_packages": FeatureVariants(
-                default="pudl_only", variants={"raw_ferc", "pudl_only"}
-            ),
             "search_method": FeatureVariants(
                 default="default", variants=set(search_variants().keys())
             ),
@@ -496,7 +493,7 @@ def create_app():
         query = request.args.get("q")
         log.info("search", url=request.full_path, query=query)
 
-        search_packages = request.args.get("package", "pudl")
+        search_package = request.args.get("package", "pudl")
 
         search_method = get_variant("search_method")
         search_config = json.loads(request.args.get("search_config", "{}"))
@@ -507,7 +504,7 @@ def create_app():
                     searcher=searcher,
                     raw_query=query,
                     search_method=search_method,
-                    search_package=search_packages,
+                    search_package=search_package,
                     search_config=search_config,
                 )
                 resources = [
@@ -517,14 +514,14 @@ def create_app():
                 scores = {result["name"]: result.score for result in results}
         else:
             resources = (
-                sorted_resources_by_package[search_packages]
-                if search_packages in sorted_resources_by_package
+                sorted_resources_by_package[search_package]
+                if search_package in sorted_resources_by_package
                 else sorted_resources_by_package["pudl"]
             )
             scores = {}
         return RequestedResources(
             query=query,
-            package=search_packages,
+            package=search_package,
             search_method=search_method,
             resources=resources,
             scores=scores,

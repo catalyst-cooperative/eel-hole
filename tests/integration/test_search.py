@@ -32,12 +32,10 @@ def test_search_metadata(page: Page):
 
 
 def test_search_for_ferc_table(page: Page):
-    _ = page.goto(
-        "http://localhost:8080/search?variants=search_packages:raw_ferc&q=package:ferc6_xbrl"
-    )
+    _ = page.goto("http://localhost:8080/search?package=ferc6_xbrl")
     num_results = page.locator("#search-results > *").count()
-    # there are more than 50 tables in ferc6, only 50 will show up
-    assert num_results == 50
+    # empty query means we get a complete table listing
+    assert num_results > 100
     expect(page.get_by_test_id("identification_001_duration")).to_contain_text(
         "001 - Schedule - Identification - duration"
     )
@@ -47,22 +45,24 @@ def test_search_for_ferc_table(page: Page):
 
 
 def test_search_preserves_variants_in_url(page: Page):
-    _ = page.goto("http://localhost:8080/search?variants=search_packages:raw_ferc")
+    _ = page.goto(
+        "http://localhost:8080/search?variants=search_method:boost_exact_match"
+    )
     search_input = page.get_by_role("textbox").and_(
         page.get_by_placeholder("Search...")
     )
-    search_input.fill("package:ferc6_xbrl")
+    search_input.fill("name:eia")
     search_input.press("Enter")
 
     expect(page).to_have_url(
-        "http://localhost:8080/search?variants=search_packages%3Araw_ferc&q=package%3Aferc6_xbrl"
+        "http://localhost:8080/search?variants=search_method%3Aboost_exact_match&package=pudl&q=name%3Aeia"
     )
     num_results = page.locator("#search-results > *").count()
     assert num_results == 50
 
 
 def test_search_preview(page: Page):
-    """Preview button now navigates to dedicated preview page via HTMX instead of showing overlay."""
+    """Preview button navigates to dedicated preview page via HTMX."""
     _ = page.goto("http://localhost:8080/login")
     _ = page.goto("http://localhost:8080/search?q=name:core_pudl__codes_datasources")
 
@@ -93,7 +93,7 @@ def test_search_preview_back_button(page: Page):
 
     # Wait for HTMX to update URL and results (: gets URL encoded to %3A)
     page.wait_for_url(
-        "http://localhost:8080/search?q=name%3Acore_pudl__codes_datasources"
+        "http://localhost:8080/search?package=pudl&q=name%3Acore_pudl__codes_datasources"
     )
     table_metadata = page.get_by_test_id("core_pudl__codes_datasources")
     expect(table_metadata).to_be_visible()
@@ -104,12 +104,12 @@ def test_search_preview_back_button(page: Page):
     preview_link.click()
 
     page.wait_for_url(
-        "http://localhost:8080/preview/pudl/core_pudl__codes_datasources?return_q=name:core_pudl__codes_datasources"
+        "http://localhost:8080/preview/pudl/core_pudl__codes_datasources?return_package=pudl&return_q=name:core_pudl__codes_datasources"
     )
 
     page.evaluate("window.history.back()")
     page.wait_for_url(
-        "http://localhost:8080/search?q=name%3Acore_pudl__codes_datasources"
+        "http://localhost:8080/search?package=pudl&q=name%3Acore_pudl__codes_datasources"
     )
     # NOTE (2026-01-28): this reload is needed for the actual content to appear
     _ = page.reload()

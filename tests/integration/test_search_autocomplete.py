@@ -22,7 +22,7 @@ def test_search_autocomplete_keyboard_select(page: Page):
     search_input.press("Enter")
 
     expect(page).to_have_url(
-        "http://localhost:8080/search?q=name%3Acore_pudl__codes_datasources"
+        "http://localhost:8080/search?package=pudl&q=name%3Acore_pudl__codes_datasources"
     )
 
 
@@ -39,7 +39,7 @@ def test_search_autocomplete_click_select(page: Page):
     second_option.click()
 
     expect(page).to_have_url(
-        "http://localhost:8080/search?q=name%3Acore_pudl__codes_datasources"
+        "http://localhost:8080/search?package=pudl&q=name%3Acore_pudl__codes_datasources"
     )
 
 
@@ -101,5 +101,5 @@ def test_search_autocomplete_escape_close_and_keyboard_submit_selected(page: Pag
     search_input.press("Enter")
 
     expect(page).to_have_url(
-        "http://localhost:8080/search?q=name%3Acore_pudl__codes_datasources"
+        "http://localhost:8080/search?package=pudl&q=name%3Acore_pudl__codes_datasources"
     )

@@ -27,9 +27,9 @@
           value="{{ request.args.get('variants') }}"
         />
       {% endif %}
-      <div class="columns is-gapless">
-        <div class="column is-one-fifth">
-          <div class="select is-medium">
+      <div class="field has-addons">
+        <p class="control">
+          <span class="select is-medium">
             <select id="search-package-select" name="package">
               {% for package_option in available_packages %}
                 <option {% if package == package_option %}selected{% endif %}>
@@ -37,9 +37,9 @@
                 </option>
               {% endfor %}
             </select>
-          </div>
-        </div>
-        <div class="column">
+          </span>
+        </p>
+        <p class="control is-expanded">
           <input
             class="input is-medium"
             id="search-query-input"
@@ -61,14 +61,14 @@
             @keydown.enter.prevent="submit(selectedIndex)"
             {% if query %}value="{{ query }}"{% endif %}
           />
-          <div
-            class="search-autocomplete-menu"
-            id="search-autocomplete"
-            x-ref="menu"
-            x-show="menuVisible()"
-            x-cloak
-          ></div>
-        </div>
+        </p>
+        <div
+          class="search-autocomplete-menu"
+          id="search-autocomplete"
+          x-ref="menu"
+          x-show="menuVisible()"
+          x-cloak
+        ></div>
       </div>
     </form>
   </div>

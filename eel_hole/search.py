@@ -36,6 +36,15 @@ from eel_hole.utils import (
 
 TOKEN_RE = re.compile(r"[a-z0-9]+")
 
+FERC_XBRLS = [
+    "ferc1_xbrl",
+    "ferc2_xbrl",
+    "ferc6_xbrl",
+    "ferc60_xbrl",
+    "ferc714_xbrl",
+]
+
+SEARCH_PACKAGES = ["pudl"] + FERC_XBRLS
 
 SearchExecutor = Callable[[Query], Results]
 SearchVariant = Callable[[Schema, str, SearchExecutor, dict], Results]
@@ -175,16 +184,8 @@ def build_search_index(
     ]
     log.info("Cleaned up descriptors for ferceqr")
 
-    ferc_xbrls = [
-        "ferc1_xbrl",
-        "ferc2_xbrl",
-        "ferc6_xbrl",
-        "ferc60_xbrl",
-        "ferc714_xbrl",
-    ]
-
     ferc_xbrl_resources = []
-    for ferc_xbrl in ferc_xbrls:
+    for ferc_xbrl in FERC_XBRLS:
         datapackage_uri = f"{s3_base_url}/eel-hole/{ferc_xbrl}/datapackage.json"
         ferc_xbrl_package = get_datapackage(datapackage_uri)
         log.info(f"Cleaning up descriptors for {ferc_xbrl}")
@@ -396,7 +397,7 @@ def run_search(
     searcher: Searcher,
     raw_query: str,
     search_method: str,
-    search_packages: str,
+    search_package: str,
     search_config: dict,
 ) -> Results:
     """Actually run a user query.
@@ -407,9 +408,7 @@ def run_search(
     """
 
     def execute_search(query: Query) -> Results:
-        if search_packages == "pudl_only":
-            return searcher.search(query, filter=Term("package", "pudl"), limit=50)
-        return searcher.search(query, limit=50)
+        return searcher.search(query, filter=Term("package", search_package), limit=50)
 
     return search_variants()[search_method](
         schema=searcher.schema,

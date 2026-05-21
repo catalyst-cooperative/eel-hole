@@ -3,7 +3,7 @@
 import importlib
 import json
 import os
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 from dataclasses import asdict
 from pathlib import Path
 from urllib.parse import quote
@@ -40,6 +40,7 @@ from eel_hole.feature_variants import FeatureVariants, get_variant
 from eel_hole.logs import log
 from eel_hole.models import User, db
 from eel_hole.search import (
+    SEARCH_PACKAGES,
     autocomplete_resource_names,
     build_autocomplete_name_index,
     build_or_load_search_index,
@@ -163,9 +164,6 @@ def create_app():
         TEMPLATES_AUTO_RELOAD=True,
         INTEGRATION_TEST=_env_var_is_true("PUDL_VIEWER_INTEGRATION_TEST"),
         FEATURE_VARIANTS={
-            "search_packages": FeatureVariants(
-                default="pudl_only", variants={"raw_ferc", "pudl_only"}
-            ),
             "search_method": FeatureVariants(
                 default="default", variants=set(search_variants().keys())
             ),
@@ -184,14 +182,21 @@ def create_app():
     login_manager.init_app(app)
 
     all_resources, search_index = build_or_load_search_index(SEARCH_INDEX_DIR)
-    sorted_pudl_only = sorted(
-        [resource for resource in all_resources if resource.package == "pudl"],
-        key=__sort_resources_by_name,
-    )
-    sorted_all_resources = sorted(all_resources, key=__sort_resources_by_name)
-    autocomplete_name_index_pudl_only = build_autocomplete_name_index(sorted_pudl_only)
-    autocomplete_name_index_all = build_autocomplete_name_index(sorted_all_resources)
-    quick_pudl_resources = {r.name: r for r in sorted_pudl_only}
+    sorted_resources_by_package = defaultdict(list)
+    for resource in all_resources:
+        sorted_resources_by_package[resource.package].append(resource)
+    for package in sorted_resources_by_package:
+        sorted_resources_by_package[package] = sorted(
+            sorted_resources_by_package[package],
+            key=__sort_resources_by_name,
+        )
+
+    autocomplete_name_index_by_package = {
+        package: build_autocomplete_name_index(sorted_resources_by_package[package])
+        for package in sorted_resources_by_package
+    }
+
+    quick_pudl_resources = {r.name: r for r in sorted_resources_by_package["pudl"]}
     configured_dashboards = load_dashboards_config(
         Path(app.root_path) / "dashboards.yaml"
     )
@@ -202,7 +207,7 @@ def create_app():
     }
 
     RequestedResources = namedtuple(
-        "RequestedResources", "query search_method resources scores"
+        "RequestedResources", "query package search_method resources scores"
     )
 
     @app.before_request
@@ -488,7 +493,8 @@ def create_app():
         query = request.args.get("q")
         log.info("search", url=request.full_path, query=query)
 
-        search_packages = get_variant("search_packages")
+        search_package = request.args.get("package", "pudl")
+
         search_method = get_variant("search_method")
         search_config = json.loads(request.args.get("search_config", "{}"))
 
@@ -498,7 +504,7 @@ def create_app():
                     searcher=searcher,
                     raw_query=query,
                     search_method=search_method,
-                    search_packages=search_packages,
+                    search_package=search_package,
                     search_config=search_config,
                 )
                 resources = [
@@ -508,13 +514,17 @@ def create_app():
                 scores = {result["name"]: result.score for result in results}
         else:
             resources = (
-                sorted_all_resources
-                if search_packages == "raw_ferc"
-                else sorted_pudl_only
+                sorted_resources_by_package[search_package]
+                if search_package in sorted_resources_by_package
+                else sorted_resources_by_package["pudl"]
             )
             scores = {}
         return RequestedResources(
-            query=query, search_method=search_method, resources=resources, scores=scores
+            query=query,
+            package=search_package,
+            search_method=search_method,
+            resources=resources,
+            scores=scores,
         )
 
     @app.get("/search")
@@ -530,7 +540,21 @@ def create_app():
         template = "partials/search_content.html" if htmx else "search.html"
         rr = resources_from_request()
 
-        return render_template(template, resources=rr.resources, query=rr.query)
+        return_query = ""
+        if rr.query:
+            return_query = "?" + "&".join(
+                f"return_{param}={param_value}"
+                for param, param_value in request.args.items()
+            )
+
+        return render_template(
+            template,
+            resources=rr.resources,
+            query=rr.query,
+            package=rr.package,
+            available_packages=SEARCH_PACKAGES,
+            return_query=return_query,
+        )
 
     @app.get("/api/search")
     def api_search():
@@ -558,14 +582,13 @@ def create_app():
         query = request.args.get("q", "")
         if not query.strip():
             return ""
+        package = request.args.get("package", "pudl")
+        if package not in sorted_resources_by_package:
+            package = "pudl"
+        # TODO: variants still needed?
         variants = request.args.get("variants")
-        raw_ferc_enabled = get_variant("search_packages") == "raw_ferc"
-        resources = sorted_all_resources if raw_ferc_enabled else sorted_pudl_only
-        name_index = (
-            autocomplete_name_index_all
-            if raw_ferc_enabled
-            else autocomplete_name_index_pudl_only
-        )
+        resources = sorted_resources_by_package[package]
+        name_index = autocomplete_name_index_by_package[package]
         suggestions = autocomplete_resource_names(
             resources=resources,
             raw_query=query,
@@ -690,10 +713,18 @@ def create_app():
             else:
                 resource = resource.to_singleton(partition)
 
+        return_query = ""
+        if request.args.get("return_q"):
+            return_query = "?" + "&".join(
+                f"{param.replace('return_', '')}={param_value}"
+                for param, param_value in request.args.items()
+            )
+
         return render_template(
             "preview.html",
             resource=resource,
             partition=partition,
+            return_query=return_query,
         )
 
     @app.post("/dismiss-notification/<name>")

@@ -50,6 +50,7 @@ from eel_hole.utils import (
     PartitionedResourceDisplay,
     ResourceDisplay,
     highlight_first,
+    env_var_is_true,
 )
 
 AUTH0_DOMAIN = os.getenv("PUDL_VIEWER_AUTH0_DOMAIN")
@@ -58,14 +59,6 @@ CLIENT_SECRET = os.getenv("PUDL_VIEWER_AUTH0_CLIENT_SECRET")
 AUTH0_USER_API_CLIENT_ID = os.getenv("PUDL_VIEWER_AUTH0_USER_API_CLIENT_ID")
 AUTH0_USER_API_CLIENT_SECRET = os.getenv("PUDL_VIEWER_AUTH0_USER_API_CLIENT_SECRET")
 SEARCH_INDEX_DIR = os.getenv("PUDL_VIEWER_SEARCH_INDEX_DIR", ".search-index")
-
-
-def _env_var_is_true(var_name: str, default: bool = False) -> bool:
-    """Munge env var value to something boolean.
-
-    Pass something that looks like "True" please.
-    """
-    return str(os.getenv(var_name, default)).lower() == "true"
 
 
 def __init_auth0(app: Flask):
@@ -100,7 +93,7 @@ def __init_db(db: SQLAlchemy, app: Flask):
     password = os.getenv("PUDL_VIEWER_DB_PASSWORD")
     database = os.getenv("PUDL_VIEWER_DB_NAME")
 
-    if _env_var_is_true("IS_CLOUD_RUN"):
+    if env_var_is_true("IS_CLOUD_RUN"):
         cloud_sql_connection_name = os.environ.get("CLOUD_SQL_CONNECTION_NAME")
         db_uri = f"postgresql://{username}:{password}@/{database}?host=/cloudsql/{cloud_sql_connection_name}"
     else:
@@ -156,12 +149,12 @@ def create_app():
     """
 
     app = Flask("eel_hole", instance_relative_config=True)
-    if _env_var_is_true("IS_CLOUD_RUN"):
+    if env_var_is_true("IS_CLOUD_RUN"):
         app.config["PREFERRED_URL_SCHEME"] = "https"
     app.config.from_mapping(
         SECRET_KEY=os.getenv("PUDL_VIEWER_SECRET_KEY"),
         TEMPLATES_AUTO_RELOAD=True,
-        INTEGRATION_TEST=_env_var_is_true("PUDL_VIEWER_INTEGRATION_TEST"),
+        INTEGRATION_TEST=env_var_is_true("PUDL_VIEWER_INTEGRATION_TEST"),
         FEATURE_VARIANTS={
             "search_packages": FeatureVariants(
                 default="pudl_only", variants={"raw_ferc", "pudl_only"}

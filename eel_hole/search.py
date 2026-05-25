@@ -29,6 +29,7 @@ from whoosh.searching import Results, Searcher
 from eel_hole.logs import log
 from eel_hole.utils import (
     ResourceDisplay,
+    DataPaths,
     clean_ferc_xbrl_resource,
     clean_ferceqr_resource,
     clean_pudl_resource,
@@ -154,11 +155,11 @@ def build_search_index(
         log.info(f"{datapackage_path} downloaded")
         return Package.from_descriptor(descriptor)
 
-    s3_base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop"
+    data_paths = DataPaths()
 
     # TODO: for all the resource cleaners: pass in datapackage path so we can construct the path relative to datapackage location.
     pudl_package = get_datapackage(
-        f"{s3_base_url}/eel-hole/pudl_parquet_datapackage.json"
+        f"{data_paths.eel_hole_path}/pudl_parquet_datapackage.json"
     )
     log.info("Cleaning up descriptors for pudl")
     pudl_resources = [
@@ -167,7 +168,7 @@ def build_search_index(
     log.info("Cleaned up descriptors for pudl")
 
     ferceqr_package = get_datapackage(
-        f"{s3_base_url}/ferceqr/ferceqr_parquet_datapackage.json"
+        f"{data_paths.ferceqr_path}/ferceqr_parquet_datapackage.json"
     )
     log.info("Cleaning up descriptors for ferceqr")
     ferceqr_resources = [
@@ -185,7 +186,7 @@ def build_search_index(
 
     ferc_xbrl_resources = []
     for ferc_xbrl in ferc_xbrls:
-        datapackage_uri = f"{s3_base_url}/eel-hole/{ferc_xbrl}/datapackage.json"
+        datapackage_uri = f"{data_paths.eel_hole_path}/{ferc_xbrl}/datapackage.json"
         ferc_xbrl_package = get_datapackage(datapackage_uri)
         log.info(f"Cleaning up descriptors for {ferc_xbrl}")
         ferc_xbrl_resources.extend(

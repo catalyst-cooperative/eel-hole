@@ -3,6 +3,7 @@ services:
   eel_hole:
     environment:
       PUDL_VIEWER_INTEGRATION_TEST: true
+      PUDL_VIEWER_STAGING: true
     command: >
       sh -c "
         uv run flask --app eel_hole db upgrade &&

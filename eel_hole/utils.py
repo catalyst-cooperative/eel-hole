@@ -1,6 +1,7 @@
 """Useful helper functions."""
 
 import html
+import os
 import re
 from dataclasses import dataclass, field
 from urllib.parse import urljoin
@@ -14,6 +15,34 @@ log = structlog.get_logger(__name__)
 
 
 SPHINX_TAGS = re.compile(r":(?:ref|func|doc):`([^`]+)`")
+
+
+@dataclass
+class DataPaths:
+    s3_base_url: str = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop"
+
+    @property
+    def ferceqr_path(self) -> str:
+        """Path to s3 directory containing FERC EQR data/metadata."""
+        return f"{self.s3_base_url}/ferceqr"
+
+    @property
+    def eel_hole_path(self) -> str:
+        """Path to s3 directory containing eel hole data/metadata."""
+        return (
+            f"{self.s3_base_url}/eel-hole"
+            if env_var_is_true("PUDL_VIEWER_STAGING")
+            else f"{self.s3_base_url}/staging"
+        )
+
+    @property
+    def nightly_path(self) -> str:
+        """Path to s3 directory containing nightly data/metadata."""
+        return (
+            f"{self.s3_base_url}/nightly"
+            if env_var_is_true("PUDL_VIEWER_STAGING")
+            else f"{self.s3_base_url}/staging"
+        )
 
 
 @dataclass
@@ -226,10 +255,11 @@ def clean_pudl_resource(resource: Resource) -> SingletonResourceDisplay:
     machinery to turn it into HTML that can be shoved into the
     templates/partials/search_results.html Jinja template.
     """
-    preview_base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/eel-hole"
+    data_paths = DataPaths()
+    preview_base_url = data_paths.eel_hole_path
     # Point download path at nightly instead of eel-hole. eel-hole is for preview
     # because preview is duckdb noisy in ways we want to keep siloed for user metrics
-    download_base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/nightly"
+    download_base_url = data_paths.nightly_path
     return SingletonResourceDisplay(
         name=resource.name,
         description=rst_to_html(getattr(resource, "description", "")),
@@ -247,6 +277,14 @@ def clean_pudl_resource(resource: Resource) -> SingletonResourceDisplay:
     )
 
 
+def env_var_is_true(var_name: str, default: bool = False) -> bool:
+    """Munge env var value to something boolean.
+
+    Pass something that looks like "True" please.
+    """
+    return str(os.getenv(var_name, default)).lower() == "true"
+
+
 def clean_ferceqr_resource(resource: Resource) -> PartitionedResourceDisplay:
     """Clean up the FERC EQR datapackage descriptions for display.
 
@@ -254,7 +292,7 @@ def clean_ferceqr_resource(resource: Resource) -> PartitionedResourceDisplay:
 
     We even still claim to be from the same package.
     """
-    base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/ferceqr"
+    base_url = DataPaths().ferceqr_path
     paths = {
         p.rsplit("/")[-1].rstrip(".parquet"): f"{base_url}/{p}"
         for p in resource.normpaths

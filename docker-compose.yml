@@ -22,7 +22,7 @@ services:
       PUDL_VIEWER_INTEGRATION_TEST: ${PUDL_VIEWER_INTEGRATION_TEST}
       FLASK_APP: ${FLASK_APP}
       GRACEFUL_TIMEOUT: 1
-      PORT: 8080
+      PUDL_VIEWER_PORT: 8080
     volumes:
       - type: bind
         source: eel_hole

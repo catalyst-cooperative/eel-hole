@@ -103,6 +103,36 @@ Auth0 credentials for development.
    _its_ client ID and secret into the `PUDL_VIEWER_AUTH0_USER_API_CLIENT_ID`
    and `PUDL_VIEWER_AUTH0_USER_API_CLIENT_SECRET` scopes, respectively.
 
+## Staging Environment
+
+`eel-hole` can be used to inspect `PUDL` data deployed to the staging area.
+This can be triggered by setting the environment variable `PUDL_VIEWER_STAGING`,
+to `true`. This can be used during local development as well as with a separate
+cloud run service. For local development you can use the following command:
+
+```bash
+$ PUDL_VIEWER_STAGING=true docker compose up
+```
+
+The dedicated cloud run service is triggered via the `build-deploy-staging` workflow.
+This workflow uses Google Cloud's new support for the
+[docker compose](https://docs.cloud.google.com/run/docs/deploy-run-compose)
+standard so it can use the existing `docker-compose.yml` file and doesn't need to
+manage it's own cloud SQL instance. The one draw back of this approach is that the
+`compose` support is still quite new, and each deployment will reset the security
+settings with each deployment, which will make the service unaccessible. For the
+time being we are relying on manually resetting the authorization settings each
+time we use the staging environment. Hopefully, this is something we can streamline
+as `gcloud`'s `compose` support matures. To use this remote staging environment,
+follow these steps:
+
+1. Run the `build-deploy-staging` workflow (this is auto-triggered by the `deploy-pudl`
+   workflow in the `PUDL` repo when `staging=True`).
+2. Navigate to the `cloud run` page in the Google Cloud Console and select the `eel-hole`
+   service.
+3. Go to the `Security` tab, check the `Identity Aware Proxy (IAP)` box, and click `Save`.
+4. Click the link at the top of the page.
+
 ## Tests
 
 To run the unit tests:

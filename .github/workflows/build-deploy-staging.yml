@@ -29,4 +29,4 @@ jobs:
       - name:
         run: docker compose -f docker-compose.yml -f docker-compose.staging.yml config > compose.yml
       - name: Deploy staging
-        run: gcloud run compose up compose.yml
+        run: gcloud run compose up compose.yml --region=us-east1

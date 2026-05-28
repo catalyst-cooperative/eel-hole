@@ -26,7 +26,7 @@ jobs:
         uses: google-github-actions/setup-gcloud@v3
         with:
           project_id: catalyst-cooperative-pudl
-      - name:
+      - name: Combine base compose with staging overrides
         run: docker compose -f docker-compose.yml -f docker-compose.staging.yml config > compose.yml
       - name: Deploy staging
         run: gcloud run compose up compose.yml --region=us-east1

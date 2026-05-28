@@ -1,0 +1,32 @@
+---
+name: build-deploy-staging
+on:
+  workflow_dispatch:
+
+jobs:
+  build_deploy_staging:
+    name: Create staging compose file and deploy
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      deployments: write
+      id-token: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Authenticate to Google Cloud
+        id: "auth"
+        uses: "google-github-actions/auth@v2"
+        with:
+          token_format: "access_token"
+          workload_identity_provider: "projects/345950277072/locations/global/workloadIdentityPools/gh-actions-pool/providers/gh-actions-provider"
+          service_account: "pudl-viewer-gha@catalyst-cooperative-pudl.iam.gserviceaccount.com"
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2'
+        with:
+          project_id: catalyst-cooperative-pudl
+      - name:
+        run: docker compose -f docker-compose.yml -f docker-compose.staging.yml config > compose.yml
+      - name: Deploy staging
+        run: gcloud run compose up compose.yml

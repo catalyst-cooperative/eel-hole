@@ -32,7 +32,7 @@ class DataPaths:
         return (
             f"{self.s3_base_url}/eel-hole"
             if env_var_is_true("PUDL_VIEWER_STAGING")
-            else f"{self.s3_base_url}/staging"
+            else f"{self.s3_base_url}/staging/eel-hole"
         )
 
     @property
@@ -41,7 +41,7 @@ class DataPaths:
         return (
             f"{self.s3_base_url}/nightly"
             if env_var_is_true("PUDL_VIEWER_STAGING")
-            else f"{self.s3_base_url}/staging"
+            else f"{self.s3_base_url}/staging/nightly"
         )
 
 

@@ -112,7 +112,11 @@ def test_clean_ferc_xbrl_resource():
             ]
         ),
     )
-    cleaned = clean_ferc_xbrl_resource(resource, package_name="ferc1_xbrl")
+    cleaned = clean_ferc_xbrl_resource(
+        resource,
+        package_name="ferc1_xbrl",
+        datapackage_uri="https://x.test/eel-hole/ferc1_xbrl/datapackage.json",
+    )
 
     resource_description = str(cleaned.description)
     assert "Something useful" in resource_description

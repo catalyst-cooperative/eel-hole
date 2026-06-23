@@ -2,13 +2,19 @@
   <h3 class="block title">Find the energy data you need:</h3>
   <p>
     PUDL has over 300 tables from over a dozen different datasets. You can start
-    by
-    <a href="https://data.catalyst.coop/search"
-      >searching the PUDL Data Viewer</a
-    >
-    for terms or data points you care about directly. We recommend working with
-    tables with the <span class="is-family-code">out</span> prefix, as these
-    tables contain the most-complete data that is the easiest to work with.
+    by searching the PUDL Data Viewer for terms or data points you care about
+    directly:
+  </p>
+  <div class="block">
+    <!-- NOTE 2026-06-23: in normal search, we show results in the same page via HTMX - here we navigate directly, so we pass this flag -->
+    {% with search_bar_uses_htmx=false %}
+      {% include 'partials/search_bar.html' %}
+    {% endwith %}
+  </div>
+  <p>
+    We recommend working with tables with the
+    <span class="is-family-code">out</span> prefix, as these tables contain the
+    most-complete data that is the easiest to work with.
   </p>
 
   <p>

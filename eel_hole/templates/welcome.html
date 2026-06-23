@@ -1,8 +1,13 @@
 {% extends "base.html" %}
 {% block extra_head %}
+  <!-- NOTE 2026-06-23: we need to include the search assets so the search bar and autocomplete work -->
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='search.css') }}"
+  />
   <script
     type="module"
-    src="{{ url_for('static', filename='preview.js') }}"
+    src="{{ url_for('static', filename='search.js') }}"
   ></script>
 {% endblock %}
 
@@ -28,6 +33,12 @@
           <em>accessible</em>. PUDL is a free and open source project managed
           and maintained by
           <a href="https://catalyst.coop/">Catalyst Cooperative</a>.
+        </div>
+        <div class="block">
+          <!-- NOTE 2026-06-23: in normal search, we show results in the same page via HTMX - here we navigate directly, so we pass this flag -->
+          {% with search_bar_uses_htmx=false %}
+            {% include 'partials/search_bar.html' %}
+          {% endwith %}
         </div>
         <section class="block" id="find-data">
           {% include 'partials/welcome_browseby.html' %}

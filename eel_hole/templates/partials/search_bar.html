@@ -10,10 +10,10 @@
   <form
     action="/search"
     method="get"
-    hx-get="/search"
-    hx-target="#search-content"
-    hx-swap="outerHTML"
-    hx-replace-url="true"
+    {% if search_bar_uses_htmx | default(true) %}
+      hx-get="/search" hx-target="#search-content" hx-swap="outerHTML"
+      hx-replace-url="true"
+    {% endif %}
     x-ref="form"
   >
     {% if request.args.get('variants') %}

@@ -252,7 +252,6 @@ def create_app():
             topics=topics,
             available_packages=SEARCH_PACKAGES,
             package="pudl",
-            query=request.args.get("q"),
         )
 
     @login_manager.user_loader

@@ -2,6 +2,63 @@ import re
 
 from playwright.sync_api import Page, expect
 
+from eel_hole.search import SEARCH_PACKAGES
+
+
+def test_landing_page_shows_search_controls(page: Page):
+    page.goto("http://localhost:8080/")
+
+    expect(page.locator("#search-query-input")).to_be_visible()
+    package_select = page.locator("#search-package-select")
+    expect(package_select).to_be_visible()
+    expect(package_select.locator("option")).to_have_text(SEARCH_PACKAGES)
+
+
+def test_landing_page_search_autocomplete_suggestions(page: Page):
+    page.goto("http://localhost:8080/")
+    search_input = page.get_by_role("textbox").and_(
+        page.get_by_placeholder("Search...")
+    )
+    search_input.fill("codes_datasource")
+
+    autocomplete_menu = page.locator("#search-autocomplete")
+    expect(autocomplete_menu).to_be_visible()
+    expect(autocomplete_menu.locator("a").first).to_have_text(
+        'Search for "codes_datasource"',
+    )
+    second_option = autocomplete_menu.locator("a").nth(1)
+    expect(second_option).to_contain_text("name: core_pudl__codes_datasources")
+    expect(second_option.locator("strong")).to_have_text("codes_datasource")
+
+
+def test_landing_page_search_navigates_to_search(page: Page):
+    page.goto("http://localhost:8080/")
+    search_input = page.get_by_role("textbox").and_(
+        page.get_by_placeholder("Search...")
+    )
+    search_input.fill("codes_datasource")
+    search_input.press("Enter")
+
+    expect(page).to_have_url(
+        "http://localhost:8080/search?package=pudl&q=codes_datasource"
+    )
+
+
+def test_landing_page_search_autocomplete_selection_navigates_to_search(page: Page):
+    page.goto("http://localhost:8080/")
+    search_input = page.get_by_role("textbox").and_(
+        page.get_by_placeholder("Search...")
+    )
+    search_input.fill("codes_datasource")
+
+    autocomplete_menu = page.locator("#search-autocomplete")
+    expect(autocomplete_menu).to_be_visible()
+    autocomplete_menu.locator("a").nth(1).click()
+
+    expect(page).to_have_url(
+        "http://localhost:8080/search?package=pudl&q=name%3Acore_pudl__codes_datasources"
+    )
+
 
 def test_finding_data_tabs_switch_content(page: Page):
     page.goto("http://localhost:8080/")

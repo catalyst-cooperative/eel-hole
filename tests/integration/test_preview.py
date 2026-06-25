@@ -93,3 +93,29 @@ def test_return_to_search(page: Page):
     )
     page.get_by_text("Return to Search").click()
     page.wait_for_url("http://localhost:8080/search?q=query")
+
+
+def test_filter_serialization_roundtrip(page: Page):
+    _ = page.goto("http://localhost:8080/login")
+    _ = page.goto("http://localhost:8080/preview/pudl/core_pudl__codes_datasources")
+
+
+    ag_root = page.locator("#data-table .ag-root-wrapper")
+    expect(ag_root).to_be_visible()
+
+    datasource_header = page.get_by_role('columnheader', name="datasource")
+    filter_button = page.locator("//*[@data-ref='eFilterButton']")
+    filter_input = page.locator("//*[@data-ref='eInput']")
+
+    datasource_filter = datasource_header.locator(filter_button)
+    expect(datasource_filter).to_be_visible()
+    datasource_filter.click()
+
+    datasource_filter_input = datasource_header.locator(filter_input)
+    expect(datasource_filter_input).to_be_visible(timeout=5_000)
+    # select just ferc
+    # class=ag-header-cell
+    # col-id=datasource
+    # grab the page location
+    # go to page location
+    # ensure just ferc is selected

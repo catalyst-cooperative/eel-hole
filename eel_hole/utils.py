@@ -317,19 +317,12 @@ def clean_ferc_dbf_resource(
     """Clean up the FERC DBF datapackage descriptions for display.
 
     These are universally useless for now.
-
-    Note [2026-06-16] the resource path in the datapackage is currently
-    an invalid link to the local SQLite file on the extractor VM. We'll need to
-    update how the datapackage is produced, potentially bringing it in line with
-    frictionless datapackage validation, as well as think about pulling out the
-    table name from the datapackage.
     """
-    rest, _, corrected_path = resource.path.rpartition("/")
     return SingletonResourceDisplay(
         name=resource.name,
         # begin as we mean to go on
         description=plaintext_to_html(getattr(resource, "description", "")),
-        summary=getattr(resource, "description", ""),
+        summary=getattr(resource, "description", "").split("\n", 1)[0],
         package=package_name,
         columns=[
             ColumnDisplay(
@@ -338,10 +331,10 @@ def clean_ferc_dbf_resource(
             )
             for field in resource.schema.fields
         ],
-        preview_path=urljoin(datapackage_uri, corrected_path),
+        preview_path=urljoin(datapackage_uri, resource.path),
         # Point download path at nightly instead of eel-hole. eel-hole is for preview
         # because preview is duckdb noisy in ways we want to keep siloed for user metrics
-        download_path=urljoin(datapackage_uri, corrected_path).replace(
+        download_path=urljoin(datapackage_uri, resource.path).replace(
             "eel-hole", "nightly"
         ),
     )

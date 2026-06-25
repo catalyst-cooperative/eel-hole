@@ -1,0 +1,27 @@
+---
+name: pr-preview
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+      - closed
+
+jobs:
+  preview:
+    name: Print PR preview metadata
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: read
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      SERVICE_NAME: pudl-viewer-pr-${{ github.event.pull_request.number }}
+    steps:
+      - name: Print preview metadata
+        run: |
+          echo "PR number: ${PR_NUMBER}"
+          echo "Target service name: ${SERVICE_NAME}"

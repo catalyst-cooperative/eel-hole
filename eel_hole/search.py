@@ -206,8 +206,7 @@ def build_search_index(
 
     ferc_dbf_resources = []
     for ferc_dbf in FERC_DBFS:
-        # jun 2026 kmm - we don't have dbf directories yet to be able to use the vanilla datapackage filename
-        datapackage_uri = f"{s3_base_url}/eel-hole/{ferc_dbf}_datapackage.json"
+        datapackage_uri = f"{s3_base_url}/eel-hole/{ferc_dbf}/datapackage.json"
         ferc_dbf_package = get_datapackage(datapackage_uri)
         log.info(f"Cleaning up descriptors for {ferc_dbf}")
         ferc_dbf_resources.extend(

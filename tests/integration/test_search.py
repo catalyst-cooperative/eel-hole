@@ -31,17 +31,36 @@ def test_search_metadata(page: Page):
     )
 
 
-def test_search_for_ferc_table(page: Page):
+def test_search_for_xbrl_table(page: Page):
     _ = page.goto("http://localhost:8080/search?package=ferc6_xbrl")
     num_results = page.locator("#search-results > *").count()
     # empty query means we get a complete table listing
     assert num_results > 100
-    expect(page.get_by_test_id("identification_001_duration")).to_contain_text(
+    identification_001_duration = page.get_by_test_id("identification_001_duration")
+    expect(identification_001_duration).to_contain_text(
         "001 - Schedule - Identification - duration"
     )
-    expect(page.get_by_test_id("identification_001_duration")).to_contain_text(
-        "ferc6_xbrl"
-    )
+    expect(identification_001_duration).to_contain_text("ferc6_xbrl")
+    expect(
+        identification_001_duration.locator(
+            page.get_by_role("link", name="Download full table as Parquet")
+        )
+    ).to_have_attribute("href", re.compile(r".*\.parquet"))
+
+
+def test_search_for_dbf_table(page: Page):
+    _ = page.goto("http://localhost:8080/search?package=ferc60_dbf")
+    num_results = page.locator("#search-results > *").count()
+    # empty query means we get a complete table listing
+    assert num_results > 40
+    ident_attsttn = page.get_by_test_id("f60_001_ident_attsttn")
+    expect(ident_attsttn).to_contain_text("f60_001_ident_attsttn")
+    expect(ident_attsttn).to_contain_text("ferc60_dbf")
+    expect(
+        ident_attsttn.locator(
+            page.get_by_role("link", name="Download full table as Parquet")
+        )
+    ).to_have_attribute("href", re.compile(r".*\.parquet"))
 
 
 def test_search_preserves_variants_in_url(page: Page):

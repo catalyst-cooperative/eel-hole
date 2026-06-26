@@ -316,7 +316,7 @@ def clean_ferc_dbf_resource(
 ) -> SingletonResourceDisplay:
     """Clean up the FERC DBF datapackage descriptions for display.
 
-    These are universally useless for now.
+    These are universally useless for now - there is no info in them other than the table and column names and types.
     """
     return SingletonResourceDisplay(
         name=resource.name,

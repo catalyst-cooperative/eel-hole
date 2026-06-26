@@ -93,3 +93,47 @@ def test_return_to_search(page: Page):
     )
     page.get_by_text("Return to Search").click()
     page.wait_for_url("http://localhost:8080/search?q=query")
+
+
+def test_filter_serialization_roundtrip(page: Page):
+    _ = page.goto("http://localhost:8080/login")
+    _ = page.goto("http://localhost:8080/preview/pudl/core_pudl__codes_datasources")
+
+    # this string should only appear when we have the filter active
+    canary = page.get_by_text("Showing 1 rows out of 1 rows that match your filters")
+
+    ag_root = page.locator("#data-table .ag-root-wrapper")
+    expect(ag_root).to_be_visible()
+
+    # on initial load: not filtered; shows all data sources
+    expect(canary).not_to_be_visible()
+
+    datasource_header = page.get_by_role("columnheader", name="datasource")
+    show_filter_button = page.locator("//*[@data-ref='eFilterButton']")
+    filter_input = page.locator("//*[@data-ref='eInput']").filter(visible=True)
+    filter_apply = page.get_by_role("button", name="Apply")
+
+    # click header button to show filter panel
+    show_datasource_filter = datasource_header.locator(show_filter_button)
+    expect(show_datasource_filter).to_be_visible()
+    show_datasource_filter.click()
+
+    # configure filter to show only one data source
+    datasource_filter = page.get_by_label("Column Filter")
+    expect(datasource_filter).to_be_visible(timeout=5_000)
+    datasource_filter.locator(filter_input).fill("epacems")
+    datasource_filter.locator(filter_apply).click()
+
+    # ensure filter has taken effect
+    expect(canary).to_be_visible(timeout=5_000)
+
+    # record url containing encoded filter
+    serialized = page.url
+
+    # go away; filter clears
+    page.goto("http://localhost:8080/preview/pudl/core_pudl__codes_datasources")
+    expect(canary).not_to_be_visible()
+
+    # return to serialized URL; filter re-engaged
+    _ = page.goto(serialized)
+    expect(canary).to_be_visible()

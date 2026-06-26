@@ -29,6 +29,7 @@ from whoosh.searching import Results, Searcher
 from eel_hole.logs import log
 from eel_hole.utils import (
     ResourceDisplay,
+    clean_ferc_dbf_resource,
     clean_ferc_xbrl_resource,
     clean_ferceqr_resource,
     clean_pudl_resource,
@@ -44,7 +45,15 @@ FERC_XBRLS = [
     "ferc714_xbrl",
 ]
 
-SEARCH_PACKAGES = ["pudl"] + FERC_XBRLS
+FERC_DBFS = [
+    "ferc1_dbf",
+    "ferc2_dbf",
+    "ferc6_dbf",
+    "ferc60_dbf",
+    # ferc714 doesn't have DBF
+]
+
+SEARCH_PACKAGES = ["pudl"] + FERC_XBRLS + FERC_DBFS
 
 SearchExecutor = Callable[[Query], Results]
 SearchVariant = Callable[[Schema, str, SearchExecutor, dict], Results]
@@ -195,7 +204,20 @@ def build_search_index(
         )
         log.info(f"Cleaned up descriptors for {ferc_xbrl}")
 
-    all_resources = pudl_resources + ferceqr_resources + ferc_xbrl_resources
+    ferc_dbf_resources = []
+    for ferc_dbf in FERC_DBFS:
+        datapackage_uri = f"{s3_base_url}/eel-hole/{ferc_dbf}/datapackage.json"
+        ferc_dbf_package = get_datapackage(datapackage_uri)
+        log.info(f"Cleaning up descriptors for {ferc_dbf}")
+        ferc_dbf_resources.extend(
+            clean_ferc_dbf_resource(resource, ferc_dbf, datapackage_uri)
+            for resource in ferc_dbf_package.resources
+        )
+        log.info(f"Cleaned up descriptors for {ferc_dbf}")
+
+    all_resources = (
+        pudl_resources + ferceqr_resources + ferc_xbrl_resources + ferc_dbf_resources
+    )
     target_dir = Path(index_dir)
     if target_dir.exists():
         shutil.rmtree(target_dir)

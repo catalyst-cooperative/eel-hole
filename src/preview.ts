@@ -131,7 +131,7 @@ Alpine.data("previewTableState", (tableName: string, url: string) => ({
     this.conn = await this.db.connect();
     await this.conn.query("SET default_collation='nocase';");
 
-    await refreshTable(this);
+    await refreshTable(this, readFiltersFromLocation());
     this.loading = false;
 
     const setTheme = () => {
@@ -199,9 +199,12 @@ document.addEventListener("DOMContentLoaded", () => {
   Alpine.start();
 });
 
-async function refreshTable(state: PreviewTableState) {
+async function refreshTable(state: PreviewTableState, filters?: Array<Filter>) {
   /**
    * Re-query the data given the current table state.
+   *
+   * Specify filters for initial refresh so we can load them from the location
+   * href into the gridApi. Otherwise we grab them from gridApi.
    *
    * TODO 2025-02-13 - since this mutates table state, maybe it should live in
    * the table state object too?
@@ -211,6 +214,7 @@ async function refreshTable(state: PreviewTableState) {
    * - turn arrowData into gridOptions.
    * - update the counters.
    * - throw the gridOptions at the gridApi.
+   * - update serialized filters in location href.
    */
   const { tableName, conn, db, gridApi, addedTables } = state;
 
@@ -225,7 +229,10 @@ async function refreshTable(state: PreviewTableState) {
     await _addTableToDuckDB(db, tableName, state.url);
     addedTables.add(tableName);
   }
-  const filters = getFilters(gridApi);
+  const forceFilters = filters;
+  if (!filters) {
+    filters = getFilters(gridApi);
+  }
   const { arrowData, numRowsMatched } = await getAndCountData({
     conn,
     tableName,
@@ -235,10 +242,38 @@ async function refreshTable(state: PreviewTableState) {
   });
   const gridOptions = arrowTableToAgGridOptions(arrowData);
   gridApi.updateGridOptions(gridOptions);
+  if (forceFilters) {
+    setFilters(gridApi, filters);
+  } else {
+    writeFiltersToLocation(filters, tableName);
+  }
 
   state.numRowsMatched = numRowsMatched;
   state.numRowsDisplayed = arrowData.numRows;
   gridApi.setGridOption("loading", false);
+}
+
+function writeFiltersToLocation(filters: Array<Filter>, tableName: string) {
+  /**
+   * Serialize an array of filters to the url in the location bar so a
+   * copy-pasted link reflects the current data subset.
+   */
+  const url = new URL(window.location.href);
+  url.searchParams.set("filters", encodeURIComponent(JSON.stringify(filters)));
+  console.log("Serializing filters to URL:", url);
+  window.history.pushState(filters, tableName, url.href);
+}
+
+function readFiltersFromLocation(): Array<Filter> {
+  /**
+   * Deserialize an array of filters from the url in the location bar so we can
+   * replicate the specified subset in the current grid view.
+   */
+  const url = new URL(window.location.href);
+  const ret = JSON.parse(
+    decodeURIComponent(url.searchParams.get("filters") || "[]"),
+  );
+  return ret;
 }
 
 function getFilters(gridApi: GridApi): Array<Filter> {
@@ -262,6 +297,31 @@ function getFilters(gridApi: GridApi): Array<Filter> {
       valueTo: filterTo || dateTo,
     }),
   );
+}
+
+function setFilters(gridApi: GridApi, filters: Array<Filter>) {
+  /**
+   * Apply an array of filters to the filter model for a grid.
+   */
+
+  // 2026-06-16 kmm: I thought this was going to need to conditionally set
+  // filterTo vs dateTo based on the filter type but it turns out you can just
+  // dump them all in there and GridApi figures it out
+  const remapped = Object.fromEntries(
+    filters.map(({ fieldName, fieldType, operation, value, valueTo }) => [
+      fieldName,
+      {
+        filterType: fieldType,
+        type: operation,
+        filter: value,
+        filterTo: valueTo,
+        dateFrom: value,
+        dateTo: valueTo,
+      },
+    ]),
+  );
+  console.log("Setting filters from external source:", remapped);
+  gridApi.setFilterModel(remapped);
 }
 
 async function getAndCountData(params: QueryEndpointPayload) {

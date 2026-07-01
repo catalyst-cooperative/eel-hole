@@ -1,5 +1,7 @@
 # Parquet Frontend-only prototype
 
+la la la
+
 ## Installation
 
 Install `uv` and `npm`.

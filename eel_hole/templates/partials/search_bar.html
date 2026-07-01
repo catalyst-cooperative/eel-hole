@@ -1,0 +1,70 @@
+<div
+  class="block"
+  id="search-autocomplete-container"
+  x-data="searchAutocompleteState"
+  :class="{ 'is-autocomplete-open': menuVisible() }"
+  @click.outside="closeMenu()"
+  @keydown.escape.window.prevent.stop="closeMenu()"
+  @htmx:after-swap.window.camel="onAfterSwap($event)"
+>
+  <form
+    action="/search"
+    method="get"
+    {% if search_bar_uses_htmx | default(true) %}
+      hx-get="/search" hx-target="#search-content" hx-swap="outerHTML"
+      hx-replace-url="true"
+    {% endif %}
+    x-ref="form"
+  >
+    {% if request.args.get('variants') %}
+      <input
+        type="hidden"
+        name="variants"
+        value="{{ request.args.get('variants') }}"
+      />
+    {% endif %}
+    <div class="field has-addons">
+      <p class="control">
+        <span class="select is-medium">
+          <select id="search-package-select" name="package">
+            {% for package_option in available_packages %}
+              <option {% if package == package_option %}selected{% endif %}>
+                {{ package_option }}
+              </option>
+            {% endfor %}
+          </select>
+        </span>
+      </p>
+      <p class="control is-expanded">
+        <input
+          class="input is-medium"
+          id="search-query-input"
+          type="text"
+          name="q"
+          hx-get="/search/autocomplete"
+          hx-trigger="input changed delay:120ms"
+          hx-target="#search-autocomplete"
+          hx-swap="innerHTML"
+          hx-vals='js:{"package":document.getElementById("search-package-select").value}'
+          autocomplete="off"
+          placeholder="Search..."
+          hx-replace-url="false"
+          x-ref="input"
+          @input="isExpanded = true"
+          @focus="isExpanded = true"
+          @keyup.down.prevent="moveSelection(1)"
+          @keyup.up.prevent="moveSelection(-1)"
+          @keydown.enter.prevent="submit(selectedIndex)"
+          {% if query %}value="{{ query }}"{% endif %}
+        />
+      </p>
+      <div
+        class="search-autocomplete-menu"
+        id="search-autocomplete"
+        x-ref="menu"
+        x-show="menuVisible()"
+        x-cloak
+      ></div>
+    </div>
+  </form>
+</div>

@@ -247,7 +247,12 @@ def create_app():
             topics = yaml.safe_load(f)
         for topic in topics:
             topic["tables"] = [quick_pudl_resources[t] for t in topic["tables"]]
-        return render_template("welcome.html", topics=topics)
+        return render_template(
+            "welcome.html",
+            topics=topics,
+            available_packages=SEARCH_PACKAGES,
+            package="pudl",
+        )
 
     @login_manager.user_loader
     def __load_user(user_id):

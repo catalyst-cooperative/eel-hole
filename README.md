@@ -157,6 +157,19 @@ def some_function():
         # regular behavior
 ```
 
+## Runtime profiles
+
+| Profile     | Runtime                             | Auth                            | Database                   | Migration                        |
+| ----------- | ----------------------------------- | ------------------------------- | -------------------------- | -------------------------------- |
+| Development | Docker Compose app and Postgres     | Auth0, or integration-test auth | Compose-managed Postgres   | Manual local command             |
+| PR preview  | Cloud Run app plus Postgres sidecar | Integration-test auth           | Ephemeral sidecar Postgres | Startup script                   |
+| Production  | Cloud Run app                       | Auth0                           | Cloud SQL                  | Separate Cloud Run migration job |
+
+PR previews are intentionally limited: they run only for same-repository PRs,
+use an ephemeral sidecar Postgres whose state may disappear after scale-to-zero,
+exercise only the integration-test auth path rather than Auth0, and are managed
+by GitHub Actions rather than Terraform.
+
 ## Running on GCP
 
 See the [Terraform file](https://github.com/catalyst-cooperative/pudl/blob/main/terraform/pudl-viewer.tf) for infrastructure setup details.

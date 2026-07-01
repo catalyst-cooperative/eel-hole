@@ -1,3 +1,12 @@
+FROM node:22-slim AS frontend
+
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY build.js ./
+COPY src ./src
+RUN npm run build
+
 FROM python:3.13-slim
 
 RUN pip install uv
@@ -9,9 +18,12 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --no-dev --no-install-project
 COPY . .
+COPY --from=frontend /app/eel_hole/static ./eel_hole/static
+RUN test -f deployment/start-pr-preview.sh
+RUN chmod +x deployment/start-pr-preview.sh
 RUN uv sync --no-dev
 
 # Build the search index and bake it into the image, so we don't have to do this every runtime.
 RUN uv run --no-dev python -c "from eel_hole.search import build_search_index; build_search_index()"
 
-CMD uv run --no-dev flask --app eel_hole run --host 0.0.0.0 --port $PORT --reload
+CMD ["sh", "-c", "uv run --no-dev flask --app eel_hole run --host 0.0.0.0 --port ${PORT} --reload"]

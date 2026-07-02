@@ -99,46 +99,32 @@ jobs:
             --member domain:catalyst.coop \
             --role roles/iap.httpsResourceAccessor
 
-      - name: Read preview URL
-        id: preview-url
+      - name: Read preview details
+        id: preview-details
         run: |
           url="$(gcloud run services describe "${SERVICE_NAME}" \
             --project "${PROJECT_ID}" \
             --region "${REGION}" \
             --format 'value(status.url)')"
           echo "url=${url}" >> "${GITHUB_OUTPUT}"
+          echo "short_sha=${PR_SHA::7}" >> "${GITHUB_OUTPUT}"
+          echo "commit_subject=$(git log -1 --pretty=%s)" >> "${GITHUB_OUTPUT}"
 
       - name: Comment preview URL
         uses: actions/github-script@v8
         env:
-          PREVIEW_URL: ${{ steps.preview-url.outputs.url }}
+          PREVIEW_URL: ${{ steps.preview-details.outputs.url }}
+          SHORT_SHA: ${{ steps.preview-details.outputs.short_sha }}
+          COMMIT_SUBJECT: ${{ steps.preview-details.outputs.commit_subject }}
         with:
           script: |
-            const marker = "<!-- pudl-viewer-pr-preview -->";
-            const body = `${marker}\nPR preview: ${process.env.PREVIEW_URL}`;
             const {owner, repo} = context.repo;
-            const issue_number = context.issue.number;
-
-            const comments = await github.paginate(github.rest.issues.listComments, {
+            await github.rest.issues.createComment({
               owner,
               repo,
-              issue_number,
-              per_page: 100,
+              issue_number: context.issue.number,
+              body: `PR preview updated for ${process.env.SHORT_SHA} ${process.env.COMMIT_SUBJECT}: ${process.env.PREVIEW_URL}`,
             });
-            const previousComment = comments.find((comment) =>
-              comment.body?.includes(marker),
-            );
-
-            if (previousComment) {
-              await github.rest.issues.updateComment({
-                owner,
-                repo,
-                comment_id: previousComment.id,
-                body,
-              });
-            } else {
-              await github.rest.issues.createComment({owner, repo, issue_number, body});
-            }
 
   delete-preview:
     name: Delete PR preview

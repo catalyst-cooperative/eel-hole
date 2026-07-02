@@ -136,6 +136,7 @@ jobs:
       contents: read
       id-token: write
       issues: write
+      pull-requests: write
     env:
       PROJECT_ID: catalyst-cooperative-pudl
       REGION: us-east1

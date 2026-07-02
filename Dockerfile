@@ -19,8 +19,6 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --no-dev --no-install-project
 COPY . .
 COPY --from=frontend /app/eel_hole/static ./eel_hole/static
-RUN test -f deployment/start-pr-preview.sh
-RUN chmod +x deployment/start-pr-preview.sh
 RUN uv sync --no-dev
 
 # Build the search index and bake it into the image, so we don't have to do this every runtime.

@@ -96,7 +96,8 @@ jobs:
             --resource-type cloud-run \
             --service "${SERVICE_NAME}" \
             --member domain:catalyst.coop \
-            --role roles/iap.httpsResourceAccessor
+            --role roles/iap.httpsResourceAccessor \
+            --log-http
 
       - name: Read preview URL
         id: preview-url

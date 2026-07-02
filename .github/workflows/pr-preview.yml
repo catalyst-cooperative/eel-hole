@@ -123,7 +123,7 @@ jobs:
               owner,
               repo,
               issue_number: context.issue.number,
-              body: `PR preview updated for ${process.env.SHORT_SHA} ${process.env.COMMIT_SUBJECT}: ${process.env.PREVIEW_URL}`,
+              body: `${process.env.SHORT_SHA} (${process.env.COMMIT_SUBJECT}) deployed at: ${process.env.PREVIEW_URL}`,
             });
 
   delete-preview:

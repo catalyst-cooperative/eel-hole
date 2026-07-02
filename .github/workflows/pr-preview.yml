@@ -135,6 +135,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      issues: write
     env:
       PROJECT_ID: catalyst-cooperative-pudl
       REGION: us-east1
@@ -147,6 +148,7 @@ jobs:
           service_account: pudl-viewer-gha@catalyst-cooperative-pudl.iam.gserviceaccount.com
 
       - name: Delete preview service
+        id: delete-preview-service
         run: |
           if gcloud run services describe "${SERVICE_NAME}" \
             --project "${PROJECT_ID}" \
@@ -155,6 +157,22 @@ jobs:
               --project "${PROJECT_ID}" \
               --region "${REGION}" \
               --quiet
+            echo "message=Deleted the PR preview." >> "${GITHUB_OUTPUT}"
           else
             echo "Preview service ${SERVICE_NAME} does not exist; nothing to delete."
+            echo "message=Skipped deleting the PR preview because it did not exist." >> "${GITHUB_OUTPUT}"
           fi
+
+      - name: Comment preview deletion
+        uses: actions/github-script@v8
+        env:
+          MESSAGE: ${{ steps.delete-preview-service.outputs.message }}
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: context.issue.number,
+              body: process.env.MESSAGE,
+            });

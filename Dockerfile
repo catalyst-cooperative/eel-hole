@@ -1,3 +1,12 @@
+FROM node:22-slim AS frontend
+
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY build.js ./
+COPY src ./src
+RUN npm run build
+
 FROM python:3.13-slim
 
 RUN pip install uv
@@ -9,6 +18,7 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --no-dev --no-install-project
 COPY . .
+COPY --from=frontend /app/eel_hole/static ./eel_hole/static
 RUN uv sync --no-dev
 
 # Build the search index and bake it into the image, so we don't have to do this every runtime.

@@ -40,11 +40,9 @@ docker compose exec eel_hole uv run flask db upgrade
 
 ## Running this thing locally
 
-We have a docker compose file, but _make sure to build the JS/CSS first_:
+We have a docker compose file:
 
 ```bash
-$ npm run build
-...
 $ docker compose build && docker compose up
 ```
 
@@ -53,6 +51,8 @@ files and the `npm run build` outputs _should_ just show up in the container. If
 the app detects changes to the .py files it will restart, and changes to the
 template files and frontend files should work on refresh because they're being
 read/served at request time.
+
+**If you make JS/CSS changes remember to run `npm run build` or those changes won't take effect!**
 
 The main thing you'd have to rebuild the Docker image for would be if you need
 to rebuild the search index for whatever reason. It should take about a minute.
@@ -159,17 +159,29 @@ def some_function():
 
 ## Running on GCP
 
+In addition to the local dev environment we also run the app in _PR previews_ and _production_ environments. Here's a quick overview of the differences:
+
+| Profile    | Runtime                                              | Auth                           | Database                   | Migration                                              |
+| ---------- | ---------------------------------------------------- | ------------------------------ | -------------------------- | ------------------------------------------------------ |
+| Local dev  | Docker Compose                                       | Auth0 or integration-test auth | Compose-managed Postgres   | `docker compose exec eel_hole uv run flask db upgrade` |
+| PR preview | Cloud Run multi-container: app plus Postgres sidecar | Integration-test auth          | Ephemeral sidecar Postgres | `deployment/start-pr-preview.sh`                       |
+| Production | Cloud Run app                                        | Auth0                          | Cloud SQL                  | Separate Cloud Run migration job                       |
+
 See the [Terraform file](https://github.com/catalyst-cooperative/pudl/blob/main/terraform/pudl-viewer.tf) for infrastructure setup details.
 
-### Deployment
+### PR previews
 
-1. run `make gcp-latest` to push the image up to GCP.
-2. re-deploy the service on Cloud Run.
+These are temporary Cloud Run services that exist while a PR is open, to make review easier. There's no Auth0 setup, and we spin up a fresh database every time the service comes up.
 
-### DB migration
+We use GCP's Identity-Aware Proxy to set it up so that these services have publicly accessible URLs, but require a catalyst.coop Google account to actually access the server. The entire build and deploy is orchestrated by `.github/workflows/pr-preview.yml`, and application startup (which includes a migration for the fresh database, then starting the app) in `deployment/start-pr-preview.sh`.
 
-1. run `make gcp-latest` to push the image up to GCP.
-2. Run the Cloud Run job that runs a db migration.
+### Production
+
+For production we have a persistent Cloud SQL DB.
+
+The `.github/workflows/build-deploy.yml` manages building images and pushing the artifacts to Google Artifact Registry.
+
+To run a DB migration, trigger the [`pudl-viewer-db-migration` Cloud Run Job](https://console.cloud.google.com/run/jobs/details/us-east1/pudl-viewer-db-migration/executions?project=catalyst-cooperative-pudl) manually, pointing at the correct image.
 
 ## Architecture
 

@@ -11,17 +11,169 @@ on:
       - closed
 
 jobs:
-  preview:
-    name: Print PR preview metadata
+  deploy-preview:
+    name: Deploy PR preview
     runs-on: ubuntu-latest
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    if: >-
+      github.event.action != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     permissions:
       contents: read
+      id-token: write
+      issues: write
+      pull-requests: write
     env:
+      PROJECT_ID: catalyst-cooperative-pudl
+      REGION: us-east1
+      REPOSITORY: pudl-viewer
+      IMAGE_NAME: pudl-viewer
       PR_NUMBER: ${{ github.event.pull_request.number }}
+      PR_SHA: ${{ github.event.pull_request.head.sha }}
       SERVICE_NAME: pudl-viewer-pr-${{ github.event.pull_request.number }}
     steps:
-      - name: Print preview metadata
+      - name: Check out PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          token_format: access_token
+          workload_identity_provider: projects/345950277072/locations/global/workloadIdentityPools/gh-actions-pool/providers/gh-actions-provider
+          service_account: pudl-viewer-gha@catalyst-cooperative-pudl.iam.gserviceaccount.com
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Google Artifact Registry
+        uses: docker/login-action@v3
+        with:
+          registry: us-east1-docker.pkg.dev
+          username: oauth2accesstoken
+          password: ${{ steps.auth.outputs.access_token }}
+
+      - name: Build and push preview image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:pr-${{ env.PR_NUMBER }}
+            ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:pr-${{ env.PR_NUMBER }}-${{ env.PR_SHA }}
+
+      - name: Deploy preview service
+        env:
+          IMAGE_URI: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:pr-${{ env.PR_NUMBER }}-${{ env.PR_SHA }}
         run: |
-          echo "PR number: ${PR_NUMBER}"
-          echo "Target service name: ${SERVICE_NAME}"
+          gcloud run deploy "${SERVICE_NAME}" \
+            --project "${PROJECT_ID}" \
+            --region "${REGION}" \
+            --execution-environment gen2 \
+            --min-instances 0 \
+            --max-instances 1 \
+            --no-invoker-iam-check \
+            --iap \
+            --container postgres \
+            --image postgres:17 \
+            --memory 1Gi \
+            --set-env-vars POSTGRES_DB=pudl_viewer,POSTGRES_USER=pudl_viewer,POSTGRES_PASSWORD=pudl_viewer \
+            --startup-probe tcpSocket.port=5432,periodSeconds=2,timeoutSeconds=1,failureThreshold=30 \
+            --container eel-hole \
+            --image "${IMAGE_URI}" \
+            --port 8080 \
+            --command /bin/sh \
+            --args /app/deployment/start-pr-preview.sh \
+            --depends-on postgres \
+            --startup-probe tcpSocket.port=8080,periodSeconds=5,timeoutSeconds=2,failureThreshold=48 \
+            --set-env-vars PUDL_VIEWER_SECRET_KEY=pr-preview-secret,PUDL_VIEWER_DB_HOST=localhost,PUDL_VIEWER_DB_PORT=5432,PUDL_VIEWER_DB_USERNAME=pudl_viewer,PUDL_VIEWER_DB_PASSWORD=pudl_viewer,PUDL_VIEWER_DB_NAME=pudl_viewer,PUDL_VIEWER_INTEGRATION_TEST=true
+
+      - name: Grant Catalyst IAP access
+        run: |
+          gcloud iap web add-iam-policy-binding \
+            --project "${PROJECT_ID}" \
+            --region "${REGION}" \
+            --resource-type cloud-run \
+            --service "${SERVICE_NAME}" \
+            --member domain:catalyst.coop \
+            --role roles/iap.httpsResourceAccessor
+
+      - name: Read preview details
+        id: preview-details
+        run: |
+          url="$(gcloud run services describe "${SERVICE_NAME}" \
+            --project "${PROJECT_ID}" \
+            --region "${REGION}" \
+            --format 'value(status.url)')"
+          echo "url=${url}" >> "${GITHUB_OUTPUT}"
+          echo "short_sha=${PR_SHA::7}" >> "${GITHUB_OUTPUT}"
+          echo "commit_subject=$(git log -1 --pretty=%s)" >> "${GITHUB_OUTPUT}"
+
+      - name: Comment preview URL
+        uses: actions/github-script@v8
+        env:
+          PREVIEW_URL: ${{ steps.preview-details.outputs.url }}
+          SHORT_SHA: ${{ steps.preview-details.outputs.short_sha }}
+          COMMIT_SUBJECT: ${{ steps.preview-details.outputs.commit_subject }}
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: context.issue.number,
+              body: `${process.env.SHORT_SHA} (${process.env.COMMIT_SUBJECT}) deployed at: ${process.env.PREVIEW_URL}`,
+            });
+
+  delete-preview:
+    name: Delete PR preview
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.action == 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: read
+      id-token: write
+      issues: write
+      pull-requests: write
+    env:
+      PROJECT_ID: catalyst-cooperative-pudl
+      REGION: us-east1
+      SERVICE_NAME: pudl-viewer-pr-${{ github.event.pull_request.number }}
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/345950277072/locations/global/workloadIdentityPools/gh-actions-pool/providers/gh-actions-provider
+          service_account: pudl-viewer-gha@catalyst-cooperative-pudl.iam.gserviceaccount.com
+
+      - name: Delete preview service
+        id: delete-preview-service
+        run: |
+          if gcloud run services describe "${SERVICE_NAME}" \
+            --project "${PROJECT_ID}" \
+            --region "${REGION}" >/dev/null 2>&1; then
+            gcloud run services delete "${SERVICE_NAME}" \
+              --project "${PROJECT_ID}" \
+              --region "${REGION}" \
+              --quiet
+            echo "message=Deleted the PR preview." >> "${GITHUB_OUTPUT}"
+          else
+            echo "Preview service ${SERVICE_NAME} does not exist; nothing to delete."
+            echo "message=Skipped deleting the PR preview because it did not exist." >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Comment preview deletion
+        uses: actions/github-script@v8
+        env:
+          MESSAGE: ${{ steps.delete-preview-service.outputs.message }}
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: context.issue.number,
+              body: process.env.MESSAGE,
+            });

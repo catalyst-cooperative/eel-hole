@@ -8,3 +8,9 @@
   thumbnail_path: /static/img/plant-explorer.png
   thumbnail_alt_text: A screenshot showing two net generation charts, one total and one broken out by fuel type.
   url: https://docs.catalyst.coop/pudl-examples/plant-explorer.html
+- slug: rates-explorer
+  title: Rate Base & Sales Explorer
+  description: Explore utilities rate bases and sales! Compare states or utilities!
+  thumbnail_path: /static/img/rate-base-sales-explorer.png
+  thumbnail_alt_text: A screenshot showing a rate base by plant function chart and the top of a sales by customer chart.
+  url: https://docs.catalyst.coop/pudl-examples/rates.html

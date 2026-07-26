@@ -3,8 +3,8 @@
 import dataclasses
 import re
 import shutil
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 import requests
 from frictionless import Package

@@ -1,7 +1,7 @@
+import re
 from collections import namedtuple
 from itertools import product
 from pathlib import Path
-import re
 
 import pytest
 import requests

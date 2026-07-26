@@ -1,5 +1,5 @@
-from datetime import date, datetime, timedelta
 from collections import namedtuple
+from datetime import date, datetime, timedelta
 
 import duckdb
 import pytest
@@ -49,7 +49,7 @@ def rows():
             string_col=str(x),
             boolean_col=x % 2 == 0,
         )
-        for x in range(0, 5)
+        for x in range(5)
     ]
 
 

@@ -1,7 +1,6 @@
 """DB model definitions."""
 
 from flask_login import UserMixin
-
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import false

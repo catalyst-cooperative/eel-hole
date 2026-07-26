@@ -1,7 +1,8 @@
 """Pytest hooks for relevancy reporting."""
 
-from tests.relevancy.reporting import render_variant_report
 from pathlib import Path
+
+from tests.relevancy.reporting import render_variant_report
 
 
 def pytest_configure(config):

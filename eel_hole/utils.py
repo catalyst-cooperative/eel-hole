@@ -191,7 +191,7 @@ def plaintext_to_html(text: str) -> str:
         joined_para = "\n".join(html_lines).strip()
 
         # Wrap non-list paragraphs in <p>
-        if not (joined_para.startswith("<ul>") or joined_para.startswith("<ol>")):
+        if not joined_para.startswith(("<ul>", "<ol>")):
             html_parts.append(f"<p>{joined_para}</p>")
         else:
             html_parts.append(joined_para)

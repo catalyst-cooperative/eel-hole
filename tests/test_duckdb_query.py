@@ -1,5 +1,5 @@
 from collections import namedtuple
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import duckdb
 import pytest
@@ -45,7 +45,7 @@ def rows():
             integer_col=x,
             float_col=x + 0.5,
             date_col=date(2023, 12, 31) + timedelta(days=x),
-            datetime_col=datetime(2023, 12, 31, 1, 1) + timedelta(days=x),
+            datetime_col=datetime(2023, 12, 31, 1, 1, tzinfo=UTC) + timedelta(days=x),
             string_col=str(x),
             boolean_col=x % 2 == 0,
         )

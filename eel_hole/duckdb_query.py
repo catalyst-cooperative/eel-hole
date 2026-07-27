@@ -1,7 +1,7 @@
 """Generate DuckDB queries."""
 
-from dataclasses import dataclass
 import itertools
+from dataclasses import dataclass
 
 from pydantic import BaseModel
 

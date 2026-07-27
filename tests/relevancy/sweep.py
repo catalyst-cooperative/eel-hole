@@ -1,9 +1,10 @@
-import sys
-import yaml
-from pathlib import Path
-from math import sqrt
 import random
+import sys
+from math import sqrt
+from pathlib import Path
+
 import sweep_config as s  # SweepConfig, load_sweep_config
+import yaml
 
 
 def terrible_vector_len(old_center, new_center):

@@ -1,12 +1,12 @@
 import pytest
-from frictionless import Package, Resource, Schema, Field
+from frictionless import Field, Package, Resource, Schema
 
 from eel_hole.utils import (
     clean_ferc_xbrl_resource,
     clean_pudl_resource,
     highlight_first,
-    rst_to_html,
     plaintext_to_html,
+    rst_to_html,
 )
 
 

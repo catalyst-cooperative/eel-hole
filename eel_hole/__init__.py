@@ -8,7 +8,6 @@ from dataclasses import asdict
 from pathlib import Path
 from urllib.parse import quote
 
-from requests import HTTPError
 import yaml
 from authlib.integrations.flask_client import OAuth
 from flask import (
@@ -32,10 +31,11 @@ from flask_login import (
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from frictionless import Resource
+from requests import HTTPError
 
 from eel_hole.auth0_management import get_auth0_management_client
-from eel_hole.duckdb_query import Filter, ag_grid_to_duckdb
 from eel_hole.dashboards_config import load_dashboards_config
+from eel_hole.duckdb_query import Filter, ag_grid_to_duckdb
 from eel_hole.feature_variants import FeatureVariants, get_variant
 from eel_hole.logs import log
 from eel_hole.models import User, db

@@ -106,9 +106,11 @@ jobs:
             --project "${PROJECT_ID}" \
             --region "${REGION}" \
             --format 'value(status.url)')"
-          echo "url=${url}" >> "${GITHUB_OUTPUT}"
-          echo "short_sha=${PR_SHA::7}" >> "${GITHUB_OUTPUT}"
-          echo "commit_subject=$(git log -1 --pretty=%s)" >> "${GITHUB_OUTPUT}"
+          {
+            echo "url=${url}"
+            echo "short_sha=${PR_SHA::7}"
+            echo "commit_subject=$(git log -1 --pretty=%s)"
+          } >> "${GITHUB_OUTPUT}"
 
       - name: Comment preview URL
         uses: actions/github-script@v8

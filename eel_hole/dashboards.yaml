@@ -8,9 +8,15 @@
   thumbnail_path: /static/img/plant-explorer.png
   thumbnail_alt_text: A screenshot showing two net generation charts, one total and one broken out by fuel type.
   url: https://docs.catalyst.coop/pudl-examples/plant-explorer.html
+- slug: utility-explorer
+  title: Utility Explorer
+  description: Explore utility-level owned & purchased generation, customer & revenue classes, reliability, and more!
+  thumbnail_path: /static/img/utility-explorer.png
+  thumbnail_alt_text: A screenshot showing a table of basic utility information and a service territory map.
+  url: https://docs.catalyst.coop/pudl-examples/utility-explorer.html
 - slug: rate-base-sales-explorer
   title: Rate Base & Sales Explorer
-  description: Explore utilities rate bases and sales! Compare states or utilities!
+  description: Explore utilities' rate bases and sales! Compare states or utilities. Where does the money come from, and where does it go?
   thumbnail_path: /static/img/rate-base-sales-explorer.png
   thumbnail_alt_text: A screenshot showing a rate base by plant function chart and the top of a sales by customer class chart.
   url: https://docs.catalyst.coop/pudl-examples/rate-base-sales-explorer.html

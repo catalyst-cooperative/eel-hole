@@ -63,7 +63,7 @@ jobs:
             ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:pr-${{ env.PR_NUMBER }}
             ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:pr-${{ env.PR_NUMBER }}-${{ env.PR_SHA }}
 
-      - name: Deploy preview service
+      - name: Deploy preview service!
         env:
           IMAGE_URI: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:pr-${{ env.PR_NUMBER }}-${{ env.PR_SHA }}
         run: |

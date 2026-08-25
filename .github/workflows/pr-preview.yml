@@ -78,7 +78,7 @@ jobs:
             --container postgres \
             --image postgres:17 \
             --memory 1Gi \
-            --set-env-vars POSTGRES_DB=pudl_viewer,POSTGRES_USER=pudl_viewer,POSTGRES_PASSWORD=pudl_viewer \
+            --set-env-vars POSTGRES_DB=pudl_viewer,POSTGRES_USER=pudl_viewer,POSTGRES_PASSWORD=pudl_viewer,PGDATA=/tmp/pgdata \
             --startup-probe tcpSocket.port=5432,periodSeconds=2,timeoutSeconds=1,failureThreshold=30 \
             --container eel-hole \
             --image "${IMAGE_URI}" \

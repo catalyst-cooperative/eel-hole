@@ -25,7 +25,7 @@ jobs:
         run: |
           uv lock --upgrade
           uv sync
-          uv run prek autoupdate
+          uv run prek update
 
       - name: Update JavaScript dependencies (npm)
         run: npm update --min-release-age 7

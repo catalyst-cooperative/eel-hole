@@ -63,7 +63,7 @@ jobs:
             ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:pr-${{ env.PR_NUMBER }}
             ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:pr-${{ env.PR_NUMBER }}-${{ env.PR_SHA }}
 
-      - name: Deploy preview service
+      - name: Deploy preview service!
         env:
           IMAGE_URI: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:pr-${{ env.PR_NUMBER }}-${{ env.PR_SHA }}
         run: |
@@ -76,7 +76,7 @@ jobs:
             --no-invoker-iam-check \
             --iap \
             --container postgres \
-            --image postgres:17 \
+            --image postgres:17.10 \
             --memory 1Gi \
             --set-env-vars POSTGRES_DB=pudl_viewer,POSTGRES_USER=pudl_viewer,POSTGRES_PASSWORD=pudl_viewer \
             --startup-probe tcpSocket.port=5432,periodSeconds=2,timeoutSeconds=1,failureThreshold=30 \

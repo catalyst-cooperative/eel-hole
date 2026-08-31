@@ -11,13 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v10.0.1
 
       - name: Install Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: "lts/*"
 
@@ -25,7 +25,7 @@ jobs:
         run: |
           uv lock --upgrade
           uv sync
-          uv run prek autoupdate
+          uv run prek update
 
       - name: Update JavaScript dependencies (npm)
         run: npm update --min-release-age 7

@@ -78,7 +78,7 @@
     - core_eia176__yearly_gas_disposition
     - core_eia176__yearly_gas_disposition_by_consumer
     - core_phmsagas__yearly_distribution_operators
-    - _core_phmsagas__yearly_distribution_by_install_decade
+    - core_phmsagas__yearly_distribution_by_install_decade
     - _core_phmsagas__yearly_distribution_by_material
     - _core_phmsagas__yearly_distribution_by_material_and_size
     - _core_phmsagas__yearly_distribution_excavation_damages

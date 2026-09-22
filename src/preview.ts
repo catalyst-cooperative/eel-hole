@@ -391,7 +391,12 @@ async function exportPage(
 
   // get row values in the order of the columns passed in, then do one big string conversion using JSON.stringify.
   const rows = JSON.stringify(
-    rowData!.map((row) => columns.map((col) => row[col])),
+    rowData!.map((row) =>
+      columns.map((col) => {
+        const value = row[col];
+        return typeof value === "bigint" ? Number(value) : value;
+      }),
+    ),
   )
     .replace(/\],\[/g, "\n")
     .replace(/\[\[|\]\]/g, "");

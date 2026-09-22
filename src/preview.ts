@@ -394,7 +394,7 @@ async function exportPage(
     rowData!.map((row) =>
       columns.map((col) => {
         const value = row[col];
-        return typeof value === "bigint" ? value.toString() : value;
+        return typeof value === "bigint" ? Number(value) : value;
       }),
     ),
   )

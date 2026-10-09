@@ -26,6 +26,7 @@ dependencies = [
     "markupsafe>=3.0.2",
     "rapidfuzz>=3.14.1",
     "whoosh-reloaded>=2.7.5",
+    "psycopg[binary]>=3.3.6",
 ]
 
 [tool.uv]

@@ -28,14 +28,14 @@ class ResourceDisplay:
     package: str
     description: str
     summary: str
-    columns: list["ColumnDisplay"]
+    columns: list[ColumnDisplay]
 
     def __post_init__(self):
         """Instead of taking classname at init, always set it to the actual class name."""
         self.classname = self.__class__.__name__
 
     @classmethod
-    def fromdict(cls, resource_data: dict) -> "ResourceDisplay":
+    def fromdict(cls, resource_data: dict) -> ResourceDisplay:
         """Rebuild the appropriate display class from index-stored data.
 
         Dispatch based on the classname which was stored via asdict()."""

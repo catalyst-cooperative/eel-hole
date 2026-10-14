@@ -10,7 +10,12 @@ RUN npm run build
 
 FROM python:3.14-slim
 
-RUN pip install uv
+COPY --from=ghcr.io/astral-sh/uv:0.13.0 /uv /uvx /bin/
+
+# Use the image's own Python instead of letting uv download one; pyproject.toml
+# sets `only-managed` for local development, and these env vars override it.
+ENV UV_PYTHON_PREFERENCE=only-system \
+    UV_PYTHON_DOWNLOADS=never
 
 WORKDIR /app
 # `uv sync --no-dev` tries to install `eel-hole` before we pull in the source.

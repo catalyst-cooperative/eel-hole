@@ -10,6 +10,12 @@ on:
       - ready_for_review
       - closed
 
+# Runs for the same PR deploy to the same Cloud Run service and edit the same IAP
+# policy, so overlapping runs race. Only the newest run per PR should proceed.
+concurrency:
+  group: pr-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   deploy-preview:
     name: Deploy PR preview

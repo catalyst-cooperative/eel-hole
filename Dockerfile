@@ -1,5 +1,5 @@
 # Keep the Node major version in sync with .nvmrc (Docker cannot read it).
-FROM node:24-slim AS frontend
+FROM node:26-slim AS frontend
 
 WORKDIR /app
 COPY package.json package-lock.json ./

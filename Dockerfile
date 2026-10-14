@@ -7,7 +7,7 @@ COPY build.js ./
 COPY src ./src
 RUN npm run build
 
-FROM python:3.13-slim
+FROM python:3.14-slim
 
 RUN pip install uv
 

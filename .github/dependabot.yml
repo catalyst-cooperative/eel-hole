@@ -10,14 +10,3 @@ updates:
       github-actions:
         patterns:
           - "*"
-  - package-ecosystem: docker
-    directory: /
-    target-branch: main
-    schedule:
-      interval: weekly
-    ignore:
-      # Python is pinned by requires-python and .python-version; bump it deliberately.
-      - dependency-name: python
-        update-types:
-          - version-update:semver-major
-          - version-update:semver-minor

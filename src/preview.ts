@@ -386,7 +386,7 @@ async function exportPage(
   const arrowTable = await getData(params);
   const { rowData } = arrowTableToAgGridOptions(arrowTable);
 
-  const columns = gridApi.getColumns()?.map((col) => col.colId) ?? [];
+  const columns = gridApi.getColumns()?.map((col) => col.getColId()) ?? [];
   const headers = columns.join(",");
 
   // get row values in the order of the columns passed in, then do one big string conversion using JSON.stringify.

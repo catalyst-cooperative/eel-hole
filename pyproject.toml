@@ -30,6 +30,10 @@ dependencies = [
 ]
 
 [tool.uv]
+# Use uv's own Python builds so every developer and CI run gets the same
+# interpreter. The Dockerfile deliberately overrides this with
+# UV_PYTHON_PREFERENCE=only-system / UV_PYTHON_DOWNLOADS=never to use the
+# base image's Python instead.
 python-preference = "only-managed"
 python-downloads = "automatic"
 exclude-newer = "1 week"

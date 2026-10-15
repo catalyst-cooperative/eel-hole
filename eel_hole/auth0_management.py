@@ -90,7 +90,7 @@ class Auth0ManagementAPIClient:
         return response
 
 
-_auth0_management_client: "Auth0ManagementAPIClient | None" = None
+_auth0_management_client: Auth0ManagementAPIClient | None = None
 
 
 def get_auth0_management_client(

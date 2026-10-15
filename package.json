@@ -10,7 +10,7 @@
   "keywords": [],
   "dependencies": {
     "@duckdb/duckdb-wasm": "^1.29.0",
-    "ag-grid-community": "^33.1.0",
+    "ag-grid-community": "^36.2.0",
     "alpinejs": "^3.14.8"
   },
   "devDependencies": {
@@ -19,5 +19,8 @@
     "http-server": "^14.1.1",
     "prettier": "^3.8.1",
     "prettier-plugin-jinja-template": "^2.1.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
   }
 }

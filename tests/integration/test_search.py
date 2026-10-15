@@ -126,7 +126,7 @@ def test_search_preview_back_button(page: Page):
         "http://localhost:8080/preview/pudl/core_pudl__codes_datasources?return_package=pudl&return_q=name:core_pudl__codes_datasources"
     )
 
-    page.evaluate("window.history.back()")
+    page.go_back()
     page.wait_for_url(
         "http://localhost:8080/search?package=pudl&q=name%3Acore_pudl__codes_datasources"
     )

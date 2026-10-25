@@ -36,7 +36,7 @@ dependencies = [
 # base image's Python instead.
 python-preference = "only-managed"
 python-downloads = "automatic"
-exclude-newer = "1 week"
+exclude-newer = "2 days"
 
 [dependency-groups]
 dev = [

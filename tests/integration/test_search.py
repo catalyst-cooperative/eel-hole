@@ -185,3 +185,39 @@ def test_search_preserves_variant_in_hx_requests(page: Page):
     params = parse_qs(urlparse(page.url).query)
     assert params.get("q") == ["name:core_pudl__codes_datasources"]
     assert params.get("variants") == ["search_method:default"]
+
+
+def test_search_package_selector_in_query(page: Page):
+    """`/search?q=package:ferc1_xbrl` applies the query selector to everything."""
+    _ = page.goto("http://localhost:8080/search?q=package:ferc1_xbrl")
+
+    _expect_ferc1_xbrl_selector_applied(page)
+
+
+def test_search_package_selector_typed_in_query(page: Page):
+    """Typing package:ferc1_xbrl in the search bar behaves like the URL form."""
+    _ = page.goto("http://localhost:8080/search")
+    search_input = page.get_by_role("textbox").and_(
+        page.get_by_placeholder("Search...")
+    )
+    search_input.fill("package:ferc1_xbrl")
+    search_input.press("Enter")
+
+    _expect_ferc1_xbrl_selector_applied(page)
+
+
+def _expect_ferc1_xbrl_selector_applied(page: Page):
+    """Bundle 'applied FERC1 XBRL package filter in UI' assertions.
+
+    * package is pulled into top-level package= query param
+    * package select dropdown updated
+    * at least 1 search result exists, has ferc1_xbrl tag
+    """
+    page.wait_for_url(re.compile(r".*/search\?package=ferc1_xbrl(?:&|$)"))
+
+    expect(page.locator("#search-package-select")).to_have_value("ferc1_xbrl")
+
+    results = page.locator("#search-results > *")
+    expect(results.first).to_be_visible()
+    package_tags = page.locator("#search-results span.tag")
+    assert set(package_tags.all_text_contents()) == {"package: ferc1_xbrl"}

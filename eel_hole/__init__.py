@@ -12,6 +12,7 @@ import yaml
 from authlib.integrations.flask_client import OAuth
 from flask import (
     Flask,
+    Response,
     abort,
     redirect,
     render_template,
@@ -32,6 +33,7 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from frictionless import Resource
 from requests import HTTPError
+from whoosh.fields import Schema
 
 from eel_hole.auth0_management import get_auth0_management_client
 from eel_hole.dashboards_config import load_dashboards_config
@@ -44,6 +46,7 @@ from eel_hole.search import (
     autocomplete_resource_names,
     build_autocomplete_name_index,
     build_or_load_search_index,
+    package_from_query,
     run_search,
     search_variants,
 )
@@ -505,6 +508,11 @@ def create_app():
 
         if query:
             with search_index.searcher() as searcher:
+                # package:x in the query wins over the package URL parameter,
+                # since the query is more likely to reflect user intent.
+                search_package = (
+                    package_from_query(searcher.schema, query) or search_package
+                )
                 results = run_search(
                     searcher=searcher,
                     raw_query=query,
@@ -532,9 +540,31 @@ def create_app():
             scores=scores,
         )
 
+    def _redirect_for_package_mismatch(
+        top_level_package: str,
+        schema: Schema,
+        query: str | None,
+    ) -> Response | None:
+        """Redirect so the package param matches an explicit package: query term.
+
+        Examples:
+            `?q=package:foo <rest of query>` -> redirect: `?package=foo&q=package:foo <rest of query>`.
+            `?package=foo&q=package:bar <rest of query>` -> redirect: `?package=bar&q=package:bar <rest of query>`
+            `?package=foo&q=package:foo <rest of query>` -> return None
+        """
+        query_package = package_from_query(schema, query) if query else None
+        if query_package is None or query_package == top_level_package:
+            return None
+        redirect_args = request.args.to_dict()
+        redirect_args.pop("package", None)
+        return redirect(url_for("search", package=query_package, **redirect_args))
+
     @app.get("/search")
     def search():
         """Run a search query and return results.
+
+        If `package:foo` is in query, make sure to redirect to a canonical URL
+        where `package:foo` in query and `package=foo` in URL params agree.
 
         If hit as part of an HTMX request, only render the search results HTML
         fragment. Otherwise render the whole page.
@@ -542,7 +572,16 @@ def create_app():
         Params:
             q: the query string
         """
+
+        if redirect_response := _redirect_for_package_mismatch(
+            request.args.get("package", "pudl"),
+            search_index.schema,
+            request.args.get("q"),
+        ):
+            return redirect_response
+
         template = "partials/search_content.html" if htmx else "search.html"
+
         rr = resources_from_request()
 
         return_query = ""

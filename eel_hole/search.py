@@ -22,7 +22,7 @@ from whoosh.analysis import (
 from whoosh.fields import ID, KEYWORD, STORED, TEXT, Schema
 from whoosh.filedb.filestore import FileStorage, RamStorage
 from whoosh.lang.porter import stem
-from whoosh.qparser import MultifieldParser
+from whoosh.qparser import MultifieldParser, QueryParser
 from whoosh.query import AndMaybe, Or, Query, Term
 from whoosh.searching import Results, Searcher
 
@@ -411,6 +411,18 @@ def apply_manual_query_substitutions(query: str, subs: dict[str, str]) -> str:
     for target, replacement in subs.items():
         query = query.replace(target, replacement)
     return query
+
+
+def package_from_query(schema: Schema, raw_query: str) -> str | None:
+    """Grab 'package:' term from raw search query.
+
+    If invalid/doesn't exist, return None.
+    """
+    parsed = QueryParser("name", schema).parse(raw_query)
+    for fieldname, text in parsed.all_terms():
+        if fieldname == "package" and text in SEARCH_PACKAGES:
+            return text
+    return None
 
 
 def run_search(

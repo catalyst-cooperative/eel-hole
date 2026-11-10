@@ -184,9 +184,7 @@ def build_search_index(
     ]
     log.info("Cleaned up descriptors for pudl")
 
-    ferceqr_package = get_datapackage(
-        f"{s3_base_url}/ferceqr/ferceqr_parquet_datapackage.json"
-    )
+    ferceqr_package = get_datapackage(f"{s3_base_url}/ferceqr/datapackage.json")
     log.info("Cleaning up descriptors for ferceqr")
     ferceqr_resources = [
         clean_ferceqr_resource(resource) for resource in ferceqr_package.resources

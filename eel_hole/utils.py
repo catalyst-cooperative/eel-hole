@@ -257,7 +257,7 @@ def clean_ferceqr_resource(resource: Resource) -> PartitionedResourceDisplay:
     base_url = "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/ferceqr"
     paths = {
         p.rsplit("/")[-1].rstrip(".parquet"): f"{base_url}/{p}"
-        for p in resource.normpaths
+        for p in sorted(resource.normpaths, reverse=True)
     }
     return PartitionedResourceDisplay(
         name=resource.name,

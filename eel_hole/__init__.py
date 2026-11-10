@@ -631,6 +631,7 @@ def create_app():
         )
 
     @app.get("/api/duckdb")
+    @login_required
     def duckdb():
         """Take filters from AG-Grid and return a DuckDB query.
 

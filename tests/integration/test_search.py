@@ -194,6 +194,16 @@ def test_search_package_selector_in_query(page: Page):
     _expect_ferc1_xbrl_selector_applied(page)
 
 
+def test_search_package_selector_removed_from_query(page: Page):
+    """The selector is stripped from q, leaving the rest of the query."""
+    _ = page.goto("http://localhost:8080/search?q=package:ferc1_xbrl%20identification")
+
+    page.wait_for_url(
+        "http://localhost:8080/search?package=ferc1_xbrl&q=identification"
+    )
+    expect(page.locator("#search-query-input")).to_have_value("identification")
+
+
 def test_search_package_selector_typed_in_query(page: Page):
     """Typing package:ferc1_xbrl in the search bar behaves like the URL form."""
     _ = page.goto("http://localhost:8080/search")
@@ -213,7 +223,7 @@ def _expect_ferc1_xbrl_selector_applied(page: Page):
     * package select dropdown updated
     * at least 1 search result exists, has ferc1_xbrl tag
     """
-    page.wait_for_url(re.compile(r".*/search\?package=ferc1_xbrl(?:&|$)"))
+    page.wait_for_url("http://localhost:8080/search?package=ferc1_xbrl")
 
     expect(page.locator("#search-package-select")).to_have_value("ferc1_xbrl")
 

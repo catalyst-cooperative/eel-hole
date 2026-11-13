@@ -425,6 +425,11 @@ def package_from_query(schema: Schema, raw_query: str) -> str | None:
     return None
 
 
+def strip_package_selector(raw_query: str, package: str) -> str:
+    """Remove a validated `package:<package>` term from the raw query text."""
+    return re.sub(rf"\bpackage:{re.escape(package)}\b", "", raw_query).strip()
+
+
 def run_search(
     searcher: Searcher,
     raw_query: str,

@@ -49,6 +49,7 @@ from eel_hole.search import (
     package_from_query,
     run_search,
     search_variants,
+    strip_package_selector,
 )
 from eel_hole.utils import (
     PartitionedResourceDisplay,
@@ -548,8 +549,9 @@ def create_app():
         """Redirect so the package param matches an explicit package: query term.
 
         Examples:
-            `?q=package:foo <rest of query>` -> redirect: `?package=foo&q=package:foo <rest of query>`.
-            `?package=foo&q=package:bar <rest of query>` -> redirect: `?package=bar&q=package:bar <rest of query>`
+            `?q=package:foo <rest of query>` -> redirect: `?package=foo&q=<rest of query>`.
+            `?q=package:foo` -> redirect: `?package=foo`
+            `?package=foo&q=package:bar <rest of query>` -> redirect: `?package=bar&q=<rest of query>`
             `?package=foo&q=package:foo <rest of query>` -> return None
         """
         query_package = package_from_query(schema, query) if query else None
@@ -557,6 +559,11 @@ def create_app():
             return None
         redirect_args = request.args.to_dict()
         redirect_args.pop("package", None)
+        cleaned_query = strip_package_selector(query, query_package)
+        if cleaned_query:
+            redirect_args["q"] = cleaned_query
+        else:
+            redirect_args.pop("q", None)
         return redirect(url_for("search", package=query_package, **redirect_args))
 
     @app.get("/search")

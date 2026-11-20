@@ -2,14 +2,15 @@
 
 The usage metrics pipeline (catalyst-cooperative/pudl-usage-metrics,
 ``src/usage_metrics/core/eel_hole.py``) reads this app's structlog output from GCP.
-It routes each analytics event by its exact name, validates the ``/api/duckdb``
-request params, and validates the AG Grid filter vocabulary. A change here that isn't
-mirrored there loses data, so these tests fail whenever the contract changes. If one
-fails, update the snapshots below **and** the matching constants in usage metrics:
+It routes each analytics event by its exact name, expects exactly the fields listed
+for it, validates the ``/api/duckdb`` request params, and validates the AG Grid filter
+vocabulary. Any difference fails that day's run there, so these tests fail whenever the
+contract changes. If one fails, update the snapshots below **and** the matching
+constants in usage metrics:
 
-* a new or renamed event -> ``ROUTED_EVENT_TYPES`` (plus a new table, if needed)
-* a changed event field -> ``JsonPayload``
-* a changed ``/api/duckdb`` request param -> ``KNOWN_PARAM_KEYS``
+* a new, renamed or removed event, or a changed event field -> ``EVENT_FIELDS`` (plus
+  a new table, and a field in ``JsonPayload``, if needed)
+* a changed ``/api/duckdb`` request param -> ``KNOWN_PARAM_KEYS`` and ``DuckDBParams``
 * a new AG Grid filter type or operation -> ``ALLOWABLE_FIELD_TYPES`` /
   ``ALLOWABLE_OPERATIONS``
 
@@ -25,8 +26,11 @@ from pathlib import Path
 from typing import get_args
 
 import pytest
+from pydantic import ValidationError
 from structlog.testing import capture_logs
 
+from eel_hole import duckdb_query
+from eel_hole.duckdb_query import Filter, loggable_params
 from eel_hole.logs import EVENTS, EventName, log_event
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -56,7 +60,26 @@ DUCKDB_PARAMS = frozenset({"name", "filters", "page", "perPage"})
 # metrics was checked against (v36 added ``bigint``; integer columns used to report
 # ``number``). The grid forwards these straight into the ``filters`` param.
 AG_GRID_MAJOR_VERSION = 36
-AG_GRID_FILTER_TYPES = ("text", "number", "bigint", "date")
+AG_GRID_FILTER_TYPES = frozenset({"text", "number", "bigint", "date"})
+AG_GRID_FILTER_OPERATIONS = frozenset(
+    {
+        "equals",
+        "contains",
+        "greaterThan",
+        "greaterThanOrEqual",
+        "lessThan",
+        "lessThanOrEqual",
+        "notBlank",
+        "startsWith",
+        "endsWith",
+        "notEqual",
+        "notContains",
+        "inRange",
+        "blank",
+        "false",
+        "true",
+    }
+)
 # What every rendered event carries besides its own fields.
 ALWAYS_LOGGED_KEYS = frozenset({"event", "timestamp", "user_id", "user_domain"})
 
@@ -72,9 +95,8 @@ def test_registry_matches_the_contract():
     registered = {name: spec.fields for name, spec in EVENTS.items()}
     assert registered == ANALYTICS_EVENTS, (
         "eel_hole.logs.EVENTS changed. Update ANALYTICS_EVENTS in this file and "
-        "pudl-usage-metrics (ROUTED_EVENT_TYPES for new or renamed events, "
-        "JsonPayload for changed fields, in src/usage_metrics/core/eel_hole.py), or "
-        "the events are dropped or never persisted."
+        "EVENT_FIELDS in pudl-usage-metrics (src/usage_metrics/core/eel_hole.py, plus "
+        "JsonPayload for a new field), or its run fails on every affected event."
     )
 
 
@@ -251,10 +273,13 @@ def _duckdb_params_sent_by_frontend() -> set[str]:
 
 
 def test_duckdb_params_match_the_contract():
-    """``params`` in the duckdb_* events is ``dict(request.args)``, logged verbatim."""
+    """``params`` in the duckdb_* events carries only these keys."""
     hint = (
         "Update KNOWN_PARAM_KEYS and DuckDBParams in pudl-usage-metrics "
         "(src/usage_metrics/core/eel_hole.py) along with DUCKDB_PARAMS here."
+    )
+    assert duckdb_query.DUCKDB_PARAMS == DUCKDB_PARAMS, (
+        f"eel_hole.duckdb_query.DUCKDB_PARAMS differs from the contract. {hint}"
     )
     assert _duckdb_request_args_read_by_backend() == DUCKDB_PARAMS, (
         f"/api/duckdb reads different params than the contract. {hint}"
@@ -279,6 +304,42 @@ def test_ag_grid_version_is_the_one_usage_metrics_was_checked_against():
         "AG_GRID_FILTER_TYPES here. An unlisted value fails every logged-in "
         "/api/duckdb event in the usage metrics run."
     )
+
+
+def test_filter_vocabulary_matches_the_contract():
+    """The backend rejects any other ``filterType`` or operation before logging it."""
+    from eel_hole.duckdb_query import FilterOperation, FilterType
+
+    hint = (
+        "Update ALLOWABLE_FIELD_TYPES / ALLOWABLE_OPERATIONS in pudl-usage-metrics "
+        "(src/usage_metrics/core/eel_hole.py) along with the lists in this file."
+    )
+    assert set(get_args(FilterType)) == AG_GRID_FILTER_TYPES, hint
+    assert set(get_args(FilterOperation)) == AG_GRID_FILTER_OPERATIONS, hint
+
+
+@pytest.mark.parametrize(
+    "field_type, operation",
+    [
+        ("string", "equals"),  # not an AG Grid filter type
+        ("float", "equals"),
+        ("text", "inrange"),  # wrong casing
+        ("text", "between"),  # not an operation
+    ],
+)
+def test_filters_outside_the_vocabulary_are_rejected(field_type, operation):
+    with pytest.raises(ValidationError):
+        Filter(field_name="x", field_type=field_type, operation=operation, value=1)
+
+
+def test_only_the_known_params_are_logged():
+    args = {"name": "t", "filters": "[]", "page": "1", "perPage": "10", "sql": "x"}
+    assert loggable_params(args) == {
+        "name": "t",
+        "filters": "[]",
+        "page": "1",
+        "perPage": "10",
+    }
 
 
 # --- what is rendered ------------------------------------------------------------------

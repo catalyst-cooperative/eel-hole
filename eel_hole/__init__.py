@@ -35,7 +35,7 @@ from requests import HTTPError
 
 from eel_hole.auth0_management import get_auth0_management_client
 from eel_hole.dashboards_config import load_dashboards_config
-from eel_hole.duckdb_query import Filter, ag_grid_to_duckdb
+from eel_hole.duckdb_query import Filter, ag_grid_to_duckdb, loggable_params
 from eel_hole.feature_variants import FeatureVariants, get_variant
 from eel_hole.logs import EventName, log, log_event
 from eel_hole.models import User, db
@@ -646,16 +646,21 @@ def create_app():
                 both query the data and also get a full row-count of the result
                 set.
         """
-        name = request.args.get("name")
-        filters = [
-            Filter.model_validate(f)
-            for f in json.loads(request.args.get("filters", "[]"))
-        ]
-        duckdb_query = ag_grid_to_duckdb(name=name, filters=filters)
-        page = int(request.args.get("page", 1))
         DEFAULT_PREVIEW_PAGE = 10_000
         DEFAULT_CSV_EXPORT_PAGE = 1_000_000
-        per_page = int(request.args.get("perPage", DEFAULT_PREVIEW_PAGE))
+        name = request.args.get("name")
+        try:
+            filters = [
+                Filter.model_validate(f)
+                for f in json.loads(request.args.get("filters", "[]"))
+            ]
+            page = int(request.args.get("page", 1))
+            per_page = int(request.args.get("perPage", DEFAULT_PREVIEW_PAGE))
+        except TypeError, ValueError:
+            # Includes pydantic.ValidationError: a filter type or operation that
+            # isn't one AG Grid sends is rejected here, before it is logged.
+            abort(400)
+        duckdb_query = ag_grid_to_duckdb(name=name, filters=filters)
         event: EventName
         if per_page == DEFAULT_PREVIEW_PAGE:
             event = "duckdb_preview"
@@ -664,7 +669,7 @@ def create_app():
         else:
             event = "duckdb_other"
 
-        log_event(event, url=request.full_path, params=dict(request.args))
+        log_event(event, url=request.full_path, params=loggable_params(request.args))
         offset = (page - 1) * per_page
         duckdb_query.statement += f" LIMIT {per_page} OFFSET {offset}"
         return asdict(duckdb_query)

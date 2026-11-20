@@ -75,7 +75,7 @@ class QuerySpec:
 
 def __ag_filters_to_where(filters: list[Filter]) -> tuple[str, list]:
     """Convert FilterRules to a WHERE clause."""
-    placeholder_casts = {"date": "?::DATE", "datetime": "epoch_ms(?::BIGINT)"}
+    placeholder_casts = {"date": "?::DATE"}
     clause_templates = {
         "equals": "{col} = {placeholder}",
         "notequal": "{col} != {placeholder}",

@@ -57,6 +57,8 @@ DUCKDB_PARAMS = frozenset({"name", "filters", "page", "perPage"})
 # ``number``). The grid forwards these straight into the ``filters`` param.
 AG_GRID_MAJOR_VERSION = 36
 AG_GRID_FILTER_TYPES = ("text", "number", "bigint", "date")
+# What every rendered event carries besides its own fields.
+ALWAYS_LOGGED_KEYS = frozenset({"event", "timestamp", "user_id", "user_domain"})
 
 LOG_LEVELS = {"debug", "info", "warning", "error", "exception", "critical"}
 SLUG = re.compile(r"[a-z][a-z0-9_-]{0,63}\Z")
@@ -279,29 +281,36 @@ def test_ag_grid_version_is_the_one_usage_metrics_was_checked_against():
     )
 
 
-# --- user fields -----------------------------------------------------------------------
+# --- what is rendered ------------------------------------------------------------------
 
 
-def test_events_carry_the_user_id_and_domain_of_the_logged_in_user(capsys):
-    """``log_in`` is logged right after ``login_user``, which is when these appear."""
+class FakeUser:
+    is_authenticated = True
+    is_active = True
+    is_anonymous = False
+
+    def get_id(self):
+        return "42"
+
+    def get_domain(self):
+        return "example.org"
+
+
+@pytest.fixture
+def app():
     from flask import Flask
-    from flask_login import LoginManager, login_user
-
-    class FakeUser:
-        is_authenticated = True
-        is_active = True
-        is_anonymous = False
-
-        def get_id(self):
-            return "42"
-
-        def get_domain(self):
-            return "example.org"
+    from flask_login import LoginManager
 
     app = Flask(__name__)
     app.secret_key = "test"
     login_manager = LoginManager(app)
     login_manager.user_loader(lambda user_id: FakeUser())
+    return app
+
+
+def test_events_carry_the_user_id_and_domain_of_the_logged_in_user(app, capsys):
+    """``log_in`` is logged right after ``login_user``, which is when these appear."""
+    from flask_login import login_user
 
     with app.test_request_context("/callback"):
         log_event("log_in", next_url="/search", is_new_user=False)
@@ -314,3 +323,22 @@ def test_events_carry_the_user_id_and_domain_of_the_logged_in_user(capsys):
     assert (logged_in["user_id"], logged_in["user_domain"]) == ("42", "example.org")
     assert logged_in["event"] == "log_in"
     assert logged_in["next_url"] == "/search"
+
+
+@pytest.mark.parametrize("logged_in", [False, True], ids=["anonymous", "logged-in"])
+@pytest.mark.parametrize("event", sorted(EVENTS))
+def test_rendered_events_have_exactly_the_contract_keys(event, logged_in, app, capsys):
+    """Through the real structlog processors, not ``capture_logs``.
+
+    A key added by a processor (a log level, a request id) would appear on every event
+    and fail every day's usage metrics run, which rejects fields it doesn't expect.
+    """
+    from flask_login import login_user
+
+    with app.test_request_context("/"):
+        if logged_in:
+            login_user(FakeUser())
+        log_event(event, **{name: "x" for name in EVENTS[event].fields})  # type: ignore[arg-type]
+        rendered = json.loads(capsys.readouterr().out)
+
+    assert set(rendered) == ALWAYS_LOGGED_KEYS | EVENTS[event].fields

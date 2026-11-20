@@ -33,7 +33,7 @@ from eel_hole import duckdb_query
 from eel_hole.duckdb_query import Filter, loggable_params
 from eel_hole.logs import EVENTS, EventName, log_event
 
-ROOT = Path(__file__).parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 SOURCE_FILES = sorted(
     p for p in (ROOT / "eel_hole").rglob("*.py") if p.name != "logs.py"
 )

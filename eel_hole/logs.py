@@ -67,7 +67,7 @@ class EventSpec:
 # each event by its exact name, and expects exactly these fields plus ``event``,
 # ``timestamp`` and the ``user_id`` and ``user_domain`` that ``user_info_adder`` adds
 # to every event. Names must be lower-case slugs and changes here must be mirrored
-# there; tests/test_logging_contract.py enforces both.
+# there; tests/unit/test_logging_contract.py enforces both.
 EVENTS: dict[str, EventSpec] = {
     "log_in": EventSpec("info", frozenset({"next_url", "is_new_user"})),
     "search": EventSpec("info", frozenset({"url", "query"})),

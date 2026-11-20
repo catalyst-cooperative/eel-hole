@@ -2,14 +2,15 @@
 
 The usage metrics pipeline (catalyst-cooperative/pudl-usage-metrics,
 ``src/usage_metrics/core/eel_hole.py``) reads this app's structlog output from GCP.
-It routes each analytics event by its exact name, validates the ``/api/duckdb``
-request params, and validates the AG Grid filter vocabulary. A change here that isn't
-mirrored there loses data, so these tests fail whenever the contract changes. If one
-fails, update the snapshots below **and** the matching constants in usage metrics:
+It routes each analytics event by its exact name, expects exactly the fields listed
+for it, validates the ``/api/duckdb`` request params, and validates the AG Grid filter
+vocabulary. Any difference fails that day's run there, so these tests fail whenever the
+contract changes. If one fails, update the snapshots below **and** the matching
+constants in usage metrics:
 
-* a new or renamed event -> ``ROUTED_EVENT_TYPES`` (plus a new table, if needed)
-* a changed event field -> ``JsonPayload``
-* a changed ``/api/duckdb`` request param -> ``KNOWN_PARAM_KEYS``
+* a new, renamed or removed event, or a changed event field -> ``EVENT_FIELDS`` (plus
+  a new table, and a field in ``JsonPayload``, if needed)
+* a changed ``/api/duckdb`` request param -> ``KNOWN_PARAM_KEYS`` and ``DuckDBParams``
 * a new AG Grid filter type or operation -> ``ALLOWABLE_FIELD_TYPES`` /
   ``ALLOWABLE_OPERATIONS``
 
@@ -94,9 +95,8 @@ def test_registry_matches_the_contract():
     registered = {name: spec.fields for name, spec in EVENTS.items()}
     assert registered == ANALYTICS_EVENTS, (
         "eel_hole.logs.EVENTS changed. Update ANALYTICS_EVENTS in this file and "
-        "pudl-usage-metrics (ROUTED_EVENT_TYPES for new or renamed events, "
-        "JsonPayload for changed fields, in src/usage_metrics/core/eel_hole.py), or "
-        "the events are dropped or never persisted."
+        "EVENT_FIELDS in pudl-usage-metrics (src/usage_metrics/core/eel_hole.py, plus "
+        "JsonPayload for a new field), or its run fails on every affected event."
     )
 
 

@@ -80,7 +80,7 @@ EVENTS: dict[str, EventSpec] = {
     "verify-email-requested": EventSpec("info", frozenset()),
     "verify-email-failed": EventSpec("warning", frozenset({"status_code"})),
     "refresh-email-verification-failed": EventSpec(
-        "warning", frozenset({"status_code", "user_id"})
+        "warning", frozenset({"status_code"})
     ),
 }
 

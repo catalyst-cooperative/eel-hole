@@ -46,7 +46,7 @@ ANALYTICS_EVENTS: dict[str, frozenset[str]] = {
     "privacy-policy": frozenset({"accepted", "outreach", "newsletter"}),
     "verify-email-requested": frozenset(),
     "verify-email-failed": frozenset({"status_code"}),
-    "refresh-email-verification-failed": frozenset({"status_code", "user_id"}),
+    "refresh-email-verification-failed": frozenset({"status_code"}),
 }
 
 # The query-string keys of ``/api/duckdb`` (what ``params`` carries in the logs).

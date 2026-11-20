@@ -401,9 +401,7 @@ def create_app():
 
         if not response.ok:
             log_event(
-                "refresh-email-verification-failed",
-                status_code=response.status_code,
-                user_id=current_user.get_id(),
+                "refresh-email-verification-failed", status_code=response.status_code
             )
             abort(502)
 

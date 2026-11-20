@@ -1,6 +1,8 @@
 "Centralized logging configuration."
 
 import logging
+from dataclasses import dataclass
+from typing import Any, Literal
 
 import structlog
 from flask_login import current_user
@@ -37,3 +39,57 @@ structlog.configure(
 )
 
 log = structlog.get_logger()
+
+
+EventName = Literal[
+    "log_in",
+    "search",
+    "preview",
+    "duckdb_preview",
+    "duckdb_csv",
+    "duckdb_other",
+    "privacy-policy",
+    "verify-email-requested",
+    "verify-email-failed",
+    "refresh-email-verification-failed",
+]
+
+
+@dataclass(frozen=True)
+class EventSpec:
+    """How an analytics event is logged: its level and its keyword fields."""
+
+    level: Literal["info", "warning"]
+    fields: frozenset[str]
+
+
+# Every analytics event the app logs. pudl-usage-metrics parses these logs and routes
+# each event by its exact name, so names must be lower-case slugs and changes here
+# must be mirrored there; tests/test_logging_contract.py enforces both. ``user_id``
+# and ``user_domain`` are added to every event by ``user_info_adder``.
+EVENTS: dict[str, EventSpec] = {
+    "log_in": EventSpec("info", frozenset({"next_url", "is_new_user"})),
+    "search": EventSpec("info", frozenset({"url", "query"})),
+    "preview": EventSpec("info", frozenset({"package", "table_name", "partition"})),
+    "duckdb_preview": EventSpec("info", frozenset({"url", "params"})),
+    "duckdb_csv": EventSpec("info", frozenset({"url", "params"})),
+    "duckdb_other": EventSpec("info", frozenset({"url", "params"})),
+    "privacy-policy": EventSpec(
+        "info", frozenset({"accepted", "outreach", "newsletter"})
+    ),
+    "verify-email-requested": EventSpec("info", frozenset()),
+    "verify-email-failed": EventSpec("warning", frozenset({"status_code"})),
+    "refresh-email-verification-failed": EventSpec(
+        "warning", frozenset({"status_code", "user_id"})
+    ),
+}
+
+
+def log_event(event: EventName, **fields: Any) -> None:
+    """Log an analytics event that pudl-usage-metrics will pick up.
+
+    Use this, not ``log``, for anything that should show up in usage metrics. ``log``
+    is for operational messages (prose). The event name must be in ``EVENTS`` and the
+    fields must be the ones it lists; the contract tests check both at every call site.
+    """
+    getattr(log, EVENTS[event].level)(event, **fields)

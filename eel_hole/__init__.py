@@ -37,7 +37,7 @@ from eel_hole.auth0_management import get_auth0_management_client
 from eel_hole.dashboards_config import load_dashboards_config
 from eel_hole.duckdb_query import Filter, ag_grid_to_duckdb
 from eel_hole.feature_variants import FeatureVariants, get_variant
-from eel_hole.logs import log
+from eel_hole.logs import EventName, log, log_event
 from eel_hole.models import User, db
 from eel_hole.search import (
     SEARCH_PACKAGES,
@@ -309,6 +309,7 @@ def create_app():
         token = auth0.authorize_access_token()
         userinfo = token["userinfo"]
         user = User.query.filter_by(auth0_id=userinfo["sub"]).first()
+        is_new_user = user is None
         if not user:
             user = User.from_userinfo(userinfo)
             db.session.add(user)
@@ -319,6 +320,8 @@ def create_app():
                 user.email_verified = email_verified
                 db.session.commit()
         login_user(user, remember=True)
+        # After login_user, so the event carries the user's id and email domain.
+        log_event("log_in", next_url=next_url, is_new_user=is_new_user)
         return redirect(next_url)
 
     @app.post("/verify-email")
@@ -347,7 +350,7 @@ def create_app():
                 client_secret=AUTH0_USER_API_CLIENT_SECRET,
             )
         except HTTPError as err:
-            log.warning("verify-email-failed", status_code=err.response.status_code)
+            log_event("verify-email-failed", status_code=err.response.status_code)
             return (
                 render_template(
                     "partials/verify_email_banner.html",
@@ -360,7 +363,7 @@ def create_app():
         )
 
         if not response.ok:
-            log.warning("verify-email-failed", status_code=response.status_code)
+            log_event("verify-email-failed", status_code=response.status_code)
             return (
                 render_template(
                     "partials/verify_email_banner.html",
@@ -369,7 +372,7 @@ def create_app():
                 200,
             )
 
-        log.info("verify-email-requested")
+        log_event("verify-email-requested")
         return (
             render_template(
                 "partials/verify_email_banner.html",
@@ -397,7 +400,7 @@ def create_app():
         response = auth0_management_client.get_user(current_user.auth0_id)
 
         if not response.ok:
-            log.warning(
+            log_event(
                 "refresh-email-verification-failed",
                 status_code=response.status_code,
                 user_id=current_user.get_id(),
@@ -478,7 +481,7 @@ def create_app():
             "send_newsletter" in request.form
             and request.form["send_newsletter"] == "on"
         )
-        log.info(
+        log_event(
             "privacy-policy",
             accepted=accepted,
             outreach=outreach,
@@ -496,7 +499,7 @@ def create_app():
     def resources_from_request():
         """Use request information to either run a search or return a resource collection."""
         query = request.args.get("q")
-        log.info("search", url=request.full_path, query=query)
+        log_event("search", url=request.full_path, query=query)
 
         search_package = request.args.get("package", "pudl")
 
@@ -655,6 +658,7 @@ def create_app():
         DEFAULT_PREVIEW_PAGE = 10_000
         DEFAULT_CSV_EXPORT_PAGE = 1_000_000
         per_page = int(request.args.get("perPage", DEFAULT_PREVIEW_PAGE))
+        event: EventName
         if per_page == DEFAULT_PREVIEW_PAGE:
             event = "duckdb_preview"
         elif per_page == DEFAULT_CSV_EXPORT_PAGE:
@@ -662,7 +666,7 @@ def create_app():
         else:
             event = "duckdb_other"
 
-        log.info(event, url=request.full_path, params=dict(request.args))
+        log_event(event, url=request.full_path, params=dict(request.args))
         offset = (page - 1) * per_page
         duckdb_query.statement += f" LIMIT {per_page} OFFSET {offset}"
         return asdict(duckdb_query)
@@ -700,7 +704,9 @@ def create_app():
             table_name: the name of the table to preview
             partition: optional partition identifier (e.g., "2024q1" for EQR tables)
         """
-        log.info("preview", package=package, table_name=table_name, partition=partition)
+        log_event(
+            "preview", package=package, table_name=table_name, partition=partition
+        )
 
         resource = next((r for r in all_resources if r.name == table_name), None)
 

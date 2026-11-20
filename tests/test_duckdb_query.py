@@ -87,7 +87,7 @@ def rows():
                     value="2024-01-02",
                 ),
                 Filter(
-                    field_type="float",
+                    field_type="number",
                     field_name="float_col",
                     operation="equals",
                     value=3.5,

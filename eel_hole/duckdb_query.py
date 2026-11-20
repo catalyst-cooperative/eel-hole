@@ -1,9 +1,42 @@
 """Generate DuckDB queries."""
 
 import itertools
+from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import Literal
 
 from pydantic import BaseModel
+
+DUCKDB_PARAMS = frozenset({"name", "filters", "page", "perPage"})
+"""The query-string keys of ``/api/duckdb``. Only these are read, and only these are
+logged, so the logged ``params`` can't carry anything else a caller adds."""
+
+FilterType = Literal["text", "number", "bigint", "date"]
+"""The AG Grid ``filterType`` values our columns produce."""
+
+FilterOperation = Literal[
+    "equals",
+    "contains",
+    "greaterThan",
+    "greaterThanOrEqual",
+    "lessThan",
+    "lessThanOrEqual",
+    "notBlank",
+    "startsWith",
+    "endsWith",
+    "notEqual",
+    "notContains",
+    "inRange",
+    "blank",
+    "false",
+    "true",
+]
+"""The AG Grid filter operations, in AG Grid's own camelCase spelling."""
+
+
+def loggable_params(args: Mapping[str, str]) -> dict[str, str]:
+    """The request args that belong in the logged ``params``: the known ones."""
+    return {key: value for key, value in args.items() if key in DUCKDB_PARAMS}
 
 
 def _camelize(string: str) -> str:
@@ -15,11 +48,13 @@ def _camelize(string: str) -> str:
 class Filter(BaseModel):
     """Represent a filter.
 
-    Some operations have two values (between) so we need two value slots."""
+    Some operations have two values (between) so we need two value slots. The type and
+    operation must be ones AG Grid sends: a request with any other is rejected, because
+    the filters are logged and parsed by pudl-usage-metrics."""
 
     field_name: str
-    field_type: str
-    operation: str
+    field_type: FilterType
+    operation: FilterOperation
     value: str | int | float | bool | None = None
     value_to: str | int | float | bool | None = None
 

@@ -105,10 +105,21 @@ Auth0 credentials for development.
 
 ## Tests
 
+The tests are organized by category in subdirectories of `tests/`:
+
+- `tests/unit`: fast tests that need nothing running.
+- `tests/integration`: browser tests that drive the running app with Playwright.
+- `tests/relevancy`: search quality tests that query the running app.
+
+Options shared by every category (such as `--experiment`) are registered in
+`tests/conftest.py`; each category's own fixtures and hooks are in its `conftest.py`.
+In CI, each category runs as its own job of the `pytest` workflow
+(`.github/workflows/pytest.yml`).
+
 To run the unit tests:
 
 ```
-$ uv run pytest tests/test_*
+$ uv run pytest tests/unit
 ```
 
 To run the integration tests:
@@ -123,10 +134,10 @@ $ uv run pytest tests/integration
 This uses `playwright` to run through some user flows.
 Make sure you have a stable Internet connection, otherwise you'll hit a bunch of timeouts.
 
-To run the search relevancy tests:
+To run the search relevancy tests (these also need the running app):
 
 ```
-$ uv run pytest -s tests/relevancy/test_*
+$ uv run pytest -s tests/relevancy
 ```
 
 ## Feature Variants

@@ -2,6 +2,8 @@
 
 - Use `uv` to run Python project commands.
 - Run tests with `uv run pytest ...` (not bare `pytest`).
+- Tests live in `tests/unit`, `tests/integration` and `tests/relevancy`. Run the unit
+  tests with `uv run pytest tests/unit`; they need no running app.
 - Run `npm run build` after TypeScript/JavaScript/CSS changes.
 - Use Prettier to format TypeScript and HTML files.
 

@@ -1,0 +1,126 @@
+---
+name: pytest
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+jobs:
+  pytest-unit:
+    name: pytest-unit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.3
+
+      - name: Install Python dependencies
+        run: uv sync
+
+      - name: pytest-unit
+        run: uv run pytest tests/unit -v
+
+  pytest-integration:
+    name: pytest-integration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.3
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Install Python dependencies
+        run: |
+          uv sync
+          uv pip install -e .
+
+      - name: Install Playwright
+        run: uv run playwright install chromium
+
+      - name: Start Docker Compose services
+        run: docker compose up -d
+        env:
+          PUDL_VIEWER_INTEGRATION_TEST: true
+
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for services to be ready..."
+          timeout 90 bash -c 'until curl -f http://localhost:8080 > /dev/null 2>&1; do sleep 2; done' || (echo "Service failed to start" && docker compose logs && exit 1)
+
+      - name: Run database migrations
+        run: docker compose exec -T eel_hole uv run flask --app eel_hole db upgrade
+
+      - name: Run integration tests
+        run: uv run pytest tests/integration -v
+
+      - name: Show Docker logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Stop Docker Compose services
+        if: always()
+        run: docker compose down -v
+
+  pytest-relevancy:
+    name: pytest-relevancy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.3
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Install Python dependencies
+        run: |
+          uv sync
+          uv pip install -e .
+
+      - name: Start Docker Compose services
+        run: docker compose up -d
+        env:
+          PUDL_VIEWER_INTEGRATION_TEST: true
+
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for services to be ready..."
+          timeout 90 bash -c 'until curl -f http://localhost:8080 > /dev/null 2>&1; do sleep 2; done' || (echo "Service failed to start" && docker compose logs && exit 1)
+
+      - name: Run database migrations
+        run: docker compose exec -T eel_hole uv run flask --app eel_hole db upgrade
+
+      - name: Run search relevancy tests
+        run: uv run pytest tests/relevancy -v
+
+      - name: Show Docker logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Stop Docker Compose services
+        if: always()
+        run: docker compose down -v

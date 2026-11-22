@@ -11,12 +11,6 @@ def pytest_configure(config):
     config._sweep_results = []
 
 
-def pytest_addoption(parser):
-    parser.addoption(
-        "--experiment", action="store", default=None, help="experiment config YAML"
-    )
-
-
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
     """Print consolidated relevancy metrics at the end of the test session."""
     reports = getattr(config, "_relevancy_reports", {})

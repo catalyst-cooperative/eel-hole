@@ -87,7 +87,7 @@ def rows():
                     value="2024-01-02",
                 ),
                 Filter(
-                    field_type="float",
+                    field_type="number",
                     field_name="float_col",
                     operation="equals",
                     value=3.5,
@@ -106,6 +106,30 @@ def rows():
                 )
             ],
             [2, 3, 4],
+        ),
+        # Timestamp columns get a date filter too: the date is compared as midnight.
+        (
+            [
+                Filter(
+                    field_name="datetime_col",
+                    field_type="date",
+                    operation="greaterThan",
+                    value="2024-01-02",
+                )
+            ],
+            [2, 3, 4],
+        ),
+        (
+            [
+                Filter(
+                    field_name="datetime_col",
+                    field_type="date",
+                    operation="inRange",
+                    value="2024-01-01",
+                    valueTo="2024-01-03",
+                )
+            ],
+            [1, 2],  # 2024-01-03 01:01 is after the end date's midnight
         ),
     ],
 )
